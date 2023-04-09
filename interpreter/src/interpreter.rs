@@ -8,8 +8,7 @@ use types::error::ExecutionError;
 use types::flow::{Codel, Direction, FindAdj, FURTHEST, MOVE_IN};
 use types::instruction::Instruction;
 use types::program::Program;
-use types::state::Position;
-use types::state::{ExecutionResult, ExecutionState};
+use types::state::{Position, ExecutionResult, ExecutionState};
 
 pub struct Interpreter<'a> {
     program: &'a Program<'a>,
