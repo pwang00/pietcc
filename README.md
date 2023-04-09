@@ -1,4 +1,4 @@
-# Piet Compiler and Interpreter
+# PietCC
 
 PietCC is a Rust interpreter (and eventually compiler, WIP) for the Piet esoteric language. The interpreter supports four levels of logging.
 
@@ -21,7 +21,8 @@ The repository is organized into four main components:
 Clone this repository via
 
 ```
-git clone https://github.com/yourusername/piet-compiler-interpreter.git
+git clone https://github.com/pwang00/pietcc
+cd pietcc
 ```
 
 ## Usage
@@ -45,4 +46,8 @@ OPTIONS:
     -v, --verbosity <verbosity>    Sets the interpreter's verbosity
 ```
 
-To interpret
+To interpret a program, for example, you can do 
+
+```
+cargo run -- images/fizzbuzz.png -i -v 2
+```
