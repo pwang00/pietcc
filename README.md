@@ -1,6 +1,6 @@
 # PietCC
 
-PietCC is a Rust interpreter (and eventually compiler, WIP) for the Piet esoteric language. The interpreter supports four levels of logging.
+PietCC is a Rust interpreter (and eventually compiler, WIP) for the Piet esoteric language. The interpreter supports automatic codel size inference and various levels of logging based on verbosity. 
 
 ## Organization
 
