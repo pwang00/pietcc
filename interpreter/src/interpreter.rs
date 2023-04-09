@@ -397,11 +397,11 @@ impl<'a> Interpreter<'a> {
                     self.state.pos = self.recalculate_entry(&block);
                     self.state.rctr += 1;
                 }
-                Some(color) => {
+                Some(&color) => {
                     self.state.pos = next_pos;
 
                     if let Some(instr) =
-                        <Self as DecodeInstruction>::decode_instr(lightness, *color)
+                        <Self as DecodeInstruction>::decode_instr(lightness, color)
                     {
                         let res = self.exec_instr(instr);
 
