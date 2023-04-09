@@ -1,5 +1,5 @@
 use crate::settings::{CodelSettings, InterpSettings, Verbosity};
-use parser::infer::InferCodelSize;
+use parser::infer::InferCodelWidth;
 use parser::{convert::ConvertToLightness, decode::DecodeInstruction};
 use std::collections::{HashSet, VecDeque};
 use std::{io, io::Read};
@@ -8,7 +8,7 @@ use types::error::ExecutionError;
 use types::flow::{Codel, Direction, FindAdj, FURTHEST, MOVE_IN};
 use types::instruction::Instruction;
 use types::program::Program;
-use types::state::{Position, ExecutionResult, ExecutionState};
+use types::state::{ExecutionResult, ExecutionState, Position};
 
 pub struct Interpreter<'a> {
     program: &'a Program<'a>,
@@ -21,13 +21,13 @@ pub struct Interpreter<'a> {
 impl<'a> DecodeInstruction for Interpreter<'a> {}
 impl<'a> ConvertToLightness for Interpreter<'a> {}
 impl<'a> FindAdj for Interpreter<'a> {}
-impl<'a> InferCodelSize for Interpreter<'a> {}
+impl<'a> InferCodelWidth for Interpreter<'a> {}
 
 impl<'a> Interpreter<'a> {
     pub fn new(program: &'a Program, settings: InterpSettings) -> Self {
         let codel_width = match settings.codel_settings {
             CodelSettings::Default => 1,
-            CodelSettings::Infer => Self::infer_codel_size(&program),
+            CodelSettings::Infer => Self::infer_codel_width(&program),
             CodelSettings::Width(codel_width) => codel_width,
         };
 
@@ -375,9 +375,9 @@ impl<'a> Interpreter<'a> {
     pub fn run(&mut self) -> ExecutionResult {
         match self.settings.verbosity {
             Verbosity::Normal | Verbosity::Verbose => println!(
-                "Codel size: {} (width of {})",
-                self.codel_width.pow(2),
-                self.codel_width
+                "Running with codel width of {} (size of {})\n",
+                self.codel_width,
+                self.codel_width.pow(2)
             ),
             _ => (),
         }

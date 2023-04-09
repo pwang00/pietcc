@@ -1,5 +1,5 @@
 use parser::decode::DecodeInstruction;
-use parser::infer::InferCodelSize;
+use parser::infer::InferCodelWidth;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::hash::Hash;
 use std::rc::Rc;
@@ -62,17 +62,17 @@ impl<'a> DecodeInstruction for CFGGenerator<'a> {}
 
 impl<'a> FindAdj for CFGGenerator<'a> {}
 
-impl<'a> InferCodelSize for CFGGenerator<'a> {
-    fn infer_codel_size(program: &Program) -> u32 {
+impl<'a> InferCodelWidth for CFGGenerator<'a> {
+    fn infer_codel_width(program: &Program) -> u32 {
         todo!()
     }
 }
 
 impl<'a> CFGGenerator<'a> {
     // Returns the list of adjacencies for a given position and whether or not it is a boundary
-    pub fn new(prog: &'a Program, infer_codel_size: bool) -> Self {
-        let codel_size = if infer_codel_size {
-            Self::infer_codel_size(&prog)
+    pub fn new(prog: &'a Program, infer_codel_width: bool) -> Self {
+        let codel_size = if infer_codel_width {
+            Self::infer_codel_width(&prog)
         } else {
             1
         };
