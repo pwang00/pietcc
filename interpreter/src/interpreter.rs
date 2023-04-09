@@ -317,13 +317,13 @@ impl<'a> Interpreter<'a> {
             top_n.extend(rest);
             Ok(self.stack = top_n)
         } else {
-            return Err(ExecutionError::StackOutOfBoundsError(
+            Err(ExecutionError::StackOutOfBoundsError(
                 Instruction::Roll,
                 format!(
                     "Skipping Gt since Gt requires at least 2 elements on stack but found {}",
                     self.stack.len()
                 ),
-            ));
+            ))
         }
     }
 
