@@ -2,7 +2,7 @@ use crate::settings::{CodelSettings, InterpSettings, Verbosity};
 use parser::infer::InferCodelSize;
 use parser::{convert::ConvertToLightness, decode::DecodeInstruction};
 use std::collections::{HashSet, VecDeque};
-use std::io::{self, Read};
+use std::{io, io::Read};
 use types::color::Lightness::Black;
 use types::error::ExecutionError;
 use types::flow::{Codel, Direction, FindAdj, FURTHEST, MOVE_IN};
@@ -400,8 +400,7 @@ impl<'a> Interpreter<'a> {
                 Some(&color) => {
                     self.state.pos = next_pos;
 
-                    if let Some(instr) =
-                        <Self as DecodeInstruction>::decode_instr(lightness, color)
+                    if let Some(instr) = <Self as DecodeInstruction>::decode_instr(lightness, color)
                     {
                         let res = self.exec_instr(instr);
 
