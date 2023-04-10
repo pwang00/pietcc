@@ -125,7 +125,7 @@ impl<'a> CFGGenerator<'a> {
 
         while !queue.is_empty() {
             let pos = queue.pop_front().unwrap();
-            let adjs = self.adjacencies(pos, &self.program, self.codel_size);
+            let adjs = Self::adjacencies(pos, &self.program, self.codel_size);
 
             let in_block = adjs
                 .iter()

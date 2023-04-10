@@ -80,7 +80,7 @@ impl DirectionOps for Codel {
 }
 
 pub trait FindAdj {
-    fn adjacencies(&self, (r, c): Position, program: &Program, cs: u32) -> Vec<Position> {
+    fn adjacencies((r, c): Position, program: &Program, cs: u32) -> Vec<Position> {
         vec![
             (r.wrapping_add(cs), c),
             (r.wrapping_sub(cs), c),

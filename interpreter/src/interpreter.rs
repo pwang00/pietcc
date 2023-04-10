@@ -70,7 +70,7 @@ impl<'a> Interpreter<'a> {
             let pos = queue.pop_front().unwrap();
             discovered.insert(pos);
 
-            let adjs = self.adjacencies(pos, self.program, self.codel_width);
+            let adjs = Self::adjacencies(pos, self.program, self.codel_width);
             let in_block = adjs
                 .iter()
                 .filter(|&&pos| *self.program.get(pos).unwrap() == lightness)
@@ -329,8 +329,9 @@ impl<'a> Interpreter<'a> {
 
     #[inline]
     pub(crate) fn int_in(&mut self) -> Result<(), ExecutionError> {
+        self.state.stdin.clear();
         let _ = io::stdin().read_line(&mut self.state.stdin);
-        if let Ok(n) = self.state.stdin.parse::<i64>() {
+        if let Ok(n) = self.state.stdin.trim().parse::<i64>() {
             Ok(self.stack.push_front(n))
         } else {
             Err(ExecutionError::ParseError(
@@ -342,6 +343,7 @@ impl<'a> Interpreter<'a> {
 
     #[inline]
     pub(crate) fn char_in(&mut self) -> Result<(), ExecutionError> {
+        self.state.stdin.clear();
         let char = io::stdin()
             .bytes()
             .next()

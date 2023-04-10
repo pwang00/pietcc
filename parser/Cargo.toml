@@ -11,3 +11,4 @@ path = "src/lib.rs"
 piet-types = { version = "0.1", path = "../types" }
 image = "0.24.5"
 gcd = "2.3.0"
+rand = "0.8"
