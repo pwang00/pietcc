@@ -13,8 +13,8 @@ The repository is organized into four main components:
 
 ## Progress
 
-- [x] Interpreter: Functionally complete but needs refactoring and additional beautifying
-- [ ] Compiler: In progress (working on code generation and CFG optimization)
+- [x] Interpreter: functionally complete but needs refactoring and additional beautifying
+- [ ] Compiler: in active development (working on code generation and CFG optimization)
 
 ## Installation
 
