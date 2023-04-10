@@ -14,7 +14,7 @@ pub trait InferCodelWidth: FindAdj {
 
         let mut gcds = Vec::<u32>::new();
 
-        for _ in 0..4 {
+        for _ in 0..5 {
             let ex = rand::thread_rng().gen_range(0..height);
             let ey = rand::thread_rng().gen_range(0..width);
 

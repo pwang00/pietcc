@@ -87,7 +87,7 @@ fn main() {
             settings.codel_settings = CodelSettings::Default;
             settings.verbosity = verbosity;
 
-            println!("{:?}", verbosity);
+            println!("Running with verbosity set to {:?}", verbosity);
         }
 
         if matches.is_present("interpret") {
