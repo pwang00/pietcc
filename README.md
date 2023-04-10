@@ -6,10 +6,10 @@ PietCC is a Rust interpreter (and eventually compiler, WIP) for the Piet esoteri
 
 The repository is organized into four main components:
 
-1. `types`: Core types shared between the interpreter, compiler, and parser
-2. `interpreter`: Interprets Piet programs and supports automatic codel size inference
-3. `compiler`: Generates control flow graphs for Piet programs and uses Inkwell to generate LLVM IR
-4. `main`: Parses command line arguments and runs either the compiler or interpreter depending on the user's choice
+1. `types`: core types shared between the interpreter, compiler, and parser
+2. `interpreter`: core interpreter logic
+3. `compiler`: core compiler logic, handles CFG generation and uses Inkwell to generate LLVM IR from CFGs.
+4. `main`: main CLI, allows users to run either the interpreter or compiler with a variety of flags.
 
 ## Progress
 
@@ -50,4 +50,24 @@ To interpret a program, for example, you can do
 
 ```
 cargo run -- images/fizzbuzz.png -i -v 2
+
+Running with codel width of 1 (size of 1)
+
+1
+2
+Fizz
+4
+Buzz
+Fizz
+7
+8
+Fizz
+Buzz
+11
+Fizz
+13
+14
+FizzBuzz
+16
+
 ```
