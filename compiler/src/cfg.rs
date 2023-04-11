@@ -178,6 +178,8 @@ impl<'a> CFGGenerator<'a> {
     }
 }
 
+#[cfg(test)]
+
 mod test {
     use super::*;
     use std::{
@@ -191,8 +193,6 @@ mod test {
         obj.hash(&mut hasher);
         hasher.finish()
     }
-
-    #[cfg(test)]
     #[test]
     fn test_colorblock_eq_hash() {
         let cb1 = ColorBlock {
