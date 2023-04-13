@@ -62,20 +62,9 @@ impl<'a> DecodeInstruction for CFGGenerator<'a> {}
 
 impl<'a> FindAdj for CFGGenerator<'a> {}
 
-impl<'a> InferCodelWidth for CFGGenerator<'a> {
-    fn infer_codel_width(program: &Program) -> u32 {
-        todo!()
-    }
-}
-
 impl<'a> CFGGenerator<'a> {
     // Returns the list of adjacencies for a given position and whether or not it is a boundary
-    pub fn new(prog: &'a Program, infer_codel_width: bool) -> Self {
-        let codel_size = if infer_codel_width {
-            Self::infer_codel_width(&prog)
-        } else {
-            1
-        };
+    pub fn new(prog: &'a Program, codel_size: u32) -> Self {
         CFGGenerator {
             program: prog,
             adjacencies: HashMap::new(),
@@ -255,7 +244,7 @@ mod test {
         ];
 
         let prog = Program::new(&vec, 6, 3);
-        let mut cfg_gen = CFGGenerator::new(&prog, true);
+        let mut cfg_gen = CFGGenerator::new(&prog, 1);
 
         cfg_gen.analyze();
 

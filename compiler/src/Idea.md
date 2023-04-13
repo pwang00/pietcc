@@ -30,78 +30,20 @@ In a `ColorBlock`:
 Generating a CFG for Piet can be done in the following steps:
 
 1. Discover all pixels in the current color block via BFS.  
-2. Once discovery is done, select some random coordinate from the boundary set and explore it.  Call the resulting color block B.
+2. Determine all possible exits from the current color block, and enqueue the ones that haven't already been discovered.
 3. Iterate through the remaining coordinates in the boundaries and filter out the ones that are contained in B's region.  This is important since otherwise we might be doing repeated work trying to discover the same color block.
 4. Discover each color block corresponding to distinct boundaries in A's boundary set, and enqueue these.
 
-## Code Generation
+## Code Generation (Idea)
 
-We represent every color block as its own label.  The CFG encodes both the color of the block and possible exits, and thus also the command to be executed.  
+We represent every color block as its own function, referencing the global stack, direction pointer, and codel chooser. The CFG encodes both the color of the block and possible exits, and thus also the command to be executed.  Generally speaking
 
-We want the following:
+* A global stack depth, equivalent to number of elements in the stack * sizeof(i64) = 8
+* A global Piet stack, allocated via malloc.  Basically due to the way malloc works, it's easiest to just push an element at *(stack + stack_depth * 8) and pop by doing stack_depth - 8
+* A global direction pointer
+* A global codel chooser
+* An array of function pointers corresponding to Piet instructions
+* A function for every color block.
 
-* A global dynamically allocated stack to act as the Piet stack.  We can build an LLVM function signature matching libc malloc and call it to generate the runtime stack.
-
-## Calling convention
-
-Maintain the following registers: 
-
-* `rsi`: pointer to dynamically allocated Piet stack 
-* `rax`: direction pointer state ({0 ... 4} for right, down, left, up).
-* `rbx`: codel chooser state ({0, 1} for left, right)
-* `rcx`: address of current color block (label address should be known at compile-time)
-* `r8`: color of previous color block
-* `r9`: color of current color block
-* `r10`: number of codels in a color block.
-* `r11`: Piet stack depth (so we can add back the correct offset to align the stack after upon termination, if termination occurs).
-* `r12`: retries counter (if we hit 8, then terminate the program)
-* `r13`: old label address (we need this to determine whether or not to increment the retries counter)
-
-Everything else can be just pushed / popped from the stack, though I suspect handling edge cases such as there not being enough operands on the stack will be pretty annoying.
-
-Notes:
-
-* The color of each block (discarding white and black) can be represented by some value in Zmod(18), so that their differences, which encode the command to be executed, are also in that range.  
-* We can compile an auxiliary function that decodes the command based on `r9 - r8` and chooses which command to call.
-
-# Execution
-
-As an example, consider a small square Piet program with only 4 color blocks corresponding to vertices `v_1 ... v_4`, like so:
-
-![](example.png)
-
-So 
-
-* `v_1` is bordered by `v_2` and `v_3` 
-* `v_2` is bordered by `v_1` and `v_4`
-* `v_3` is bordered by `v_1` and `v_4`
-* `v_4` is bordered by `v_2` and `v_3`.  
-
-Thus, we can assign some label name to each `v_i`, and output code to jump to a certain adjacency of `v_i` depending on the values of dp / cc, or back to itself if none of the values are valid.  For example, for `v_2`, we could output the following asm: 
-
-```
-label_v2:
-  sub rdx, r9, r8
-  mov r12, 0
-
-  ; Casework on cc
-  ; 0 for left, 1 for right
-
-  cmp rbx, 0
-  je label_v2_dp
-  cmp rbx, 1
-  je label_v2_dp
-
-label_v2_invalid:
-  call increment_retries_counter
-  jmp label_v2
-
-label_v2_dp:
-  ; Casework on dp
-  ; v_2 has two adjacencies: one to the left and one below.
-  cmp rax, 1
-  jmp label_v1
-  cmp rax, 2
-  jmp label_v4
-```
+As far as I'm aware, this can be done with inkwell.
 

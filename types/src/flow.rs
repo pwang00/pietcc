@@ -37,8 +37,8 @@ pub enum Direction {
 #[repr(u8)]
 pub enum Codel {
     #[default]
-    Left,
-    Right,
+    Left = 0,
+    Right = 1,
 }
 
 impl Direction {
