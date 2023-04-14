@@ -40,7 +40,7 @@ impl<'a, 'b> CodeGen<'a, 'b> {
         let push_fn = self.module.add_function("piet_push", push_fn_type, None);
         let basic_block = self.context.append_basic_block(push_fn, "");
         self.builder.position_at_end(basic_block);
-        
+
         let stack_addr = self
             .module
             .get_global("piet_stack")
@@ -60,13 +60,14 @@ impl<'a, 'b> CodeGen<'a, 'b> {
 
         let const_1 = self.context.i64_type().const_int(1, false);
 
-        let top_ptr = self.builder.build_load(unsafe {
-            self.builder
-                .build_gep(stack_addr, &[stack_size_val], "")
-        }, "top_elem_ptr");
+        let top_ptr = self.builder.build_load(
+            unsafe { self.builder.build_gep(stack_addr, &[stack_size_val], "") },
+            "top_elem_ptr",
+        );
 
         let first_param = push_fn.get_first_param().unwrap();
-        self.builder.build_store(top_ptr.into_pointer_value(), first_param);
+        self.builder
+            .build_store(top_ptr.into_pointer_value(), first_param);
 
         let updated_stack_size =
             self.builder
@@ -82,22 +83,12 @@ impl<'a, 'b> CodeGen<'a, 'b> {
         let void_type = self.context.void_type();
         let binop_fn_type = void_type.fn_type(&[], false);
         let binop_fn = match instr {
-            Instruction::Add => {
-                self.module.add_function("piet_add", binop_fn_type, None)
-            },
-            Instruction::Sub => {
-                self.module.add_function("piet_sub", binop_fn_type, None)
-            },
-            Instruction::Div => {
-                self.module.add_function("piet_div", binop_fn_type, None)
-            },
-            Instruction::Mul => {
-                self.module.add_function("piet_mul", binop_fn_type, None)
-            },
-            Instruction::Mod => {
-                self.module.add_function("piet_mod", binop_fn_type, None)
-            }
-            _ => panic!("Not a binary operation!")
+            Instruction::Add => self.module.add_function("piet_add", binop_fn_type, None),
+            Instruction::Sub => self.module.add_function("piet_sub", binop_fn_type, None),
+            Instruction::Div => self.module.add_function("piet_div", binop_fn_type, None),
+            Instruction::Mul => self.module.add_function("piet_mul", binop_fn_type, None),
+            Instruction::Mod => self.module.add_function("piet_mod", binop_fn_type, None),
+            _ => panic!("Not a binary operation!"),
         };
 
         // i64s are 64 bits, so we want to do stack[stack_size - 1] + stack[stack_size - 2] if possible
@@ -128,19 +119,13 @@ impl<'a, 'b> CodeGen<'a, 'b> {
             .builder
             .build_int_sub(stack_size_val, const_1, "top_elem_idx");
 
-        let top_ptr = unsafe {
-            self.builder
-                .build_gep(stack_addr, &[top_idx], "")
-        };
+        let top_ptr = unsafe { self.builder.build_gep(stack_addr, &[top_idx], "") };
 
         let next_idx = self
             .builder
             .build_int_sub(stack_size_val, const_2, "next_elem_idx");
 
-        let next_ptr = unsafe {
-            self.builder
-                .build_gep(stack_addr, &[next_idx], "")
-        };
+        let next_ptr = unsafe { self.builder.build_gep(stack_addr, &[next_idx], "") };
 
         let top_ptr = self.builder.build_load(top_ptr, "top_elem_ptr");
         let next_ptr = self.builder.build_load(next_ptr, "next_elem_ptr");
@@ -152,43 +137,33 @@ impl<'a, 'b> CodeGen<'a, 'b> {
             .builder
             .build_load(next_ptr.into_pointer_value(), "next_elem_val");
 
-        let result = match instr{
-            Instruction::Add => {
-                self.builder.build_int_add(
-                    next_ptr_val.into_int_value(),
-                    top_ptr_val.into_int_value(),
-                    "add",
-                )
-            },
-            Instruction::Sub => {
-                self.builder.build_int_sub(
-                    next_ptr_val.into_int_value(),
-                    top_ptr_val.into_int_value(),
-                    "sub",
-                )
-            },
-            Instruction::Mul => {
-                self.builder.build_int_mul(
-                    next_ptr_val.into_int_value(),
-                    top_ptr_val.into_int_value(),
-                    "mul",
-                )
-            },
-            Instruction::Div => {
-                self.builder.build_int_signed_div(
-                    next_ptr_val.into_int_value(),
-                    top_ptr_val.into_int_value(),
-                    "div",
-                )
-            },
-            Instruction::Mod => {
-                self.builder.build_int_signed_rem(
-                    next_ptr_val.into_int_value(),
-                    top_ptr_val.into_int_value(),
-                    "mod",
-                )
-            }
-            _ => panic!("Not a binary operation!")
+        let result = match instr {
+            Instruction::Add => self.builder.build_int_add(
+                next_ptr_val.into_int_value(),
+                top_ptr_val.into_int_value(),
+                "add",
+            ),
+            Instruction::Sub => self.builder.build_int_sub(
+                next_ptr_val.into_int_value(),
+                top_ptr_val.into_int_value(),
+                "sub",
+            ),
+            Instruction::Mul => self.builder.build_int_mul(
+                next_ptr_val.into_int_value(),
+                top_ptr_val.into_int_value(),
+                "mul",
+            ),
+            Instruction::Div => self.builder.build_int_signed_div(
+                next_ptr_val.into_int_value(),
+                top_ptr_val.into_int_value(),
+                "div",
+            ),
+            Instruction::Mod => self.builder.build_int_signed_rem(
+                next_ptr_val.into_int_value(),
+                top_ptr_val.into_int_value(),
+                "mod",
+            ),
+            _ => panic!("Not a binary operation!"),
         };
 
         let updated_stack_size =
@@ -202,7 +177,6 @@ impl<'a, 'b> CodeGen<'a, 'b> {
             .build_store(next_ptr.into_pointer_value(), result);
 
         self.builder.build_return(None);
-        // TODO: Store
     }
 
     pub fn build_globals(&self) {
