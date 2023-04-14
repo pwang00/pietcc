@@ -10,7 +10,7 @@ piet-parser = { version = "0.1", path = "parser" }
 piet-compiler = { version = "0.1", path = "compiler" }
 piet-interpreter = { version = "0.1", path = "interpreter" }
 piet-types = { version = "0.1", path = "types" }
-inkwell = { git = "https://github.com/TheDan64/inkwell", branch = "master", features = ["llvm12-0"] }
+inkwell = { git = "https://github.com/TheDan64/inkwell", branch = "master", features = ["llvm14-0"] }
 image = "0.24.5"
 clap = "3.0.0-beta.5"
 
