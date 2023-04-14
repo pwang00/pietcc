@@ -7,8 +7,8 @@ use inkwell::{
     module::{Linkage, Module},
     types::BasicMetadataTypeEnum::IntType,
     types::BasicType,
-    values::{BasicValue, FunctionValue},
-    AddressSpace,
+    values::{BasicValue, FunctionValue, IntValue},
+    AddressSpace, IntPredicate,
 };
 use types::instruction::Instruction;
 
@@ -88,12 +88,19 @@ impl<'a, 'b> CodeGen<'a, 'b> {
             Instruction::Div => self.module.add_function("piet_div", binop_fn_type, None),
             Instruction::Mul => self.module.add_function("piet_mul", binop_fn_type, None),
             Instruction::Mod => self.module.add_function("piet_mod", binop_fn_type, None),
+            Instruction::Gt => self.module.add_function("piet_gt", binop_fn_type, None),
             _ => panic!("Not a binary operation!"),
         };
 
         // i64s are 64 bits, so we want to do stack[stack_size - 1] + stack[stack_size - 2] if possible
         let basic_block = self.context.append_basic_block(binop_fn, "");
         self.builder.position_at_end(basic_block);
+        let cont_block = self.context.append_basic_block(binop_fn, "cont");
+
+        // These are only used for modulo
+        let then_block = self.context.append_basic_block(binop_fn, "");
+        let else_block = self.context.append_basic_block(binop_fn, "");
+        let ret_block = self.context.insert_basic_block_after(else_block, "ret");
 
         let stack_addr = self
             .module
@@ -107,6 +114,7 @@ impl<'a, 'b> CodeGen<'a, 'b> {
             .unwrap()
             .as_pointer_value();
 
+        let const_0 = self.context.i64_type().const_zero();
         let const_1 = self.context.i64_type().const_int(1, false);
         let const_2 = self.context.i64_type().const_int(2, false);
 
@@ -114,6 +122,19 @@ impl<'a, 'b> CodeGen<'a, 'b> {
             .builder
             .build_load(stack_size_addr, "stack_size")
             .into_int_value();
+
+        let cmp = self.builder.build_int_compare(
+            IntPredicate::SGE,
+            stack_size_val,
+            const_2,
+            "check_stack_size",
+        );
+
+        self.builder
+            .build_conditional_branch(cmp, cont_block, ret_block);
+
+        // Enough elems on stack
+        self.builder.position_at_end(cont_block);
 
         let top_idx = self
             .builder
@@ -133,6 +154,7 @@ impl<'a, 'b> CodeGen<'a, 'b> {
         let top_ptr_val = self
             .builder
             .build_load(top_ptr.into_pointer_value(), "top_elem_val");
+
         let next_ptr_val = self
             .builder
             .build_load(next_ptr.into_pointer_value(), "next_elem_val");
@@ -153,16 +175,73 @@ impl<'a, 'b> CodeGen<'a, 'b> {
                 top_ptr_val.into_int_value(),
                 "mul",
             ),
-            Instruction::Div => self.builder.build_int_signed_div(
-                next_ptr_val.into_int_value(),
-                top_ptr_val.into_int_value(),
-                "div",
-            ),
-            Instruction::Mod => self.builder.build_int_signed_rem(
-                next_ptr_val.into_int_value(),
-                top_ptr_val.into_int_value(),
-                "mod",
-            ),
+            Instruction::Div => {
+                let cmp = self.builder.build_int_compare(
+                    IntPredicate::NE,
+                    top_ptr_val.into_int_value(),
+                    const_0,
+                    "check_dividend_nonzero",
+                );
+                self.builder
+                    .build_conditional_branch(cmp, then_block, ret_block);
+
+                then_block.set_name("dividend_nonzero");
+                self.builder.position_at_end(then_block);
+                self.builder.build_int_signed_div(
+                    next_ptr_val.into_int_value(),
+                    top_ptr_val.into_int_value(),
+                    "div",
+                )
+            }
+            Instruction::Mod => {
+                let mut rem = self.builder.build_int_signed_rem(
+                    next_ptr_val.into_int_value(),
+                    top_ptr_val.into_int_value(),
+                    "mod",
+                );
+
+                /* Modulo is just
+                   if remainder > 0 then remainder
+                   else modulus + remainder
+                */
+                let cmp = self.builder.build_int_compare(
+                    IntPredicate::SGE,
+                    rem,
+                    const_0,
+                    "check_mod_sign",
+                );
+
+                then_block.set_name("lz");
+                else_block.set_name("gez");
+
+                self.builder
+                    .build_conditional_branch(cmp, else_block, then_block);
+                self.builder.position_at_end(then_block);
+                rem = self
+                    .builder
+                    .build_int_add(top_ptr_val.into_int_value(), rem, "rem_result");
+                self.builder.position_at_end(else_block);
+                rem
+            }
+            Instruction::Gt => {
+                /* Modulo is just
+                   if remainder > 0 then remainder
+                   else modulus + remainder
+                */
+                let diff = self.builder.build_int_sub(
+                    next_ptr_val.into_int_value(),
+                    top_ptr_val.into_int_value(),
+                    "sub",
+                );
+                let cmp = self.builder.build_int_compare(
+                    IntPredicate::SGT,
+                    diff,
+                    const_0,
+                    "check_next_gt_top",
+                );
+
+                self.builder.build_int_add(cmp, const_0, "cmp_res")
+            }
             _ => panic!("Not a binary operation!"),
         };
 
@@ -176,6 +255,8 @@ impl<'a, 'b> CodeGen<'a, 'b> {
         self.builder
             .build_store(next_ptr.into_pointer_value(), result);
 
+        // Not enough elems on stack
+        self.builder.position_at_end(ret_block);
         self.builder.build_return(None);
     }
 
@@ -242,11 +323,12 @@ impl<'a, 'b> CodeGen<'a, 'b> {
 
     pub fn generate(&self) -> String {
         self.build_globals();
-        self.build_binop(Instruction::Add);
-        self.build_binop(Instruction::Sub);
-        self.build_binop(Instruction::Div);
-        self.build_binop(Instruction::Mul);
-        self.build_binop(Instruction::Mod);
+        /*self.build_binop(Instruction::Add);
+        self.build_binop(Instruction::Sub);*/
+        //self.build_binop(Instruction::Div);
+        //self.build_binop(Instruction::Mul);
+        //self.build_binop(Instruction::Mod);
+        self.build_binop(Instruction::Gt);
         self.build_push();
         self.build_main();
 
