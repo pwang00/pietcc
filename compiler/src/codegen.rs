@@ -79,6 +79,125 @@ impl<'a, 'b> CodeGen<'a, 'b> {
         self.builder.build_return(None);
     }
 
+    pub fn build_not(&self) {
+        // The stack is only valid from 0 to stack_size, so decrementing the stack size effectively pops the top element off the stack.
+        let void_type = self.context.void_type();
+        let not_fn_type = void_type.fn_type(&[IntType(self.context.i64_type())], false);
+        let not_fn = self.module.add_function("piet_not", not_fn_type, None);
+
+        // Labels
+        let basic_block = self.context.append_basic_block(not_fn, "");
+        let then_block = self.context.append_basic_block(not_fn, "stack_nonempty");
+        let ret_block = self.context.append_basic_block(not_fn, "ret");
+
+        self.builder.position_at_end(basic_block);
+
+        let stack_size_addr = self
+            .module
+            .get_global("stack_size")
+            .unwrap()
+            .as_pointer_value();
+
+        let const_0 = self.context.i64_type().const_int(0, false);
+        let const_1 = self.context.i64_type().const_int(1, false);
+
+        let stack_addr = self
+            .module
+            .get_global("piet_stack")
+            .unwrap()
+            .as_pointer_value();
+
+        let stack_size_val = self
+            .builder
+            .build_load(stack_size_addr, "stack_size")
+            .into_int_value();
+
+        let stack_size_cmp = self.builder.build_int_compare(
+            IntPredicate::SGE,
+            stack_size_val,
+            const_1,
+            "check_stack_size",
+        );
+
+        self.builder.build_conditional_branch(stack_size_cmp, then_block, ret_block);
+        self.builder.position_at_end(then_block);
+        let top_idx = self
+            .builder
+            .build_int_sub(stack_size_val, const_1, "top_elem_idx");
+
+        let top_ptr = unsafe { self.builder.build_gep(stack_addr, &[top_idx], "") };
+
+        let top_ptr = self.builder.build_load(top_ptr, "top_elem_ptr");
+
+        let top_ptr_val = self
+            .builder
+            .build_load(top_ptr.into_pointer_value(), "top_elem_val")
+            .into_int_value();
+
+        let value_cmp = self.builder.build_int_compare(
+            IntPredicate::EQ,
+            top_ptr_val,
+            const_0,
+            "top_value_is_zero",
+        );
+
+        let zext_cmp = self.builder.build_int_z_extend(value_cmp, self.context.i64_type(), "zero_extend_cmp");
+        self.builder
+            .build_store(top_ptr.into_pointer_value(), zext_cmp);
+
+        self.builder.position_at_end(ret_block);
+        self.builder.build_return(None);
+    }
+
+    pub fn build_pop(&self) { 
+        // The stack is only valid from 0 to stack_size, so decrementing the stack size effectively pops the top element off the stack.
+        let void_type = self.context.void_type();
+        let pop_fn_type = void_type.fn_type(&[IntType(self.context.i64_type())], false);
+        let pop_fn = self.module.add_function("piet_pop", pop_fn_type, None);
+
+        // Labels
+        let basic_block = self.context.append_basic_block(pop_fn, "");
+        let then_block = self.context.append_basic_block(pop_fn, "stack_noempty");
+        let ret_block = self.context.append_basic_block(pop_fn, "ret");
+
+        self.builder.position_at_end(basic_block);
+
+        let stack_size_addr = self
+            .module
+            .get_global("stack_size")
+            .unwrap()
+            .as_pointer_value();
+
+        let const_1 = self.context.i64_type().const_int(1, false);
+
+        let stack_size_val = self
+            .builder
+            .build_load(stack_size_addr, "stack_size")
+            .into_int_value();
+
+        let cmp = self.builder.build_int_compare(
+            IntPredicate::SGE,
+            stack_size_val,
+            const_1,
+            "check_stack_size",
+        );
+
+        self.builder
+            .build_conditional_branch(cmp, then_block, ret_block);
+
+        self.builder.position_at_end(then_block);
+
+        let updated_stack_size = self.builder.build_int_sub(stack_size_val, const_1, "decrement_stack_size");
+        
+        let store = self.builder
+            .build_store(stack_size_addr, updated_stack_size);
+
+        store.set_alignment(8);
+        
+        self.builder.position_at_end(ret_block);
+        self.builder.build_return(None);
+    }
+
     pub fn build_binop(&self, instr: Instruction) {
         let void_type = self.context.void_type();
         let binop_fn_type = void_type.fn_type(&[], false);
@@ -150,7 +269,7 @@ impl<'a, 'b> CodeGen<'a, 'b> {
 
         let top_ptr = self.builder.build_load(top_ptr, "top_elem_ptr");
         let next_ptr = self.builder.build_load(next_ptr, "next_elem_ptr");
-
+        
         let top_ptr_val = self
             .builder
             .build_load(top_ptr.into_pointer_value(), "top_elem_val");
@@ -233,14 +352,13 @@ impl<'a, 'b> CodeGen<'a, 'b> {
                     top_ptr_val.into_int_value(),
                     "sub",
                 );
-                let cmp = self.builder.build_int_compare(
+                let value_cmp = self.builder.build_int_compare(
                     IntPredicate::SGT,
                     diff,
                     const_0,
                     "check_next_gt_top",
                 );
-
-                self.builder.build_int_add(cmp, const_0, "cmp_res")
+                self.builder.build_int_z_extend(value_cmp, self.context.i64_type(), "zero_extend_cmp")
             }
             _ => panic!("Not a binary operation!"),
         };
@@ -330,6 +448,8 @@ impl<'a, 'b> CodeGen<'a, 'b> {
         //self.build_binop(Instruction::Mod);
         self.build_binop(Instruction::Gt);
         self.build_push();
+        self.build_pop();
+        self.build_not();
         self.build_main();
 
         self.module.print_to_string().to_string()
