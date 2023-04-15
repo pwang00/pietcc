@@ -424,10 +424,7 @@ impl<'a, 'b> CodeGen<'a, 'b> {
                 rem
             }
             Instruction::Gt => {
-                /* Modulo is just
-                   if remainder > 0 then remainder
-                   else modulus + remainder
-                */
+                // Pushes 1 to stack if second top > top otherwise 0
                 let diff = self.builder.build_int_sub(
                     next_ptr_val.into_int_value(),
                     top_ptr_val.into_int_value(),
