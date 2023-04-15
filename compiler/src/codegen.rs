@@ -119,7 +119,8 @@ impl<'a, 'b> CodeGen<'a, 'b> {
             "check_stack_size",
         );
 
-        self.builder.build_conditional_branch(stack_size_cmp, then_block, ret_block);
+        self.builder
+            .build_conditional_branch(stack_size_cmp, then_block, ret_block);
         self.builder.position_at_end(then_block);
         let top_idx = self
             .builder
@@ -141,7 +142,9 @@ impl<'a, 'b> CodeGen<'a, 'b> {
             "top_value_is_zero",
         );
 
-        let zext_cmp = self.builder.build_int_z_extend(value_cmp, self.context.i64_type(), "zero_extend_cmp");
+        let zext_cmp =
+            self.builder
+                .build_int_z_extend(value_cmp, self.context.i64_type(), "zero_extend_cmp");
         self.builder
             .build_store(top_ptr.into_pointer_value(), zext_cmp);
 
@@ -149,7 +152,7 @@ impl<'a, 'b> CodeGen<'a, 'b> {
         self.builder.build_return(None);
     }
 
-    pub fn build_pop(&self) { 
+    pub fn build_pop(&self) {
         // The stack is only valid from 0 to stack_size, so decrementing the stack size effectively pops the top element off the stack.
         let void_type = self.context.void_type();
         let pop_fn_type = void_type.fn_type(&[IntType(self.context.i64_type())], false);
@@ -187,13 +190,16 @@ impl<'a, 'b> CodeGen<'a, 'b> {
 
         self.builder.position_at_end(then_block);
 
-        let updated_stack_size = self.builder.build_int_sub(stack_size_val, const_1, "decrement_stack_size");
-        
-        let store = self.builder
+        let updated_stack_size =
+            self.builder
+                .build_int_sub(stack_size_val, const_1, "decrement_stack_size");
+
+        let store = self
+            .builder
             .build_store(stack_size_addr, updated_stack_size);
 
         store.set_alignment(8);
-        
+
         self.builder.position_at_end(ret_block);
         self.builder.build_return(None);
     }
@@ -269,7 +275,7 @@ impl<'a, 'b> CodeGen<'a, 'b> {
 
         let top_ptr = self.builder.build_load(top_ptr, "top_elem_ptr");
         let next_ptr = self.builder.build_load(next_ptr, "next_elem_ptr");
-        
+
         let top_ptr_val = self
             .builder
             .build_load(top_ptr.into_pointer_value(), "top_elem_val");
@@ -358,7 +364,11 @@ impl<'a, 'b> CodeGen<'a, 'b> {
                     const_0,
                     "check_next_gt_top",
                 );
-                self.builder.build_int_z_extend(value_cmp, self.context.i64_type(), "zero_extend_cmp")
+                self.builder.build_int_z_extend(
+                    value_cmp,
+                    self.context.i64_type(),
+                    "zero_extend_cmp",
+                )
             }
             _ => panic!("Not a binary operation!"),
         };
