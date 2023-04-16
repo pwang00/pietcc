@@ -1,5 +1,5 @@
-use inkwell::{AddressSpace, module::Linkage};
 use crate::{codegen::CodeGen, consts::STACK_SIZE};
+use inkwell::{module::Linkage, AddressSpace};
 
 impl<'a, 'b> CodeGen<'a, 'b> {
     pub(crate) fn build_globals(&self) {
@@ -38,7 +38,7 @@ impl<'a, 'b> CodeGen<'a, 'b> {
         self.builder.position_at_end(init_block);
 
         unsafe {
-            self.builder.build_global_string("%d\0", "dec_fmt");
+            self.builder.build_global_string("%ld\0", "dec_fmt");
             self.builder.build_global_string("%c\0", "char_fmt");
         }
 
@@ -60,7 +60,7 @@ impl<'a, 'b> CodeGen<'a, 'b> {
             .i64_type()
             .fn_type(&[c_string_type.into()], true);
 
-        let _scanf_fn = self.module.add_function("scanf", scanf_type, None);
+        let _scanf_fn = self.module.add_function("__isoc99_scanf", scanf_type, None);
 
         let size_value = self.context.i64_type().const_int(STACK_SIZE as u64, false);
         let malloc_call = self

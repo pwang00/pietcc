@@ -1,6 +1,4 @@
-use inkwell::{
-    IntPredicate,
-};
+use inkwell::IntPredicate;
 
 use crate::codegen::CodeGen;
 use types::instruction::Instruction;
@@ -183,6 +181,7 @@ impl<'a, 'b> CodeGen<'a, 'b> {
                 self.builder.position_at_end(then_block);
                 let rem = self.builder.build_int_add(const_0, rem, "rem_lz");
                 self.builder.build_store(store_rem_result, rem);
+                self.builder.build_unconditional_branch(else_block);
                 self.builder.position_at_end(else_block);
                 let rem = self
                     .builder

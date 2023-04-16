@@ -1,8 +1,9 @@
 use crate::cfg::CFGGenerator;
 use inkwell::{
-    builder::Builder,
-    context::Context,
-    module::Module,
+    builder::Builder, 
+    context::{Context, self}, 
+    module::Module, 
+    values::{IntValue, IntMathValue}
 };
 
 use types::instruction::Instruction;
@@ -38,12 +39,12 @@ impl<'a, 'b> CodeGen<'a, 'b> {
         //self.build_binop(Instruction::Div);
         //self.build_binop(Instruction::Mul);
         //self.build_binop(Instruction::Mod);
-        self.build_binops(Instruction::Mod);
+        //self.build_binops(Instruction::Mod);
         //self.build_push();
         //self.build_pop();
         //self.build_not();
-        self.build_input(Instruction::CharIn);
-        self.build_output(Instruction::CharOut);
+        self.build_input(Instruction::IntIn);
+        self.build_output(Instruction::IntOut);
         self.build_main();
 
         self.module.print_to_string().to_string()

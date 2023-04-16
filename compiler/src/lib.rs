@@ -1,13 +1,14 @@
 mod build_binops;
 mod build_dup;
+mod build_entrypoint;
+mod build_globals;
+mod build_io;
+mod build_not;
 mod build_pointers;
 mod build_pop;
 mod build_push;
+mod build_roll;
 mod cfg;
 mod codegen;
 pub mod compiler;
 mod consts;
-mod build_entrypoint;
-mod build_not;
-mod build_globals;
-mod build_io;

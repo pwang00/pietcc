@@ -1,5 +1,5 @@
-use inkwell::IntPredicate;
 use crate::codegen::CodeGen;
+use inkwell::IntPredicate;
 
 #[allow(unused)]
 impl<'a, 'b> CodeGen<'a, 'b> {
