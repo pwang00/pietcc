@@ -3,7 +3,7 @@ use crate::codegen::CodeGen;
 
 #[allow(unused)]
 impl<'a, 'b> CodeGen<'a, 'b> {
-    pub fn build_dup(&self) {
+    pub(crate) fn build_dup(&self) {
         // The stack is only valid from 0 to stack_size, so decrementing the stack size effectively pops the top element off the stack.
         let void_type = self.context.void_type();
         let not_fn_type = void_type.fn_type(&[self.context.i64_type().into()], false);

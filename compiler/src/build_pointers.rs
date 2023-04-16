@@ -3,7 +3,7 @@ use crate::codegen::CodeGen;
 
 #[allow(unused)]
 impl<'a, 'b> CodeGen<'a, 'b> {
-    pub fn build_switch(&self) {
+    pub(crate) fn build_switch(&self) {
         let void_type = self.context.void_type();
         let rotate_fn_type = void_type.fn_type(&[], false);
         let rotate_fn = self
