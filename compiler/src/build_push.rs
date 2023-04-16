@@ -1,5 +1,6 @@
 use crate::codegen::CodeGen;
 
+#[allow(unused)]
 impl<'a, 'b> CodeGen<'a, 'b> {
     pub(crate) fn build_push(&self) {
         let void_type = self.context.void_type();

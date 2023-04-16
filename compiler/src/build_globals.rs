@@ -52,7 +52,7 @@ impl<'a, 'b> CodeGen<'a, 'b> {
             .context
             .i64_type()
             .fn_type(&[c_string_type.into()], true);
-        let printf_fn = self.module.add_function("printf", printf_type, None);
+        let _printf_fn = self.module.add_function("printf", printf_type, None);
 
         // scanf type
         let scanf_type = self
@@ -60,7 +60,7 @@ impl<'a, 'b> CodeGen<'a, 'b> {
             .i64_type()
             .fn_type(&[c_string_type.into()], true);
 
-        let scanf_fn = self.module.add_function("scanf", scanf_type, None);
+        let _scanf_fn = self.module.add_function("scanf", scanf_type, None);
 
         let size_value = self.context.i64_type().const_int(STACK_SIZE as u64, false);
         let malloc_call = self

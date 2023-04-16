@@ -1,5 +1,4 @@
 use gcd::Gcd;
-use rand::Rng;
 use std::cmp::min;
 use std::collections::{HashSet, VecDeque};
 use types::flow::FindAdj;

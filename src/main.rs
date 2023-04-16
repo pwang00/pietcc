@@ -74,7 +74,7 @@ fn main() {
             }
         }
 
-        if let Some(val) = matches.value_of("use_default") {
+        if let Some(_) = matches.value_of("use_default") {
             settings.codel_settings = CodelSettings::Default
         }
 

@@ -426,6 +426,7 @@ impl<'a> Interpreter<'a> {
     }
 }
 
+#[allow(unused)]
 mod test {
     use super::*;
     use types::color::Lightness;

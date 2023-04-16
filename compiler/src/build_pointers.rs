@@ -1,6 +1,7 @@
 use inkwell::IntPredicate;
 use crate::codegen::CodeGen;
 
+#[allow(unused)]
 impl<'a, 'b> CodeGen<'a, 'b> {
     pub fn build_switch(&self) {
         let void_type = self.context.void_type();
@@ -14,7 +15,6 @@ impl<'a, 'b> CodeGen<'a, 'b> {
 
         let basic_block = self.context.append_basic_block(rotate_fn, "");
         self.builder.position_at_end(basic_block);
-        let cont_block = self.context.append_basic_block(rotate_fn, "cont");
         let then_block = self.context.append_basic_block(rotate_fn, "");
         let else_block = self.context.append_basic_block(rotate_fn, "");
         let ret_block = self.context.insert_basic_block_after(else_block, "ret");

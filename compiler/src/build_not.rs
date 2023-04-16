@@ -2,6 +2,7 @@ use inkwell::IntPredicate;
 
 use crate::codegen::CodeGen;
 
+#[allow(unused)]
 impl<'a, 'b> CodeGen<'a, 'b> {
     pub(crate) fn build_not(&self) {
         // The stack is only valid from 0 to stack_size, so decrementing the stack size effectively pops the top element off the stack.

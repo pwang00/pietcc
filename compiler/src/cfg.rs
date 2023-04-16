@@ -1,5 +1,4 @@
 use parser::decode::DecodeInstruction;
-use parser::infer::InferCodelWidth;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::hash::Hash;
 use std::rc::Rc;
@@ -9,12 +8,14 @@ use types::program::Program;
 use types::state::{Position, ENTRY};
 
 type AdjacencyList = HashMap<Rc<ColorBlock>, HashMap<Rc<ColorBlock>, Vec<DirVec>>>;
+#[allow(unused)]
 pub struct CFGGenerator<'a> {
     program: &'a Program<'a>,
     adjacencies: AdjacencyList,
     codel_size: u32,
 }
 
+#[allow(unused)]
 #[derive(Debug, Eq)]
 pub struct ColorBlock {
     label: String,
@@ -22,6 +23,7 @@ pub struct ColorBlock {
     region: HashSet<Position>,
 }
 
+#[allow(unused)]
 impl ColorBlock {
     pub fn new(label: String, lightness: Lightness, region: HashSet<Position>) -> Self {
         Self {
@@ -62,6 +64,7 @@ impl<'a> DecodeInstruction for CFGGenerator<'a> {}
 
 impl<'a> FindAdj for CFGGenerator<'a> {}
 
+#[allow(unused)]
 impl<'a> CFGGenerator<'a> {
     // Returns the list of adjacencies for a given position and whether or not it is a boundary
     pub fn new(prog: &'a Program, codel_size: u32) -> Self {

@@ -3,6 +3,7 @@ use types::instruction::Instruction;
 
 use crate::codegen::CodeGen;
 
+#[allow(unused)]
 impl<'a, 'b> CodeGen<'a, 'b> {
     pub(crate) fn build_input(&self, instr: Instruction) {
         let void_type = self.context.void_type();
@@ -167,7 +168,7 @@ impl<'a, 'b> CodeGen<'a, 'b> {
 
         let const_fmt_gep = unsafe { self.builder.build_gep(fmt, &[const_0, const_0], "") };
 
-        let printf = self.builder.build_call(
+        let _printf = self.builder.build_call(
             printf_fn,
             &[const_fmt_gep.into(), top_ptr_val.into()],
             "printf",

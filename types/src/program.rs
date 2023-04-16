@@ -31,6 +31,7 @@ impl<'a> Program<'a> {
     }
 }
 
+#[allow(unused)]
 mod test {
     use super::*;
     use crate::color::Hue::*;

@@ -7,7 +7,7 @@ use inkwell::{
 
 use types::instruction::Instruction;
 
-#[warn(unused)]
+#[allow(unused)]
 pub struct CodeGen<'a, 'b> {
     pub(crate) context: &'b Context,
     pub(crate) module: Module<'b>,
@@ -15,6 +15,7 @@ pub struct CodeGen<'a, 'b> {
     pub(crate) cfg: CFGGenerator<'a>,
 }
 
+#[allow(unused)]
 impl<'a, 'b> CodeGen<'a, 'b> {
     pub fn new(
         context: &'b Context,
