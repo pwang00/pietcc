@@ -7,3 +7,7 @@ mod cfg;
 mod codegen;
 pub mod compiler;
 mod consts;
+mod build_entrypoint;
+mod build_not;
+mod build_globals;
+mod build_io;
