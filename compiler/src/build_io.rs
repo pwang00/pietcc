@@ -1,5 +1,5 @@
 use inkwell::{
-    values::{AnyValue, BasicValue, IntValue},
+    values::{BasicValue, IntValue},
     IntPredicate,
 };
 use types::instruction::Instruction;
@@ -19,7 +19,7 @@ impl<'a, 'b> CodeGen<'a, 'b> {
         };
 
         // Labels
-        let basic_block = self.context.append_basic_block(in_fn, "");;
+        let basic_block = self.context.append_basic_block(in_fn, "");
         self.builder.position_at_end(basic_block);
 
         // Local variable to store our input
@@ -56,13 +56,13 @@ impl<'a, 'b> CodeGen<'a, 'b> {
 
         // Loads local var and sets alignment
         let load_scanf_elem = self
-                .builder
-                .build_load(read_addr, "scanf_elem")
-                .as_instruction_value()
-                .unwrap();
-    
+            .builder
+            .build_load(read_addr, "scanf_elem")
+            .as_instruction_value()
+            .unwrap();
+
         load_scanf_elem.set_alignment(8);
-    
+
         let result: IntValue = load_scanf_elem.try_into().unwrap();
 
         // &stack_size
@@ -82,7 +82,6 @@ impl<'a, 'b> CodeGen<'a, 'b> {
         stack_size_load_instr.set_alignment(8);
         let stack_size_val: IntValue = stack_size_load_instr.try_into().unwrap();
 
-
         // &piet_stack
         let stack_addr = self
             .module
@@ -90,13 +89,18 @@ impl<'a, 'b> CodeGen<'a, 'b> {
             .unwrap()
             .as_pointer_value();
 
-        let load_piet_stack = self.builder.build_load(stack_addr, "load_piet_stack").into_pointer_value();
-        
-        // Push to stack
-        let push_ptr_gep = unsafe { self.builder.build_gep(load_piet_stack, &[stack_size_val], "top_elem_addr") };
+        let load_piet_stack = self
+            .builder
+            .build_load(stack_addr, "load_piet_stack")
+            .into_pointer_value();
 
-        let store_to_stack = self.builder
-            .build_store(push_ptr_gep, result);
+        // Push to stack
+        let push_ptr_gep = unsafe {
+            self.builder
+                .build_gep(load_piet_stack, &[stack_size_val], "top_elem_addr")
+        };
+
+        let store_to_stack = self.builder.build_store(push_ptr_gep, result);
 
         store_to_stack.set_alignment(8);
 
@@ -173,7 +177,10 @@ impl<'a, 'b> CodeGen<'a, 'b> {
             .unwrap()
             .as_pointer_value();
 
-        let load_piet_stack = self.builder.build_load(stack_addr, "load_piet_stack").into_pointer_value();
+        let load_piet_stack = self
+            .builder
+            .build_load(stack_addr, "load_piet_stack")
+            .into_pointer_value();
         let top_ptr_gep = unsafe { self.builder.build_gep(load_piet_stack, &[top_idx], "") };
         let printf_fn = self.module.get_function("printf").unwrap();
 

@@ -12,21 +12,14 @@ impl<'a, 'b> CodeGen<'a, 'b> {
 
         self.builder.build_call(init_globals, &[], "setup_stack");
 
-        let piet_charin = self.module.get_function("piet_intin").unwrap();
-        self.builder
-            .build_call(piet_charin, &[], "call_piet_charin");
+        for _ in 0..5 {
+            let piet_charin = self.module.get_function("piet_intin").unwrap();
+            self.builder.build_call(piet_charin, &[], "call_piet_intin");
+        }
 
-        let piet_charin = self.module.get_function("piet_intin").unwrap();
+        let print_stack = self.module.get_function("print_piet_stack").unwrap();
         self.builder
-            .build_call(piet_charin, &[], "call_piet_charin1");
-
-        let piet_charout = self.module.get_function("piet_intout").unwrap();
-        self.builder
-            .build_call(piet_charout, &[], "call_piet_charout");
-
-        let piet_charout = self.module.get_function("piet_intout").unwrap();
-        self.builder
-            .build_call(piet_charout, &[], "call_piet_charout1");
+            .build_call(print_stack, &[], "call_print_stack");
 
         self.builder
             .build_return(Some(&self.context.i64_type().const_zero()));

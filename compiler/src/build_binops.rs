@@ -35,15 +35,20 @@ impl<'a, 'b> CodeGen<'a, 'b> {
             .unwrap()
             .as_pointer_value();
 
+        let load_piet_stack = self
+            .builder
+            .build_load(stack_addr, "load_piet_stack")
+            .into_pointer_value();
+
+        let const_0 = self.context.i64_type().const_zero();
+        let const_1 = self.context.i64_type().const_int(1, false);
+        let const_2 = self.context.i64_type().const_int(2, false);
+
         let stack_size_addr = self
             .module
             .get_global("stack_size")
             .unwrap()
             .as_pointer_value();
-
-        let const_0 = self.context.i64_type().const_zero();
-        let const_1 = self.context.i64_type().const_int(1, false);
-        let const_2 = self.context.i64_type().const_int(2, false);
 
         let stack_size_val = self
             .builder
@@ -67,24 +72,16 @@ impl<'a, 'b> CodeGen<'a, 'b> {
             .builder
             .build_int_sub(stack_size_val, const_1, "top_elem_idx");
 
-        let top_ptr_gep = unsafe { self.builder.build_gep(stack_addr, &[top_idx], "") };
+        let top_ptr_gep = unsafe { self.builder.build_gep(load_piet_stack, &[top_idx], "") };
 
         let next_idx = self
             .builder
             .build_int_sub(stack_size_val, const_2, "next_elem_idx");
 
-        let next_ptr = unsafe { self.builder.build_gep(stack_addr, &[next_idx], "") };
+        let next_ptr = unsafe { self.builder.build_gep(load_piet_stack, &[next_idx], "") };
 
-        let top_ptr = self.builder.build_load(top_ptr_gep, "top_elem_ptr");
-        let next_ptr = self.builder.build_load(next_ptr, "next_elem_ptr");
-
-        let top_ptr_val = self
-            .builder
-            .build_load(top_ptr.into_pointer_value(), "top_elem_val");
-
-        let next_ptr_val = self
-            .builder
-            .build_load(next_ptr.into_pointer_value(), "next_elem_val");
+        let top_ptr_val = self.builder.build_load(top_ptr_gep, "top_elem_val");
+        let next_ptr_val = self.builder.build_load(next_ptr, "next_elem_val");
 
         let result = match instr {
             Instruction::Add => {
@@ -125,7 +122,7 @@ impl<'a, 'b> CodeGen<'a, 'b> {
                     "check_dividend_nonzero",
                 );
                 self.builder
-                    .build_conditional_branch(cmp, then_block, ret_block);
+                    .build_conditional_branch(cmp, dividend_nonzero, ret_block);
 
                 // Set names for blocks and delete unused
                 unsafe { then_block.delete().ok() };
@@ -147,7 +144,7 @@ impl<'a, 'b> CodeGen<'a, 'b> {
                 );
 
                 self.builder
-                    .build_conditional_branch(cmp, then_block, ret_block);
+                    .build_conditional_branch(cmp, dividend_nonzero, ret_block);
 
                 self.builder.position_at_end(dividend_nonzero);
                 let rem = self.builder.build_int_signed_rem(
@@ -164,6 +161,7 @@ impl<'a, 'b> CodeGen<'a, 'b> {
                 let store_rem_result = self
                     .builder
                     .build_alloca(self.context.i64_type(), "rem_result");
+                self.builder.build_store(store_rem_result, rem);
 
                 let cmp = self.builder.build_int_compare(
                     IntPredicate::SGE,
@@ -179,14 +177,11 @@ impl<'a, 'b> CodeGen<'a, 'b> {
                     .build_conditional_branch(cmp, else_block, then_block);
 
                 self.builder.position_at_end(then_block);
-                let rem = self.builder.build_int_add(const_0, rem, "rem_lz");
+                self.builder
+                    .build_int_add(top_ptr_val.into_int_value(), rem, "rem_lz");
                 self.builder.build_store(store_rem_result, rem);
                 self.builder.build_unconditional_branch(else_block);
                 self.builder.position_at_end(else_block);
-                let rem = self
-                    .builder
-                    .build_int_add(top_ptr_val.into_int_value(), rem, "rem_gz");
-                self.builder.build_store(store_rem_result, rem);
                 self.builder
                     .build_load(store_rem_result, "load_result")
                     .into_int_value()
@@ -226,8 +221,7 @@ impl<'a, 'b> CodeGen<'a, 'b> {
         self.builder
             .build_store(stack_size_addr, updated_stack_size);
 
-        self.builder
-            .build_store(next_ptr.into_pointer_value(), result);
+        self.builder.build_store(next_ptr, result);
 
         self.builder.build_unconditional_branch(ret_block);
         // Not enough elems on stack
