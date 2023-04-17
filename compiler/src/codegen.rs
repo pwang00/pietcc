@@ -34,8 +34,8 @@ impl<'a, 'b> CodeGen<'a, 'b> {
         //self.build_binop(Instruction::Div);
         //self.build_binop(Instruction::Mul);
         self.build_binops(Instruction::Mod);
-        //self.build_binops(Instruction::Mod);
-        //self.build_push();
+        self.build_dup();
+        self.build_push();
         //self.build_pop();
         //self.build_not();
         self.build_print_stack();

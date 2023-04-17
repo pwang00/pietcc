@@ -28,14 +28,20 @@ impl<'a, 'b> CodeGen<'a, 'b> {
 
         let const_1 = self.context.i64_type().const_int(1, false);
 
-        let top_ptr = self.builder.build_load(
-            unsafe { self.builder.build_gep(stack_addr, &[stack_size_val], "") },
-            "top_elem_ptr",
-        );
+        let load_piet_stack = self
+            .builder
+            .build_load(stack_addr, "load_piet_stack")
+            .into_pointer_value();
+
+        let top_ptr = unsafe {
+            self.builder
+                .build_gep(load_piet_stack, &[stack_size_val], "top_elem_ptr")
+        };
+
+        let top_ptr_val = self.builder.build_load(top_ptr, "top_elem_val");
 
         let first_param = push_fn.get_first_param().unwrap();
-        self.builder
-            .build_store(top_ptr.into_pointer_value(), first_param);
+        self.builder.build_store(top_ptr, first_param);
 
         let updated_stack_size =
             self.builder

@@ -18,6 +18,10 @@ impl<'a, 'b> CodeGen<'a, 'b> {
             _ => panic!("Not an input instruction!"),
         };
 
+        // Consts
+        let const_0 = self.context.i64_type().const_zero();
+        let const_1 = self.context.i64_type().const_int(1, false);
+
         // Labels
         let basic_block = self.context.append_basic_block(in_fn, "");
         self.builder.position_at_end(basic_block);
@@ -26,6 +30,11 @@ impl<'a, 'b> CodeGen<'a, 'b> {
         let read_addr = self
             .builder
             .build_alloca(self.context.i64_type(), "stack_alloc");
+
+        // The stack may not necessarily be zero'd out, which may cause problems when printing
+        // Since %c only reads in at one-byte boundaries, if the higher bits of our value are nonzero
+        // Then printf("%c", val) could print garbage and we would like this not to happen
+        self.builder.build_store(read_addr, const_0);
 
         let fmt = match instr {
             Instruction::IntIn => self
@@ -40,9 +49,6 @@ impl<'a, 'b> CodeGen<'a, 'b> {
                 .as_pointer_value(),
             _ => panic!("Not an output instruction"),
         };
-
-        let const_0 = self.context.i64_type().const_zero();
-        let const_1 = self.context.i64_type().const_int(1, false);
 
         // %ld or %c
         let const_fmt_gep = unsafe { self.builder.build_gep(fmt, &[const_0, const_0], "") };
@@ -63,7 +69,10 @@ impl<'a, 'b> CodeGen<'a, 'b> {
 
         load_scanf_elem.set_alignment(8);
 
-        let result: IntValue = load_scanf_elem.try_into().unwrap();
+        let x: IntValue = load_scanf_elem.try_into().unwrap();
+        let result = self
+            .builder
+            .build_int_s_extend(x, self.context.i64_type(), "sext_to_i64");
 
         // &stack_size
         let stack_size_addr = self
@@ -181,6 +190,7 @@ impl<'a, 'b> CodeGen<'a, 'b> {
             .builder
             .build_load(stack_addr, "load_piet_stack")
             .into_pointer_value();
+
         let top_ptr_gep = unsafe { self.builder.build_gep(load_piet_stack, &[top_idx], "") };
         let printf_fn = self.module.get_function("printf").unwrap();
 
