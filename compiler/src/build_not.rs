@@ -51,12 +51,18 @@ impl<'a, 'b> CodeGen<'a, 'b> {
             .builder
             .build_int_sub(stack_size_val, const_1, "top_elem_idx");
 
-        let top_ptr = unsafe { self.builder.build_gep(stack_addr, &[top_idx], "") };
-        let top_ptr = self.builder.build_load(top_ptr, "top_elem_ptr");
+        let load_piet_stack = self
+            .builder
+            .build_load(stack_addr, "load_piet_stack")
+            .into_pointer_value();
+        let top_ptr = unsafe {
+            self.builder
+                .build_gep(load_piet_stack, &[top_idx], "top_elem_ptr")
+        };
 
         let top_ptr_val = self
             .builder
-            .build_load(top_ptr.into_pointer_value(), "top_elem_val")
+            .build_load(top_ptr, "top_elem_val")
             .into_int_value();
 
         let value_cmp = self.builder.build_int_compare(
@@ -69,8 +75,8 @@ impl<'a, 'b> CodeGen<'a, 'b> {
         let zext_cmp =
             self.builder
                 .build_int_z_extend(value_cmp, self.context.i64_type(), "zero_extend_cmp");
-        self.builder
-            .build_store(top_ptr.into_pointer_value(), zext_cmp);
+
+        self.builder.build_store(top_ptr, zext_cmp);
 
         self.builder.build_unconditional_branch(ret_block);
         self.builder.position_at_end(ret_block);

@@ -40,6 +40,7 @@ impl<'a, 'b> CodeGen<'a, 'b> {
         unsafe {
             self.builder.build_global_string("%ld\0", "dec_fmt");
             self.builder.build_global_string("%c\0", "char_fmt");
+            self.builder.build_global_string("%ld \0", "stack_fmt");
         }
 
         // malloc type

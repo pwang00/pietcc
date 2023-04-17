@@ -7,7 +7,7 @@ impl<'a, 'b> CodeGen<'a, 'b> {
     pub(crate) fn build_pop(&self) {
         // The stack is only valid from 0 to stack_size, so decrementing the stack size effectively pops the top element off the stack.
         let void_type = self.context.void_type();
-        let pop_fn_type = void_type.fn_type(&[self.context.i64_type().into()], false);
+        let pop_fn_type = void_type.fn_type(&[], false);
         let pop_fn = self.module.add_function("piet_pop", pop_fn_type, None);
 
         // Labels

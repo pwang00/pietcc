@@ -45,13 +45,13 @@ impl<'a, 'b> CodeGen<'a, 'b> {
             .build_load(stack_size_addr, "stack_size")
             .into_int_value();
 
-        let dec_fmt = self
+        let stack_fmt = self
             .module
-            .get_global("dec_fmt")
+            .get_global("stack_fmt")
             .unwrap()
             .as_pointer_value();
 
-        let const_fmt_gep = unsafe { self.builder.build_gep(dec_fmt, &[const_0, const_0], "") };
+        let const_fmt_gep = unsafe { self.builder.build_gep(stack_fmt, &[const_0, const_0], "") };
         // Store index
         self.builder.build_store(index, stack_size_val);
         self.builder.build_unconditional_branch(loop_block);

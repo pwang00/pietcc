@@ -29,18 +29,21 @@ impl<'a, 'b> CodeGen<'a, 'b> {
 
     pub fn generate(&self) -> String {
         self.build_globals();
-        //self.build_binops(Instruction::Add);
-        //self.build_binop(Instruction::Sub);
-        //self.build_binop(Instruction::Div);
-        //self.build_binop(Instruction::Mul);
+        /*self.build_binops(Instruction::Add);
+        self.build_binops(Instruction::Sub);
+        self.build_binops(Instruction::Div);
+        self.build_binops(Instruction::Mul);
         self.build_binops(Instruction::Mod);
         self.build_dup();
         self.build_push();
-        //self.build_pop();
-        //self.build_not();
+        self.build_pop();*/
+        self.build_binops(Instruction::Mod);
+        self.build_not();
+        self.build_switch();
+        self.build_rotate();
         self.build_print_stack();
         self.build_input(Instruction::IntIn);
-        self.build_output(Instruction::IntOut);
+        //self.build_output(Instruction::IntOut);
         self.build_main();
 
         self.module.print_to_string().to_string()

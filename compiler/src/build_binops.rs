@@ -80,44 +80,38 @@ impl<'a, 'b> CodeGen<'a, 'b> {
 
         let next_ptr = unsafe { self.builder.build_gep(load_piet_stack, &[next_idx], "") };
 
-        let top_ptr_val = self.builder.build_load(top_ptr_gep, "top_elem_val");
-        let next_ptr_val = self.builder.build_load(next_ptr, "next_elem_val");
+        let top_ptr_val = self
+            .builder
+            .build_load(top_ptr_gep, "top_elem_val")
+            .into_int_value();
+        let next_ptr_val = self
+            .builder
+            .build_load(next_ptr, "next_elem_val")
+            .into_int_value();
 
         let result = match instr {
             Instruction::Add => {
                 unsafe { then_block.delete().ok() };
                 unsafe { else_block.delete().ok() };
                 unsafe { dividend_nonzero.delete().ok() };
-                self.builder.build_int_add(
-                    next_ptr_val.into_int_value(),
-                    top_ptr_val.into_int_value(),
-                    "add",
-                )
+                self.builder.build_int_add(next_ptr_val, top_ptr_val, "add")
             }
             Instruction::Sub => {
                 unsafe { then_block.delete().ok() };
                 unsafe { else_block.delete().ok() };
                 unsafe { dividend_nonzero.delete().ok() };
-                self.builder.build_int_sub(
-                    next_ptr_val.into_int_value(),
-                    top_ptr_val.into_int_value(),
-                    "sub",
-                )
+                self.builder.build_int_sub(next_ptr_val, top_ptr_val, "sub")
             }
             Instruction::Mul => {
                 unsafe { then_block.delete().ok() };
                 unsafe { else_block.delete().ok() };
                 unsafe { dividend_nonzero.delete().ok() };
-                self.builder.build_int_mul(
-                    next_ptr_val.into_int_value(),
-                    top_ptr_val.into_int_value(),
-                    "mul",
-                )
+                self.builder.build_int_mul(next_ptr_val, top_ptr_val, "mul")
             }
             Instruction::Div => {
                 let cmp = self.builder.build_int_compare(
                     IntPredicate::NE,
-                    top_ptr_val.into_int_value(),
+                    top_ptr_val,
                     const_0,
                     "check_dividend_nonzero",
                 );
@@ -129,16 +123,26 @@ impl<'a, 'b> CodeGen<'a, 'b> {
                 unsafe { else_block.delete().ok() };
 
                 self.builder.position_at_end(dividend_nonzero);
-                self.builder.build_int_signed_div(
-                    next_ptr_val.into_int_value(),
-                    top_ptr_val.into_int_value(),
-                    "div",
-                )
+                self.builder
+                    .build_int_signed_div(next_ptr_val, top_ptr_val, "div")
             }
             Instruction::Mod => {
+                let i64_type = self.context.i64_type();
+
+                // Calculate the absolute value without a branch
+                let shift_amount = i64_type.const_int(63, false);
+                let a_asr = self.builder.build_right_shift(
+                    top_ptr_val,
+                    shift_amount,
+                    true,
+                    "arithmetic_right_shift",
+                );
+                let a_xor = self.builder.build_xor(top_ptr_val, a_asr, "a_xor");
+                let top_ptr_val = self.builder.build_int_sub(a_xor, a_asr, "abs_a");
+
                 let cmp = self.builder.build_int_compare(
                     IntPredicate::NE,
-                    top_ptr_val.into_int_value(),
+                    top_ptr_val,
                     const_0,
                     "check_dividend_nonzero",
                 );
@@ -147,16 +151,9 @@ impl<'a, 'b> CodeGen<'a, 'b> {
                     .build_conditional_branch(cmp, dividend_nonzero, ret_block);
 
                 self.builder.position_at_end(dividend_nonzero);
-                let rem = self.builder.build_int_signed_rem(
-                    next_ptr_val.into_int_value(),
-                    top_ptr_val.into_int_value(),
-                    "mod",
-                );
-
-                /* Modulo is just
-                   if remainder > 0 then remainder
-                   else modulus + remainder
-                */
+                let rem = self
+                    .builder
+                    .build_int_signed_rem(next_ptr_val, top_ptr_val, "mod");
 
                 let store_rem_result = self
                     .builder
@@ -177,9 +174,8 @@ impl<'a, 'b> CodeGen<'a, 'b> {
                     .build_conditional_branch(cmp, else_block, then_block);
 
                 self.builder.position_at_end(then_block);
-                self.builder
-                    .build_int_add(top_ptr_val.into_int_value(), rem, "rem_lz");
-                self.builder.build_store(store_rem_result, rem);
+                let rem_lz = self.builder.build_int_add(top_ptr_val, rem, "rem_lz");
+                self.builder.build_store(store_rem_result, rem_lz);
                 self.builder.build_unconditional_branch(else_block);
                 self.builder.position_at_end(else_block);
                 self.builder
@@ -192,11 +188,7 @@ impl<'a, 'b> CodeGen<'a, 'b> {
                 unsafe { else_block.delete().ok() };
                 unsafe { dividend_nonzero.delete().ok() };
 
-                let diff = self.builder.build_int_sub(
-                    next_ptr_val.into_int_value(),
-                    top_ptr_val.into_int_value(),
-                    "sub",
-                );
+                let diff = self.builder.build_int_sub(next_ptr_val, top_ptr_val, "sub");
                 let value_cmp = self.builder.build_int_compare(
                     IntPredicate::SGT,
                     diff,
