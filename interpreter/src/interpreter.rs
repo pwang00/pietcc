@@ -436,7 +436,7 @@ mod test {
         // Setup
         let vec = Vec::<Lightness>::new();
         let program = Program::new(&vec, 0, 0);
-        let mut interpreter = Interpreter::new(&program, true);
+        let mut interpreter = Interpreter::new(&program, InterpSettings::default());
 
         // Positive roll to depth 2
         interpreter.stack = VecDeque::from([1, 2, 6, 5]);
@@ -452,6 +452,18 @@ mod test {
         assert_eq!(interpreter.stack.pop_front(), Some(5));
 
         // Negative roll to depth 2
+        interpreter.stack = VecDeque::from([-1, 2, 6, 5, 4]);
+        interpreter.roll();
+        assert_eq!(interpreter.stack.pop_front(), Some(5));
+        assert_eq!(interpreter.stack.pop_front(), Some(6));
+        assert_eq!(interpreter.stack.pop_front(), Some(4));
+
+        interpreter.stack = VecDeque::from([1, 3, 6, 5, 4]);
+        interpreter.roll();
+        assert_eq!(interpreter.stack.pop_front(), Some(5));
+        assert_eq!(interpreter.stack.pop_front(), Some(4));
+        assert_eq!(interpreter.stack.pop_front(), Some(6));
+
         interpreter.stack = VecDeque::from([-1, 2, 6, 5, 4]);
         interpreter.roll();
         assert_eq!(interpreter.stack.pop_front(), Some(5));
