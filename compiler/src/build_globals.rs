@@ -8,7 +8,9 @@ impl<'a, 'b> CodeGen<'a, 'b> {
         let piet_stack = self.module.add_global(i64_ptr_type, None, "piet_stack");
 
         let i8_type = self.context.i8_type();
+        let i8_ptr_type = i8_type.ptr_type(AddressSpace::default());
         let i64_type = self.context.i64_type();
+        let void_type = self.context.void_type();
 
         let init_dp = i8_type.const_int(0, false);
         let init_cc = i8_type.const_int(0, false);
@@ -43,6 +45,8 @@ impl<'a, 'b> CodeGen<'a, 'b> {
             self.builder.build_global_string("%ld \0", "stack_fmt");
         }
 
+        /* External functions and LLVM intrinsics */
+
         // malloc type
         let malloc_fn_type = i64_ptr_type.fn_type(&[self.context.i64_type().into()], false);
         let malloc_fn = self.module.add_function("malloc", malloc_fn_type, None);
@@ -71,6 +75,21 @@ impl<'a, 'b> CodeGen<'a, 'b> {
         let value = malloc_call.try_as_basic_value().left().unwrap();
         self.builder
             .build_store(piet_stack.as_pointer_value(), value.into_pointer_value());
+
+        let llvm_stackrestore_type = void_type.fn_type(&[i8_ptr_type.into()], false);
+        let _llvm_stackrestore_fn =
+            self.module
+                .add_function("llvm.stackrestore", llvm_stackrestore_type, None);
+
+        let llvm_smax_type = i64_type.fn_type(&[i64_type.into(), i64_type.into()], false);
+        let _llvm_smax_fn = self
+            .module
+            .add_function("llvm.smax.i64", llvm_smax_type, None);
+
+        let llvm_stacksave_type = i8_ptr_type.fn_type(&[], false);
+        let _llvm_stacksave_fn =
+            self.module
+                .add_function("llvm.stacksave", llvm_stacksave_type, None);
 
         self.builder.build_return(None);
     }

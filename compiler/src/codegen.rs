@@ -37,12 +37,7 @@ impl<'a, 'b> CodeGen<'a, 'b> {
         self.build_dup();
         self.build_push();
         self.build_pop();*/
-        self.build_binops(Instruction::Mod);
-        self.build_not();
-        self.build_switch();
-        self.build_rotate();
-        self.build_print_stack();
-        self.build_input(Instruction::IntIn);
+        self.build_roll();
         //self.build_output(Instruction::IntOut);
         self.build_main();
 

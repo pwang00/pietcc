@@ -12,6 +12,7 @@ impl<'a, 'b> CodeGen<'a, 'b> {
 
         self.builder.build_call(init_globals, &[], "setup_stack");
 
+        /*
         // Just testing stuff for now
         for _ in 0..5 {
             let piet_charin = self.module.get_function("piet_intin").unwrap();
@@ -23,7 +24,7 @@ impl<'a, 'b> CodeGen<'a, 'b> {
 
         let print_stack = self.module.get_function("print_piet_stack").unwrap();
         self.builder
-            .build_call(print_stack, &[], "call_print_stack");
+            .build_call(print_stack, &[], "call_print_stack");*/
 
         self.builder
             .build_return(Some(&self.context.i64_type().const_zero()));
