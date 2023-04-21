@@ -170,19 +170,17 @@ impl<'a> CFGGenerator<'a> {
                     .or_insert(Vec::new());
 
                 if !discovered_regions.contains(&adj_block) {
+                    discovered_regions.insert(adj_block.clone());
                     queue.push_back(adj_block)
                 }
             }
             self.adjacencies.insert(curr_block, bordering);
+            println!("{:?}", self.adjacencies.keys().len());
         }
     }
 
     pub(crate) fn get_state(&self) -> &Self {
         &self
-    }
-
-    pub(crate) fn get_cfg(&self) -> &CFG {
-        &self.adjacencies
     }
 }
 
@@ -193,8 +191,10 @@ mod test {
     use std::{
         collections::{hash_map::DefaultHasher, HashMap, HashSet, VecDeque},
         hash::Hasher,
+        fs
     };
     use types::color::{Hue::*, Lightness, Lightness::*};
+    use parser::loader::Loader;
 
     fn get_hash<T: Hash>(obj: &T) -> u64 {
         let mut hasher = DefaultHasher::new();
@@ -237,34 +237,10 @@ mod test {
     }
     #[test]
     fn test_program() {
-        use crate::cfg::ColorBlock;
-
-        use super::CFGGenerator;
-
-        let vec = vec![
-            Light(Red),
-            Light(Green),
-            Light(Green),
-            Light(Red),
-            Light(Green),
-            Light(Green),
-            Light(Red),
-            Light(Red),
-            Light(Green),
-            Light(Red),
-            Light(Yellow),
-            Light(Yellow),
-            Light(Yellow),
-            Light(Yellow),
-            Light(Yellow),
-            Light(Yellow),
-            Light(Yellow),
-            Light(Yellow),
-        ];
-
-        let prog = Program::new(&vec, 6, 3);
+        let prog = Loader::convert("../images/hw2-1.gif").unwrap();
         let mut cfg_gen = CFGGenerator::new(&prog, 1);
 
+        println!("loaded");
         cfg_gen.analyze();
 
         let adjacencies = &cfg_gen.get_state().adjacencies;

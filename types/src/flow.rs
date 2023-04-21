@@ -17,10 +17,10 @@ pub const FURTHEST: [C1; 8] = [
 ];
 
 pub const MOVE_IN: [C2; 4] = [
-    |(x, y, cs)| (x, y.wrapping_add(cs)),
-    |(x, y, cs)| (x.wrapping_add(cs), y),
-    |(x, y, cs)| (x, y.wrapping_sub(cs)),
-    |(x, y, cs)| (x.wrapping_sub(cs), y),
+    |(x, y, cs)| (x, y.wrapping_add(cs)), // dp = right
+    |(x, y, cs)| (x.wrapping_add(cs), y), // dp = down
+    |(x, y, cs)| (x, y.wrapping_sub(cs)), // dp = left
+    |(x, y, cs)| (x.wrapping_sub(cs), y), // dp = up
 ];
 
 #[derive(Debug, PartialEq, Default, Eq, Hash, Copy, Clone, PartialOrd, Ord)]

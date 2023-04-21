@@ -1,8 +1,6 @@
-pub mod load_file;
-
 use clap::{App, Arg};
 use interpreter::{interpreter::Interpreter, settings::*};
-use load_file::Loader;
+use parser::loader::Loader;
 use types::program::Program;
 
 fn main() {
