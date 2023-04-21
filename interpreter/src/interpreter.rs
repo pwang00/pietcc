@@ -406,7 +406,9 @@ impl<'a> Interpreter<'a> {
     #[inline]
     pub(crate) fn char_out(&mut self) {
         if let Some(n) = self.stack.pop_front() {
-            print!("{}", char::from_u32(n as u32).unwrap());
+            if let Some(c) = char::from_u32(n as u32) {
+                print!("{c}");
+            }
         }
     }
 
