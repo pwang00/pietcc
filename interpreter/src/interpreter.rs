@@ -3,7 +3,7 @@ use parser::infer::InferCodelWidth;
 use parser::{convert::ConvertToLightness, decode::DecodeInstruction};
 use std::collections::{HashSet, VecDeque};
 use std::{io, io::Read};
-use types::color::Lightness::Black;
+use types::color::Lightness::{Black, White};
 use types::error::ExecutionError;
 use types::flow::{Codel, Direction, FindAdj, FURTHEST, MOVE_IN};
 use types::instruction::Instruction;
@@ -94,6 +94,42 @@ impl<'a> Interpreter<'a> {
         }
 
         self.furthest_in_direction(region)
+    }
+
+    pub(crate) fn trace_white(&mut self) -> (u32, u32) {
+        let (mut x, mut y) = self.state.pos;
+
+        let entrance = Some((x, y, self.codel_width))
+            .map(MOVE_IN[self.state.dp.rotate(2) as usize])
+            .unwrap();
+
+        //println!("Entrance {:?}", entrance);
+
+        // Adds x or y depending on dp value
+        //println!("Old pos: {:?} {:?}", self.state.pos, self.state.dp);
+        loop {
+            let next_pos = Some((x, y, self.codel_width))
+                .map(MOVE_IN[self.state.dp as usize])
+                .unwrap();
+
+            let lightness = self.program.get(next_pos);
+
+            if lightness.is_none() || lightness == Some(&Black) {
+                self.state.dp = self.state.dp.rotate(1);
+                self.state.cc = self.state.cc.switch(1);
+                continue;
+            }
+
+            if lightness != Some(&White) {
+                (x, y) = next_pos;
+                break
+            }
+
+            (x, y) = next_pos
+        }
+        //println!("New pos: {:?} {:?}", (x, y), self.state.dp);
+
+        (x, y)
     }
 
     pub fn exec_instr(&mut self, instr: Instruction) -> Result<(), ExecutionError> {
@@ -389,29 +425,32 @@ impl<'a> Interpreter<'a> {
             let block = self.explore_region(self.state.pos);
             let lightness = *self.program.get(self.state.pos).unwrap();
             let furthest_in_dir = self.furthest_in_direction(&block);
-            let next_pos = self.move_to_next_block(furthest_in_dir);
+            let next_pos = if lightness != White { 
+                self.move_to_next_block(furthest_in_dir)
+            }else{
+                self.trace_white()
+            };
             let adj_lightness = self.program.get(next_pos);
             self.state.cb = block.len() as u64;
 
             match adj_lightness {
-                None | Some(Black) => {
+                None | Some(&Black) => {
+                    //println!("{:?} {:?} {:?} {:?}", self.state.dp, self.state.cc, self.state.pos, adj_lightness);
                     self.state.pos = self.recalculate_entry(&block);
                     self.state.rctr += 1;
-                }
+                },
                 Some(&color) => {
                     self.state.pos = next_pos;
-
+                    //println!("{:?} {:?} {:?} {:?}", self.state.dp, self.state.cc, self.state.pos, adj_lightness);
                     if let Some(instr) = <Self as DecodeInstruction>::decode_instr(lightness, color)
-                    {
+                    {  
                         let res = self.exec_instr(instr);
-
                         if let Err(res) = res {
                             if self.settings.verbosity == Verbosity::Verbose {
                                 eprintln!("{:?}", res);
                             }
                         }
                     }
-
                     self.state.rctr = 0;
                 }
             };
