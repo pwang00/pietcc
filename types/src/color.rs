@@ -37,6 +37,10 @@ impl Lightness {
             _ => i8::MAX,
         }
     }
+
+    pub fn components(&self) -> (i8, i8) {
+        (self.discriminant(), self.hue())
+    }
 }
 
 impl ToString for Hue {

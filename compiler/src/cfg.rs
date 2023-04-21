@@ -3,21 +3,26 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use std::hash::Hash;
 use std::rc::Rc;
 use types::color::{Lightness, Lightness::*};
-use types::flow::{Codel, DirVec, Direction, FindAdj, FURTHEST, MOVE_IN};
+use types::flow::{DirVec, FindAdj, FURTHEST, MOVE_IN};
 use types::program::Program;
 use types::state::{Position, ENTRY};
 
-type AdjacencyList = HashMap<Rc<ColorBlock>, HashMap<Rc<ColorBlock>, Vec<DirVec>>>;
+use crate::consts::DIRECTIONS;
+
+pub(crate) type Node = Rc<ColorBlock>;
+pub(crate) type Adjacencies = HashMap<Node, Vec<DirVec>>;
+pub(crate) type CFG = HashMap<Node, Adjacencies>;
+
 #[allow(unused)]
 pub struct CFGGenerator<'a> {
     program: &'a Program<'a>,
-    adjacencies: AdjacencyList,
+    adjacencies: CFG,
     codel_size: u32,
 }
 
 #[allow(unused)]
 #[derive(Debug, Eq)]
-pub struct ColorBlock {
+pub(crate) struct ColorBlock {
     label: String,
     lightness: Lightness,
     region: HashSet<Position>,
@@ -25,7 +30,7 @@ pub struct ColorBlock {
 
 #[allow(unused)]
 impl ColorBlock {
-    pub fn new(label: String, lightness: Lightness, region: HashSet<Position>) -> Self {
+    pub(crate) fn new(label: String, lightness: Lightness, region: HashSet<Position>) -> Self {
         Self {
             label,
             lightness,
@@ -33,12 +38,24 @@ impl ColorBlock {
         }
     }
 
-    pub fn contains(&self, pos: Position) -> bool {
+    pub(crate) fn contains(&self, pos: Position) -> bool {
         self.region.contains(&pos)
     }
 
-    pub fn get_region(&self) -> &HashSet<Position> {
+    pub(crate) fn get_region(&self) -> &HashSet<Position> {
         &self.region
+    }
+
+    pub(crate) fn get_label(&self) -> &String {
+        &self.label
+    }
+
+    pub(crate) fn get_region_size(&self) -> u64 {
+        self.region.len() as u64
+    }
+
+    pub(crate) fn get_lightness(&self) -> Lightness {
+        self.lightness
     }
 }
 
@@ -67,7 +84,7 @@ impl<'a> FindAdj for CFGGenerator<'a> {}
 #[allow(unused)]
 impl<'a> CFGGenerator<'a> {
     // Returns the list of adjacencies for a given position and whether or not it is a boundary
-    pub fn new(prog: &'a Program, codel_size: u32) -> Self {
+    pub(crate) fn new(prog: &'a Program, codel_size: u32) -> Self {
         CFGGenerator {
             program: prog,
             adjacencies: HashMap::new(),
@@ -86,16 +103,7 @@ impl<'a> CFGGenerator<'a> {
                     .unwrap()
             })
             .zip(
-                vec![
-                    (Direction::Right, Codel::Left),
-                    (Direction::Right, Codel::Right),
-                    (Direction::Down, Codel::Left),
-                    (Direction::Down, Codel::Right),
-                    (Direction::Left, Codel::Left),
-                    (Direction::Left, Codel::Right),
-                    (Direction::Up, Codel::Left),
-                    (Direction::Up, Codel::Right),
-                ]
+                DIRECTIONS
                 .into_iter(),
             )
             .filter(|&(pos, _)| {
@@ -105,7 +113,7 @@ impl<'a> CFGGenerator<'a> {
             .collect::<Vec<_>>()
     }
 
-    fn explore_region(&self, entry: Position) -> Rc<ColorBlock> {
+    fn explore_region(&self, entry: Position) -> Node {
         // So we don't do duplicate discovery
         if let Some(block) = self.adjacencies.keys().find(|cb| cb.contains(entry)) {
             return block.clone();
@@ -133,12 +141,16 @@ impl<'a> CFGGenerator<'a> {
             }
         }
 
-        let (r, c) = discovered.iter().max_by_key(|&(r, c)| (r, c)).unwrap();
-        let label = format!("{}_{}_{}", lightness.to_string(), r, c);
+        let (r, c) = discovered.iter().min_by_key(|&(r, c)| (r, c)).unwrap();
+        let label = if discovered.get(&(0, 0)).is_some() {
+            format!("Entry")
+        }else{
+            format!("{}_{}_{}", lightness.to_string(), r, c)
+        };
         Rc::new(ColorBlock::new(label, lightness, discovered))
     }
 
-    pub fn analyze(&mut self) {
+    pub(crate) fn analyze(&mut self) {
         let init_block = self.explore_region(ENTRY);
         let mut discovered_regions = HashSet::from([init_block.clone()]);
         let mut queue = VecDeque::<Rc<ColorBlock>>::from([init_block]);
@@ -165,8 +177,12 @@ impl<'a> CFGGenerator<'a> {
         }
     }
 
-    pub fn get_state(&self) -> &Self {
+    pub(crate) fn get_state(&self) -> &Self {
         &self
+    }
+
+    pub(crate) fn get_cfg(&self) -> &CFG {
+        &self.adjacencies
     }
 }
 

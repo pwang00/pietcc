@@ -13,3 +13,4 @@ mod codegen;
 pub mod compiler;
 mod consts;
 mod print_stack;
+mod cfg_to_blocks;
