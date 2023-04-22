@@ -99,14 +99,6 @@ impl<'a> Interpreter<'a> {
     pub(crate) fn trace_white(&mut self) -> (u32, u32) {
         let (mut x, mut y) = self.state.pos;
 
-        let entrance = Some((x, y, self.codel_width))
-            .map(MOVE_IN[self.state.dp.rotate(2) as usize])
-            .unwrap();
-
-        //println!("Entrance {:?}", entrance);
-
-        // Adds x or y depending on dp value
-        //println!("Old pos: {:?} {:?}", self.state.pos, self.state.dp);
         loop {
             let next_pos = Some((x, y, self.codel_width))
                 .map(MOVE_IN[self.state.dp as usize])
@@ -127,8 +119,6 @@ impl<'a> Interpreter<'a> {
 
             (x, y) = next_pos
         }
-        //println!("New pos: {:?} {:?}", (x, y), self.state.dp);
-
         (x, y)
     }
 
