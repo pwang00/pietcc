@@ -77,7 +77,7 @@ PietCC will by default try to infer the codel width of the program.  The heurist
 
 The `images/` directory contains a list of sample programs.  
 
-Here's an example run with [fizzbuzz.png](https://github.com/pwang00/pietcc/blob/main/images/fizzbuzz.png)`:
+Here's an example run with [fizzbuzz.png](https://github.com/pwang00/pietcc/blob/main/images/fizzbuzz.png):
 
 <img src="https://github.com/pwang00/pietcc/blob/main/images/fizzbuzz.png" alt="Piet FizzBuzz" width="256"/>
 
@@ -167,6 +167,15 @@ Visualizing a CFG from LLVM IR can be helpful.  As an example, here's a program 
 
 <img src="https://github.com/pwang00/pietcc/blob/main/images/test2_upscaled.png" alt="A sample program that does nothing"/>
 
+
+To generate the CFG for that program, we can do 
+
+```
+$ ./pietcc images/test2.png -o test2 --emit-llvm
+$ opt --dot-cfg test2.ll; dot .start.dot -Tpng > cfg.png
+```
+
+Which generates the CFG in PNG format.
 
 Here's the relevant CFG for that program:
 
