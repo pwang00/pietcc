@@ -79,7 +79,7 @@ The `images/` directory contains a list of sample programs.
 
 Here's an example run with [fizzbuzz.png](https://github.com/pwang00/pietcc/blob/main/images/fizzbuzz.png)`:
 
-<img src="https://github.com/pwang00/pietcc/blob/main/images/fizzbuzz.png" alt="Piet FizzBuzz" width="512"/>
+<img src="https://github.com/pwang00/pietcc/blob/main/images/fizzbuzz.png" alt="Piet FizzBuzz" width="256"/>
 
 ```
 ./pietcc images/fizzbuzz.png -i -v 2
@@ -161,8 +161,15 @@ Note that codel size inference is being done implicitly.
 
 ## Generating control flow graph from Piet LLVM IR
 
-Visualizing a CFG from LLVM IR can be helpful.  As an example, here's a generated CFG for a program that simply push, pops, and dups.
+Visualizing a CFG from LLVM IR can be helpful.  As an example, here's a program that simply push, pops, and dups.
 
-[test2_upscaled.png](https://github.com/pwang00/pietcc/blob/main/images/test2.png)
+[test2_upscaled.png](https://github.com/pwang00/pietcc/blob/main/images/test2_upscaled.png)
 
 <img src="https://github.com/pwang00/pietcc/blob/main/images/test2.png" alt="A sample program that does nothing"/>
+
+
+Here's the relevant CFG for that program:
+
+[cfg_test.png](https://github.com/pwang00/pietcc/blob/main/cfg_test.png)
+<img src="https://github.com/pwang00/pietcc/blob/main/cfg_test.png" alt="CFG for above program" width=700/>
+
