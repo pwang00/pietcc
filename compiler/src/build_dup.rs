@@ -1,5 +1,6 @@
 use crate::codegen::CodeGen;
 use inkwell::IntPredicate;
+use types::instruction::Instruction;
 
 #[allow(unused)]
 impl<'a, 'b> CodeGen<'a, 'b> {
@@ -7,7 +8,9 @@ impl<'a, 'b> CodeGen<'a, 'b> {
         // The stack is only valid from 0 to stack_size, so decrementing the stack size effectively pops the top element off the stack.
         let void_type = self.context.void_type();
         let dup_fn_type = void_type.fn_type(&[], false);
-        let dup_fn = self.module.add_function("piet_dup", dup_fn_type, None);
+        let dup_fn = self
+            .module
+            .add_function(Instruction::Dup.to_llvm_name(), dup_fn_type, None);
 
         // Labels
         let basic_block = self.context.append_basic_block(dup_fn, "");

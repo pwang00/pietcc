@@ -5,6 +5,14 @@ use types::flow::FindAdj;
 use types::program::Program;
 use types::state::Position;
 
+#[derive(Copy, Clone, Default, Debug)]
+pub enum CodelSettings {
+    #[default]
+    Default,
+    Infer,
+    Width(u32),
+}
+
 pub trait InferCodelWidth: FindAdj {
     fn infer_codel_width(program: &Program) -> u32 {
         let (height, width) = program.dimensions();
@@ -54,7 +62,7 @@ pub trait InferCodelWidth: FindAdj {
             let (_, min_y) = *block.iter().min_by_key(|(_, y)| y).unwrap();
 
             let mut min_width = max_y - min_y + 1; // Initially set to max block width and height
-            let mut min_height = max_x - min_x + 1; 
+            let mut min_height = max_x - min_x + 1;
 
             for col in min_y..=max_y {
                 for (i, row) in (min_x..=max_x).enumerate() {

@@ -36,7 +36,7 @@ Generating a CFG for Piet can be done in the following steps:
 
 ## Code Generation (Idea)
 
-We represent every color block as its own function, referencing the global stack, direction pointer, and codel chooser. The CFG encodes both the color of the block and possible exits, and thus also the command to be executed.  Generally speaking
+We represent every color block as its own basic block, referencing the global stack, direction pointer, and codel chooser. The CFG encodes both the color of the block and possible exits, and thus also the command to be executed.  Generally speaking
 
 * A global stack depth, equivalent to number of elements in the stack * sizeof(i64) = 8
 * A global Piet stack, allocated via malloc.  Basically due to the way malloc works, it's easiest to just push an element at *(stack + stack_depth * 8) and pop by doing stack_depth - 8

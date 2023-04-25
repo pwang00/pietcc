@@ -8,12 +8,15 @@ impl<'a, 'b> CodeGen<'a, 'b> {
         let void_type = self.context.void_type();
         let binop_fn_type = void_type.fn_type(&[], false);
         let binop_fn = match instr {
-            Instruction::Add => self.module.add_function("piet_add", binop_fn_type, None),
-            Instruction::Sub => self.module.add_function("piet_sub", binop_fn_type, None),
-            Instruction::Div => self.module.add_function("piet_div", binop_fn_type, None),
-            Instruction::Mul => self.module.add_function("piet_mul", binop_fn_type, None),
-            Instruction::Mod => self.module.add_function("piet_mod", binop_fn_type, None),
-            Instruction::Gt => self.module.add_function("piet_gt", binop_fn_type, None),
+            Instruction::Add
+            | Instruction::Sub
+            | Instruction::Div
+            | Instruction::Mul
+            | Instruction::Mod
+            | Instruction::Gt => {
+                self.module
+                    .add_function(instr.to_llvm_name(), binop_fn_type, None)
+            }
             _ => panic!("Not a binary operation!"),
         };
 

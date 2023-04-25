@@ -1,5 +1,7 @@
 use crate::{codegen::CodeGen, consts::STACK_SIZE};
 use inkwell::{module::Linkage, AddressSpace};
+use strum::IntoEnumIterator;
+use types::instruction::Instruction;
 
 impl<'a, 'b> CodeGen<'a, 'b> {
     pub(crate) fn build_globals(&self) {
@@ -19,7 +21,7 @@ impl<'a, 'b> CodeGen<'a, 'b> {
         let global_cc = self.module.add_global(i8_type, None, "cc");
 
         let global_stack_size = self.module.add_global(i64_type, None, "stack_size");
-
+        let global_retries = self.module.add_global(i8_type, None, "rctr");
         // Defines dp, cc, and stack depth
         piet_stack.set_linkage(Linkage::Internal);
         piet_stack.set_initializer(&i64_ptr_type.const_null());
@@ -33,6 +35,9 @@ impl<'a, 'b> CodeGen<'a, 'b> {
         global_stack_size.set_linkage(Linkage::Internal);
         global_stack_size.set_initializer(&i64_type.const_zero());
 
+        global_retries.set_linkage(Linkage::Internal);
+        global_retries.set_initializer(&i8_type.const_zero());
+
         // Initialize the piet stack
         let init_fn_type = self.context.void_type().fn_type(&[], false);
         let init_fn = self.module.add_function("init_globals", init_fn_type, None);
@@ -43,6 +48,20 @@ impl<'a, 'b> CodeGen<'a, 'b> {
             self.builder.build_global_string("%ld\0", "dec_fmt");
             self.builder.build_global_string("%c\0", "char_fmt");
             self.builder.build_global_string("%ld \0", "stack_fmt");
+            self.builder
+                .build_global_string("dp: %d, cc: %d\n\0", "ptr_fmt");
+            self.builder
+                .build_global_string("Stack (%d values): ", "stack_id");
+
+            for instr in Instruction::iter() {
+                self.builder.build_global_string(
+                    &(instr.to_llvm_name().to_owned() + "\n"),
+                    &(instr.to_llvm_name().to_owned() + "_fmt"),
+                );
+            }
+            self.builder
+                .build_global_string("Calling retry", "retry_fmt");
+            self.builder.build_global_string("\n", "newline");
         }
 
         /* External functions and LLVM intrinsics */
@@ -90,6 +109,9 @@ impl<'a, 'b> CodeGen<'a, 'b> {
         let _llvm_stacksave_fn =
             self.module
                 .add_function("llvm.stacksave", llvm_stacksave_type, None);
+
+        let exit_fn_type = void_type.fn_type(&[i64_type.into()], false);
+        let _llvm_stacksave_fn = self.module.add_function("exit", exit_fn_type, None);
 
         self.builder.build_return(None);
     }

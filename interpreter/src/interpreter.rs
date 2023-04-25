@@ -1,5 +1,5 @@
-use crate::settings::{CodelSettings, InterpSettings, Verbosity};
-use parser::infer::InferCodelWidth;
+use crate::settings::{InterpSettings, Verbosity};
+use parser::infer::{CodelSettings, InferCodelWidth};
 use parser::{convert::ConvertToLightness, decode::DecodeInstruction};
 use std::collections::{HashSet, VecDeque};
 use std::{io, io::Read};
@@ -114,7 +114,7 @@ impl<'a> Interpreter<'a> {
 
             if lightness != Some(&White) {
                 (x, y) = next_pos;
-                break
+                break;
             }
 
             (x, y) = next_pos
@@ -417,9 +417,9 @@ impl<'a> Interpreter<'a> {
             let block = self.explore_region(self.state.pos);
             let lightness = *self.program.get(self.state.pos).unwrap();
             let furthest_in_dir = self.furthest_in_direction(&block);
-            let next_pos = if lightness != White { 
+            let next_pos = if lightness != White {
                 self.move_to_next_block(furthest_in_dir)
-            }else{
+            } else {
                 self.trace_white()
             };
             let adj_lightness = self.program.get(next_pos);
@@ -427,15 +427,13 @@ impl<'a> Interpreter<'a> {
 
             match adj_lightness {
                 None | Some(&Black) => {
-                    //println!("{:?} {:?} {:?} {:?}", self.state.dp, self.state.cc, self.state.pos, adj_lightness);
                     self.state.pos = self.recalculate_entry(&block);
                     self.state.rctr += 1;
-                },
+                }
                 Some(&color) => {
                     self.state.pos = next_pos;
-                    //println!("{:?} {:?} {:?} {:?}", self.state.dp, self.state.cc, self.state.pos, adj_lightness);
                     if let Some(instr) = <Self as DecodeInstruction>::decode_instr(lightness, color)
-                    {  
+                    {
                         let res = self.exec_instr(instr);
                         if let Err(res) = res {
                             if self.settings.verbosity == Verbosity::Verbose {

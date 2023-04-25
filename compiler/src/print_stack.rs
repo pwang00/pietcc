@@ -51,6 +51,27 @@ impl<'a, 'b> CodeGen<'a, 'b> {
             .unwrap()
             .as_pointer_value();
 
+        let stack_id = self
+            .module
+            .get_global("stack_id")
+            .unwrap()
+            .as_pointer_value();
+
+        let newline_fmt = self
+            .module
+            .get_global("newline")
+            .unwrap()
+            .as_pointer_value();
+
+        let const_fmt_stack_id_gep =
+            unsafe { self.builder.build_gep(stack_id, &[const_0, const_0], "") };
+
+        self.builder.build_call(
+            printf_fn,
+            &[const_fmt_stack_id_gep.into(), stack_size_val.into()],
+            "call_printf_stack_const",
+        );
+
         let const_fmt_gep = unsafe { self.builder.build_gep(stack_fmt, &[const_0, const_0], "") };
         // Store index
         self.builder.build_store(index, stack_size_val);
@@ -82,6 +103,9 @@ impl<'a, 'b> CodeGen<'a, 'b> {
             .build_conditional_branch(cmp, loop_block, ret_block);
 
         self.builder.position_at_end(ret_block);
+        let newline_fmt = unsafe { self.builder.build_gep(newline_fmt, &[const_0, const_0], "") };
+        self.builder
+            .build_call(printf_fn, &[newline_fmt.into()], "");
         self.builder.build_return(None);
     }
 }

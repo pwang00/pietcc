@@ -1,3 +1,5 @@
+use parser::infer::CodelSettings;
+
 #[derive(Copy, Clone, Default)]
 pub struct InterpSettings {
     pub verbosity: Verbosity,
@@ -10,12 +12,4 @@ pub enum Verbosity {
     #[default]
     Normal,
     Verbose,
-}
-
-#[derive(Copy, Clone, Default)]
-pub enum CodelSettings {
-    #[default]
-    Default,
-    Infer,
-    Width(u32),
 }

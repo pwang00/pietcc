@@ -38,8 +38,11 @@ impl Lightness {
         }
     }
 
-    pub fn components(&self) -> (i8, i8) {
-        (self.discriminant(), self.hue())
+    pub fn to_i8(&self) -> i8 {
+        match self {
+            Light(_) | Reg(_) | Dark(_) => self.discriminant() * 6 + self.hue(),
+            _ => self.discriminant(),
+        }
     }
 }
 

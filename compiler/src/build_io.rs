@@ -13,8 +13,14 @@ impl<'a, 'b> CodeGen<'a, 'b> {
         let in_fn_type = void_type.fn_type(&[], false);
 
         let in_fn = match instr {
-            Instruction::IntIn => self.module.add_function("piet_intin", in_fn_type, None),
-            Instruction::CharIn => self.module.add_function("piet_charin", in_fn_type, None),
+            Instruction::IntIn => {
+                self.module
+                    .add_function(Instruction::IntIn.to_llvm_name(), in_fn_type, None)
+            }
+            Instruction::CharIn => {
+                self.module
+                    .add_function(Instruction::CharIn.to_llvm_name(), in_fn_type, None)
+            }
             _ => panic!("Not an input instruction!"),
         };
 

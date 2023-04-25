@@ -1,4 +1,5 @@
 use parser::decode::DecodeInstruction;
+use parser::infer::{CodelSettings, InferCodelWidth};
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::hash::Hash;
 use std::rc::Rc;
@@ -17,7 +18,7 @@ pub(crate) type CFG = HashMap<Node, Adjacencies>;
 pub struct CFGGenerator<'a> {
     program: &'a Program<'a>,
     adjacencies: CFG,
-    codel_size: u32,
+    codel_width: u32,
 }
 
 #[allow(unused)]
@@ -81,14 +82,22 @@ impl<'a> DecodeInstruction for CFGGenerator<'a> {}
 
 impl<'a> FindAdj for CFGGenerator<'a> {}
 
+impl<'a> InferCodelWidth for CFGGenerator<'a> {}
+
 #[allow(unused)]
 impl<'a> CFGGenerator<'a> {
     // Returns the list of adjacencies for a given position and whether or not it is a boundary
-    pub(crate) fn new(prog: &'a Program, codel_size: u32) -> Self {
+    pub fn new(prog: &'a Program, codel_settings: CodelSettings) -> Self {
+        let codel_width = match codel_settings {
+            CodelSettings::Default => 1,
+            CodelSettings::Infer => Self::infer_codel_width(prog),
+            CodelSettings::Width(codel_width) => codel_width,
+        };
+
         CFGGenerator {
             program: prog,
             adjacencies: HashMap::new(),
-            codel_size,
+            codel_width,
         }
     }
 
@@ -98,19 +107,46 @@ impl<'a> CFGGenerator<'a> {
             .map(|x| {
                 cb.iter()
                     .max_by_key(FURTHEST[x])
-                    .map(|&(x, y)| (x, y, self.codel_size))
+                    .map(|&(x, y)| (x, y, self.codel_width))
                     .map(MOVE_IN[x / 2])
                     .unwrap()
             })
-            .zip(
-                DIRECTIONS
-                .into_iter(),
-            )
+            .zip(DIRECTIONS.into_iter())
             .filter(|&(pos, _)| {
                 let lightness = self.program.get(pos);
                 lightness.is_some() && lightness.unwrap() != &Black
             })
             .collect::<Vec<_>>()
+    }
+
+    pub(crate) fn trace_white(&self, entry: Position, dir: DirVec) -> Vec<(Position, DirVec)> {
+        let (mut x, mut y) = entry;
+        let (mut dp, mut cc) = dir;
+        let mut exits = HashSet::new();
+        let mut retries = 0;
+
+        while retries < 8 {
+            let next_pos = Some((x, y, self.codel_width))
+                .map(MOVE_IN[dp as usize])
+                .unwrap();
+
+            let lightness = self.program.get(next_pos);
+
+            if lightness.is_none() || lightness == Some(&Black) {
+                dp = dp.rotate(1);
+                cc = cc.switch(1);
+                retries += 1;
+                continue;
+            }
+
+            if lightness != Some(&White) {
+                exits.insert((next_pos, (dp, cc)));
+            }
+
+            (x, y) = next_pos
+        }
+
+        exits.into_iter().collect::<Vec<_>>()
     }
 
     fn explore_region(&self, entry: Position) -> Node {
@@ -125,7 +161,7 @@ impl<'a> CFGGenerator<'a> {
 
         while !queue.is_empty() {
             let pos = queue.pop_front().unwrap();
-            let adjs = Self::adjacencies(pos, &self.program, self.codel_size);
+            let adjs = Self::adjacencies(pos, &self.program, self.codel_width);
 
             let in_block = adjs
                 .iter()
@@ -144,7 +180,7 @@ impl<'a> CFGGenerator<'a> {
         let (r, c) = discovered.iter().min_by_key(|&(r, c)| (r, c)).unwrap();
         let label = if discovered.get(&(0, 0)).is_some() {
             format!("Entry")
-        }else{
+        } else {
             format!("{}_{}_{}", lightness.to_string(), r, c)
         };
         Rc::new(ColorBlock::new(label, lightness, discovered))
@@ -167,7 +203,7 @@ impl<'a> CFGGenerator<'a> {
                 bordering
                     .entry(adj_block.clone())
                     .and_modify(|vec| vec.push(dir))
-                    .or_insert(Vec::new());
+                    .or_insert(Vec::from([dir]));
 
                 if !discovered_regions.contains(&adj_block) {
                     discovered_regions.insert(adj_block.clone());
@@ -175,12 +211,15 @@ impl<'a> CFGGenerator<'a> {
                 }
             }
             self.adjacencies.insert(curr_block, bordering);
-            println!("{:?}", self.adjacencies.keys().len());
         }
     }
 
     pub(crate) fn get_state(&self) -> &Self {
         &self
+    }
+
+    pub(crate) fn get_cfg(&self) -> &CFG {
+        &self.adjacencies
     }
 }
 
@@ -188,13 +227,13 @@ impl<'a> CFGGenerator<'a> {
 
 mod test {
     use super::*;
+    use parser::loader::Loader;
     use std::{
         collections::{hash_map::DefaultHasher, HashMap, HashSet, VecDeque},
+        fs,
         hash::Hasher,
-        fs
     };
     use types::color::{Hue::*, Lightness, Lightness::*};
-    use parser::loader::Loader;
 
     fn get_hash<T: Hash>(obj: &T) -> u64 {
         let mut hasher = DefaultHasher::new();
@@ -237,13 +276,18 @@ mod test {
     }
     #[test]
     fn test_program() {
-        let prog = Loader::convert("../images/hw2-1.gif").unwrap();
+        let prog = Loader::convert("../images/hw1-1.png").unwrap();
         let mut cfg_gen = CFGGenerator::new(&prog, 1);
 
         println!("loaded");
         cfg_gen.analyze();
 
         let adjacencies = &cfg_gen.get_state().adjacencies;
-        println!("{:?}", adjacencies);
+
+        for node in adjacencies.keys() {
+            if node.get_label() == "RegYellow_2_3" {
+                println!("{:?}", adjacencies.get(node))
+            }
+        }
     }
 }

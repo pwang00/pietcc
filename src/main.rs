@@ -1,9 +1,15 @@
+use std::io::Error;
+
 use clap::{App, Arg};
+use compiler::codegen::CodeGen;
+use compiler::settings::CompilerSettings;
+use compiler::{cfg_gen::CFGGenerator, settings::SaveOptions};
+use inkwell::context::Context;
 use interpreter::{interpreter::Interpreter, settings::*};
-use parser::loader::Loader;
+use parser::{infer::CodelSettings, loader::Loader};
 use types::program::Program;
 
-fn main() {
+fn main() -> Result<(), Error> {
     let matches = App::new("pietcc")
         .about("Piet compiler and interpreter")
         .arg(
@@ -26,8 +32,8 @@ fn main() {
                 .short('o')
                 .long("output")
                 .takes_value(true)
-                .required_unless_present("interpret")
-                .help("Place the output into <file>"),
+                .default_value("program.out")
+                .help("Output an executable into <file>"),
         )
         .arg(
             Arg::with_name("codel_size")
@@ -42,6 +48,19 @@ fn main() {
                 .long("default")
                 .takes_value(true)
                 .help("Interpret or compile with a codel size of 1"),
+        )
+        .arg(
+            Arg::with_name("emit-llvm")
+                .long("emit-llvm")
+                .takes_value(false)
+                .help("Emit LLVM IR for a given Piet program"),
+        )
+        .arg(
+            Arg::with_name("emit-llvm-bitcode")
+                .long("emit-llvm-bitcode")
+                .takes_value(false)
+                .conflicts_with("emit-llvm")
+                .help("Emit LLVM bitcode for a given Piet program"),
         )
         .arg(
             Arg::with_name("verbosity")
@@ -60,20 +79,21 @@ fn main() {
 
     if let Ok(prog) = Loader::convert(filename) {
         program = prog;
+        let mut codel_settings = CodelSettings::Infer;
 
-        let mut settings = InterpSettings {
+        let mut interp_settings = InterpSettings {
             verbosity: Verbosity::Normal,
-            codel_settings: CodelSettings::Infer,
+            codel_settings,
         };
 
         if let Some(val) = matches.value_of("codel_size") {
             if let Ok(val) = val.parse::<u32>() {
-                settings.codel_settings = CodelSettings::Width(val);
+                codel_settings = CodelSettings::Width(val);
             }
         }
 
         if let Some(_) = matches.value_of("use_default") {
-            settings.codel_settings = CodelSettings::Default
+            codel_settings = CodelSettings::Default
         }
 
         if let Some(val) = matches.value_of("verbosity") {
@@ -82,15 +102,46 @@ fn main() {
                 "2" => Verbosity::Verbose,
                 _ => Verbosity::Normal,
             };
-            settings.codel_settings = CodelSettings::Default;
-            settings.verbosity = verbosity;
+            interp_settings.verbosity = verbosity;
 
             println!("Running with verbosity set to {:?}", verbosity);
         }
 
         if matches.is_present("interpret") {
-            interpreter = Interpreter::new(&program, settings);
+            interp_settings.codel_settings = codel_settings;
+            interpreter = Interpreter::new(&program, interp_settings);
             println!("\n{}", interpreter.run());
         }
+
+        if let Some(output_fname) = matches.value_of("out") {
+            let context = Context::create();
+            let module = context.create_module("piet");
+            let builder = context.create_builder();
+            // Program
+
+            let mut save_options = SaveOptions::EmitExecutable;
+
+            if matches.is_present("emit-llvm") {
+                save_options = SaveOptions::EmitLLVMIR
+            }
+
+            if matches.is_present("emit-llvm-bitcode") {
+                save_options = SaveOptions::EmitLLVMBitcode
+            }
+
+            let compile_options = CompilerSettings {
+                opt_level: inkwell::OptimizationLevel::None,
+                codel_settings,
+                save_options,
+                output_fname,
+            };
+
+            let cfg_gen = CFGGenerator::new(&program, codel_settings);
+            let mut cg = CodeGen::new(&context, module, builder, cfg_gen, compile_options);
+            if let Err(e) = cg.run(compile_options) {
+                println!("{:?}", e);
+            }
+        }
     }
+    Ok(())
 }

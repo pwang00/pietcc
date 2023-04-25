@@ -2,6 +2,7 @@ use inkwell::{
     values::{AnyValue, BasicValue, IntValue, PointerValue},
     IntPredicate,
 };
+use types::instruction::Instruction;
 
 use crate::codegen::CodeGen;
 
@@ -13,7 +14,9 @@ impl<'a, 'b> CodeGen<'a, 'b> {
 
         // Roll function type
         let roll_fn_type = void_type.fn_type(&[], false);
-        let roll_fn = self.module.add_function("piet_roll", roll_fn_type, None);
+        let roll_fn =
+            self.module
+                .add_function(Instruction::Roll.to_llvm_name(), roll_fn_type, None);
 
         // LLVM intrinsics
         let stack_save_fn = self.module.get_function("llvm.stacksave").unwrap();

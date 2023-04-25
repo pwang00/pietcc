@@ -1,3 +1,5 @@
+use types::instruction::Instruction;
+
 use crate::codegen::CodeGen;
 
 #[allow(unused)]
@@ -5,7 +7,9 @@ impl<'a, 'b> CodeGen<'a, 'b> {
     pub(crate) fn build_push(&self) {
         let void_type = self.context.void_type();
         let push_fn_type = void_type.fn_type(&[self.context.i64_type().into()], false);
-        let push_fn = self.module.add_function("piet_push", push_fn_type, None);
+        let push_fn =
+            self.module
+                .add_function(Instruction::Push.to_llvm_name(), push_fn_type, None);
         let basic_block = self.context.append_basic_block(push_fn, "");
         self.builder.position_at_end(basic_block);
 
