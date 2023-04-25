@@ -71,7 +71,6 @@ OPTIONS:
     -o, --output <out>             Output an executable into <file> [default: program.out]
     -s, --size <codel_size>        Interpret or compile with a supplied codel size
     -v, --verbosity <verbosity>    Sets the interpreter's verbosity
-
 ```
 
 PietCC will by default try to infer the codel width of the program.  The heuristic used computes the gcd of all the block widths and heights with each other and the program width / height, and will produce a correct estimate of the codel width with high probability.  However, to correctly interpret some programs, supplying the size flag with a corresponding value for the codel width is necessary.
