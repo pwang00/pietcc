@@ -86,7 +86,7 @@ impl<'a, 'b> CodeGen<'a, 'b> {
             .builder
             .build_int_truncate(rem_lz, self.context.i8_type(), "trunc_to_i8");
         let rem_lz = self.builder.build_int_add(rem_lz, cc_val, "");
-        let rem_lz = self.builder.build_int_signed_rem(rem_lz, const_2_i8, "");
+        let rem_lz = self.builder.build_int_unsigned_rem(rem_lz, const_2_i8, "");
         self.builder.build_store(cc_addr, rem_lz);
         self.builder.build_unconditional_branch(ret_block);
 
@@ -99,7 +99,7 @@ impl<'a, 'b> CodeGen<'a, 'b> {
             .builder
             .build_int_truncate(res, self.context.i8_type(), "trunc_to_i8");
         let rem_gz = self.builder.build_int_add(rem_gz, cc_val, "");
-        let rem_gz = self.builder.build_int_signed_rem(rem_gz, const_2_i8, "");
+        let rem_gz = self.builder.build_int_unsigned_rem(rem_gz, const_2_i8, "");
         self.builder.build_store(cc_addr, rem_gz);
         self.builder.build_unconditional_branch(ret_block);
         // Return

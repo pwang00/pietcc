@@ -208,16 +208,16 @@ impl<'a, 'b> CodeGen<'a, 'b> {
                         .as_any_value_enum()
                         .into_pointer_value();
 
-                    /*let instr_str = unsafe { self.builder.build_gep(instr_str_addr, &[const_0, const_0], "") };
-                    self.builder.build_call(printf_fn, &[instr_str.into()], "");*/
+                    // let instr_str = unsafe { self.builder.build_gep(instr_str_addr, &[const_0, const_0], "") };
+                    // self.builder.build_call(printf_fn, &[instr_str.into()], "");
 
                     if instr == Instruction::Push {
                         self.builder.build_call(instr_fn, &[block_size.into()], "");
                     } else {
                         self.builder.build_call(instr_fn, &[], "");
                     }
-                    //self.builder.build_call(print_pointers_fn, &[], "");
-                    //self.builder.build_call(print_stack_fn, &[], "");
+                    // self.builder.build_call(print_pointers_fn, &[], "");
+                    // self.builder.build_call(print_stack_fn, &[], "");
                 }
                 let next_block = self.get_basic_block_by_name(adj.get_label()).unwrap();
                 let jmp_to_next = self.builder.build_unconditional_branch(next_block);

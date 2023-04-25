@@ -24,6 +24,8 @@ impl<'a, 'b> CodeGen<'a, 'b> {
             _ => panic!("Not an input instruction!"),
         };
 
+        let printf_fn = self.module.get_function("printf").unwrap();
+
         // Consts
         let const_0 = self.context.i64_type().const_zero();
         let const_1 = self.context.i64_type().const_int(1, false);
@@ -53,8 +55,26 @@ impl<'a, 'b> CodeGen<'a, 'b> {
                 .get_global("char_fmt")
                 .unwrap()
                 .as_pointer_value(),
-            _ => panic!("Not an output instruction"),
+            _ => panic!("Not an input instruction"),
         };
+
+        let input_message_fmt = match instr {
+            Instruction::IntIn => self
+                .module
+                .get_global("input_message_int")
+                .unwrap()
+                .as_pointer_value(),
+            Instruction::CharIn => self
+                .module
+                .get_global("input_message_char")
+                .unwrap()
+                .as_pointer_value(),
+            _ => panic!("Not an input instruction"),
+        };
+
+        // Enter int vs char
+        let input_message_fmt_gep = unsafe { self.builder.build_gep(input_message_fmt, &[const_0, const_0], "") };
+        self.builder.build_call(printf_fn, &[input_message_fmt_gep.into()], "");      
 
         // %ld or %c
         let const_fmt_gep = unsafe { self.builder.build_gep(fmt, &[const_0, const_0], "") };

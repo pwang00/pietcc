@@ -9,7 +9,6 @@ mod build_pointers;
 mod build_pop;
 mod build_push;
 mod build_roll;
-mod build_terminate;
 pub mod cfg_gen;
 pub mod codegen;
 mod consts;

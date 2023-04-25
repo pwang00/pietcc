@@ -18,7 +18,7 @@ The repository is organized into four main components:
 ## Progress
 
 - [x] Interpreter: functionally complete for all images with correct pixel colors.  
-- [ ] Compiler: in active development; partially functional. White codel tracing is not currently supported even though pietcc can correctly compile some images with white codels.  Additionally, some instructions are probably buggy, so will go and fix those.  To read more about the compiler, visit this [page](https://github.com/pwang00/pietcc/blob/main/Compiler.md)
+- [ ] Compiler: in active development; partially functional. White codel tracing is not currently supported even though pietcc can correctly compile some images with white codels.  Additionally, some instructions are probably buggy, so will go and fix those.  To read more about the compiler, visit this [page](https://github.com/pwang00/pietcc/blob/main/Compiler.md).
 
 ## TODO
 
@@ -30,6 +30,7 @@ Compiler:
 
 * Add white block tracing support.  This functionality already exists in the interpreter, so porting it over to the compiler shouldn't take too long.  
 * Fix bugs in Piet instructions.  I don't know which instructions are buggy exactly, but some compiled programs exhibit different behavior than when interpreted, so I know for a fact that they exist.
+* Add optimization pass support.  
 
 ## Installation
 
@@ -143,7 +144,9 @@ Here are some example images with compilation logs:
 $ ./pietcc images/piet_pi.png -o piet_pi
 $ ./piet_pi 
 31405
-Stack (0 values): 1052674 
+
+
+Stack empty
 ```
 
 [hw1-11.gif](https://github.com/pwang00/pietcc/blob/main/images/hw1-11.gif)
@@ -154,7 +157,7 @@ Stack (0 values): 1052674
 $ ./pietcc images/hw1-11.gif -o hw1-11
 $ ./hw1-11 
 Hello, world!
-Stack (0 values): 1052674 
+Stack empty
 ```
 
 Note that codel size inference is being done implicitly.

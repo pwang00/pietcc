@@ -45,13 +45,17 @@ impl<'a, 'b> CodeGen<'a, 'b> {
         self.builder.position_at_end(init_block);
 
         unsafe {
+            self.builder.build_global_string("Enter number: ", "input_message_int");
+            self.builder.build_global_string("Enter char: ", "input_message_char");
             self.builder.build_global_string("%ld\0", "dec_fmt");
             self.builder.build_global_string("%c\0", "char_fmt");
             self.builder.build_global_string("%ld \0", "stack_fmt");
             self.builder
                 .build_global_string("dp: %d, cc: %d\n\0", "ptr_fmt");
             self.builder
-                .build_global_string("Stack (%d values): ", "stack_id");
+                .build_global_string("\nStack (size %d): ", "stack_id");
+            self.builder
+                .build_global_string("\nStack empty", "stack_id_empty");
 
             for instr in Instruction::iter() {
                 self.builder.build_global_string(

@@ -12,6 +12,8 @@ impl<'a, 'b> CodeGen<'a, 'b> {
         let printf_fn = self.module.get_function("printf").unwrap();
         // Labels
         let basic_block = self.context.append_basic_block(print_stack_fn, "");
+        let size_zero_block = self.context.append_basic_block(print_stack_fn, "");
+        let size_gt_zero_block = self.context.append_basic_block(print_stack_fn, "");
         let loop_block = self.context.append_basic_block(print_stack_fn, "loop");
         let ret_block = self.context.append_basic_block(print_stack_fn, "ret");
         self.builder.position_at_end(basic_block);
@@ -57,6 +59,12 @@ impl<'a, 'b> CodeGen<'a, 'b> {
             .unwrap()
             .as_pointer_value();
 
+        let stack_id_empty = self
+            .module
+            .get_global("stack_id_empty")
+            .unwrap()
+            .as_pointer_value();
+
         let newline_fmt = self
             .module
             .get_global("newline")
@@ -65,6 +73,23 @@ impl<'a, 'b> CodeGen<'a, 'b> {
 
         let const_fmt_stack_id_gep =
             unsafe { self.builder.build_gep(stack_id, &[const_0, const_0], "") };
+
+        let const_fmt_stack_id_empty_gep =
+            unsafe { self.builder.build_gep(stack_id_empty, &[const_0, const_0], "") };
+
+        let size_eq_0 = self.builder.build_int_compare(IntPredicate::EQ, stack_size_val, const_0, "");
+        self.builder.build_conditional_branch(size_eq_0, size_zero_block, size_gt_zero_block);
+
+        self.builder.position_at_end(size_zero_block);
+
+        self.builder.build_call(
+            printf_fn,
+            &[const_fmt_stack_id_empty_gep.into()],
+            "call_printf_stack_const_empty",
+        );
+        self.builder.build_unconditional_branch(ret_block);
+
+        self.builder.position_at_end(size_gt_zero_block);
 
         self.builder.build_call(
             printf_fn,
@@ -87,6 +112,7 @@ impl<'a, 'b> CodeGen<'a, 'b> {
             self.builder
                 .build_gep(load_piet_stack, &[updated_idx], "fetch_curr_elem_ptr")
         };
+
         let top_elem_val = self.builder.build_load(top_elem, "load_elem");
 
         self.builder.build_call(
@@ -94,6 +120,7 @@ impl<'a, 'b> CodeGen<'a, 'b> {
             &[const_fmt_gep.into(), top_elem_val.into()],
             "call_printf",
         );
+
         self.builder.build_store(index, updated_idx);
 
         let cmp = self
