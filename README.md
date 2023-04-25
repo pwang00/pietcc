@@ -18,7 +18,7 @@ The repository is organized into four main components:
 ## Progress
 
 - [x] Interpreter: functionally complete for all images with correct pixel colors.  
-- [ ] Compiler: in active development; partially functional. White codel tracing is not currently supported even though pietcc can correctly compile some images with white codels.  Additionally, some instructions are probably buggy, so will go and fix those.
+- [ ] Compiler: in active development; partially functional. White codel tracing is not currently supported even though pietcc can correctly compile some images with white codels.  Additionally, some instructions are probably buggy, so will go and fix those.  To read more about the compiler, visit this [page](https://github.com/pwang00/pietcc/blob/main/Compiler.md)
 
 ## TODO
 
