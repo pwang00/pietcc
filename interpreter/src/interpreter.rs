@@ -8,6 +8,7 @@ use types::error::ExecutionError;
 use types::flow::{Codel, Direction, FindAdj, FURTHEST, MOVE_IN};
 use types::instruction::Instruction;
 use types::program::Program;
+use std::io::{Write};
 use types::state::{ExecutionResult, ExecutionState, Position};
 
 pub struct Interpreter<'a> {
@@ -414,6 +415,7 @@ impl<'a> Interpreter<'a> {
 
         // A Piet program terminates when the retries counter reaches 8
         while self.state.rctr < 8 {
+            io::stdout().flush().unwrap();
             let block = self.explore_region(self.state.pos);
             let lightness = *self.program.get(self.state.pos).unwrap();
             let furthest_in_dir = self.furthest_in_direction(&block);
