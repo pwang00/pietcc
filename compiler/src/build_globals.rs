@@ -57,6 +57,8 @@ impl<'a, 'b> CodeGen<'a, 'b> {
             self.builder
                 .build_global_string("\nStack empty", "stack_id_empty");
 
+            self.builder
+                .build_global_string("w", "fdopen_mode");
             for instr in Instruction::iter() {
                 self.builder.build_global_string(
                     &(instr.to_llvm_name().to_owned() + "\n"),
@@ -117,6 +119,24 @@ impl<'a, 'b> CodeGen<'a, 'b> {
         let exit_fn_type = void_type.fn_type(&[i64_type.into()], false);
         let _llvm_stacksave_fn = self.module.add_function("exit", exit_fn_type, None);
 
+        // setvbuf to disable buffering
+        let i32_type = self.context.i32_type();
+        let i8_ptr_type = self.context.i8_type().ptr_type(AddressSpace::default());
+        let void_type = self.context.void_type();
+        
+        let setvbuf_type = void_type.fn_type(
+            &[i8_ptr_type.into(), i8_ptr_type.into(), i32_type.into(), i32_type.into()],
+            false,
+        );
+        
+        self.module.add_function("setvbuf", setvbuf_type, None);
+        
+        // fdopen to get pointer to stdout
+        let fdopen_type = i8_ptr_type.fn_type(&[i32_type.into(), c_string_type.into()], false);
+        let fdopen_fn = self.module.add_function("fdopen", fdopen_type, None);
+
+
         self.builder.build_return(None);
+
     }
 }

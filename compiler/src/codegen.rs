@@ -119,6 +119,7 @@ impl<'a, 'b> CodeGen<'a, 'b> {
         self.generate_cfg();
         let cfg = self.cfg_gen.get_cfg();
         self.build_globals();
+        self.build_stdout_unbuffered();
         self.build_print_stack();
         self.build_binops(Instruction::Add);
         self.build_binops(Instruction::Sub);
