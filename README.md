@@ -171,5 +171,5 @@ Visualizing a CFG from LLVM IR can be helpful.  As an example, here's a program 
 Here's the relevant CFG for that program:
 
 [cfg_test.png](https://github.com/pwang00/pietcc/blob/main/cfg_test.png)
-<img src="https://github.com/pwang00/pietcc/blob/main/cfg_test.png" alt="CFG for above program"/>
+<img src="https://github.com/pwang00/pietcc/blob/main/cfg_test.png" alt="CFG for above program" width=700/>
 
