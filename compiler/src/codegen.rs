@@ -150,7 +150,6 @@ impl<'a, 'b> CodeGen<'a, 'b> {
     }
 
     pub fn run(&mut self, settings: CompilerSettings) -> Result<(), Error> {
-        println!("{:?}", settings);
         self.generate(settings.output_fname, settings.save_options)?;
         Ok(())
     }
