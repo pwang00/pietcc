@@ -6,11 +6,11 @@ PietCC is a Rust interpreter and compiler for the Piet esoteric language.
 
 The repository is organized into four main components:
 
-1. `types`: core types shared between the interpreter, compiler, and parser
-2. `interpreter`: core interpreter logic
-3. `compiler`: core compiler logic, handles CFG generation and uses Inkwell to generate LLVM IR from CFGs.
-4. `parser`: core image parsing logic, handles image loading and pixel/codel operations.
-4. `main`: main CLI, allows users to run either the interpreter or compiler with a variety of flags.
+1. [types](https://github.com/pwang00/pietcc/tree/main/types): core types shared between the interpreter, compiler, and parser
+2. [interpreter](https://github.com/pwang00/pietcc/tree/main/interpreter): core interpreter logic
+3. [compiler](https://github.com/pwang00/pietcc/tree/main/compiler): core compiler logic, handles CFG generation and uses Inkwell to generate LLVM IR from CFGs.
+4. [parser](https://github.com/pwang00/pietcc/tree/main/parser): core image parsing logic, handles image loading and pixel/codel operations.
+4. [src](https://github.com/pwang00/pietcc/tree/main/src): main CLI, allows users to run either the interpreter or compiler with a variety of flags.
 
 ## Dependencies
 - LLVM libraries (14.0.0), including clang and llc.
