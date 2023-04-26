@@ -160,6 +160,8 @@ Stack empty
 
 [Piet Brainfuck interpreter](https://github.com/pwang00/pietcc/blob/main/images/piet_bfi.gif)
 
+<img src="https://github.com/pwang00/pietcc/blob/main/images/piet_bfi.gif" alt="Piet Brainfuck interpreter" width="300"/>
+
 Per the relevant section under [piet samples](https://www.dangermouse.net/esoteric/piet/samples.html)
 
 "The Piet program takes a Brainfuck program, and its input (seperated by |), from STDIN and prints the output of the Brainfuck program to STDOUT. E.g. the input ",+>,+>,+>,+.<.<.<.|sdhO" would generate the output 'Piet'"
