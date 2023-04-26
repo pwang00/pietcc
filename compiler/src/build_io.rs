@@ -73,8 +73,12 @@ impl<'a, 'b> CodeGen<'a, 'b> {
         };
 
         // Enter int vs char
-        let input_message_fmt_gep = unsafe { self.builder.build_gep(input_message_fmt, &[const_0, const_0], "") };
-        self.builder.build_call(printf_fn, &[input_message_fmt_gep.into()], "");      
+        let input_message_fmt_gep = unsafe {
+            self.builder
+                .build_gep(input_message_fmt, &[const_0, const_0], "")
+        };
+        self.builder
+            .build_call(printf_fn, &[input_message_fmt_gep.into()], "");
 
         // %ld or %c
         let const_fmt_gep = unsafe { self.builder.build_gep(fmt, &[const_0, const_0], "") };

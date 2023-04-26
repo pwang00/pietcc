@@ -1,11 +1,7 @@
+use crate::{cfg_gen::CFG, codegen::CodeGen};
 use inkwell::{basic_block::BasicBlock, values::AnyValue, IntPredicate};
 use parser::decode::DecodeInstruction;
-use types::instruction::{self, Instruction};
-
-use crate::{
-    cfg_gen::{Node, CFG},
-    codegen::CodeGen,
-};
+use types::instruction::Instruction;
 
 impl<'a, 'b> CodeGen<'a, 'b> {
     fn get_basic_block_by_name(&self, name: &str) -> Option<BasicBlock<'b>> {
@@ -47,7 +43,6 @@ impl<'a, 'b> CodeGen<'a, 'b> {
 
         // Constants
         let const_0 = i64_type.const_zero();
-
         // Functions
         let retry_fn = self.module.get_function("retry").unwrap();
 
@@ -106,121 +101,95 @@ impl<'a, 'b> CodeGen<'a, 'b> {
             }
 
             for (i, adj) in adjs.keys().enumerate() {
-                let adj_lightness = adj.get_lightness();
-                let instr =
-                    <Self as DecodeInstruction>::decode_instr(curr_lightness, adj_lightness);
-
                 let dirvec = adjs.get(adj).unwrap();
+                let dirvec_blocks = (0..dirvec.len())
+                    .map(|_| {
+                        self.context
+                            .insert_basic_block_after(adj_blocks[i], "dirvec_adj")
+                    })
+                    .collect::<Vec<_>>();
 
-                // Check directions
-                let mut accumulated_cmp = None;
-
+                // Build link to dirvec adjacency
                 self.builder.position_at_end(adj_blocks[i]);
+                self.builder.build_unconditional_branch(dirvec_blocks[0]);
 
-                let call_instr = self.context.insert_basic_block_after(
-                    adj_blocks[i],
-                    &("call_instr_".to_owned() + node.get_label().as_str()),
-                );
+                for (j, &((dp, cc), rotate_by, instr)) in dirvec.iter().enumerate() {
+                    let call_instr = self.context.insert_basic_block_after(
+                        dirvec_blocks[j],
+                        &("call_instr_".to_owned() + node.get_label().as_str()),
+                    );
 
-                for (&(dp, cc), &(next_dp, next_cc)) in dirvec.iter().zip(dirvec[1..].iter()) {
-                    let curr_dp_as_llvm_const = i8_type.const_int(dp as i8 as u64, false);
-                    let curr_cc_as_llvm_const = i8_type.const_int(cc as i8 as u64, false);
-                    let next_dp_as_llvm_const = i8_type.const_int(next_dp as i8 as u64, false);
-                    let next_cc_as_llvm_const = i8_type.const_int(next_cc as i8 as u64, false);
-                    let curr_dp_cmp = self.builder.build_int_compare(
-                        IntPredicate::EQ,
-                        curr_dp_as_llvm_const,
+                    self.builder.position_at_end(dirvec_blocks[j]);
+                    let dp_as_const = i8_type.const_int(dp as i8 as u64, false);
+                    let cc_as_const = i8_type.const_int(cc as i8 as u64, false);
+                    let dp_cmp = self.builder.build_int_compare(
+                        inkwell::IntPredicate::EQ,
                         global_dp,
+                        dp_as_const,
                         "",
                     );
-                    let curr_cc_cmp = self.builder.build_int_compare(
-                        IntPredicate::EQ,
-                        curr_cc_as_llvm_const,
+                    let cc_cmp = self.builder.build_int_compare(
+                        inkwell::IntPredicate::EQ,
                         global_cc,
+                        cc_as_const,
                         "",
                     );
-                    let next_dp_cmp = self.builder.build_int_compare(
-                        IntPredicate::EQ,
-                        next_dp_as_llvm_const,
-                        global_dp,
-                        "",
-                    );
-                    let next_cc_cmp = self.builder.build_int_compare(
-                        IntPredicate::EQ,
-                        next_cc_as_llvm_const,
-                        global_cc,
-                        "",
-                    );
-                    let and_curr_dp_cc = self.builder.build_and(curr_dp_cmp, curr_cc_cmp, "");
-                    let and_next_dp_cc = self.builder.build_and(next_dp_cmp, next_cc_cmp, "");
-                    let or_curr_next = self.builder.build_or(and_curr_dp_cc, and_next_dp_cc, "");
+                    let and_dp_cc = self.builder.build_and(dp_cmp, cc_cmp, "");
 
-                    match accumulated_cmp {
-                        Some(prev_cmp) => {
-                            accumulated_cmp =
-                                Some(self.builder.build_or(prev_cmp, or_curr_next, ""));
-                        }
-                        None => {
-                            accumulated_cmp = Some(or_curr_next);
-                        }
-                    }
-                }
-
-                let dp_as_llvm_const =
-                    i8_type.const_int(dirvec.last().unwrap().0 as i8 as u64, false);
-                let cc_as_llvm_const =
-                    i8_type.const_int(dirvec.last().unwrap().1 as i8 as u64, false);
-                let dp_cmp = self.builder.build_int_compare(
-                    IntPredicate::EQ,
-                    dp_as_llvm_const,
-                    global_dp,
-                    "",
-                );
-                let cc_cmp = self.builder.build_int_compare(
-                    IntPredicate::EQ,
-                    cc_as_llvm_const,
-                    global_cc,
-                    "",
-                );
-                let and = self.builder.build_and(dp_cmp, cc_cmp, "");
-                let mut final_cmp = and;
-                if let Some(cmp) = accumulated_cmp {
-                    final_cmp = self.builder.build_or(cmp, and, "");
-                }
-
-                // If the index is less than length - 1 then
-                if i + 1 < adj_blocks.len() {
-                    self.builder
-                        .build_conditional_branch(final_cmp, call_instr, adj_blocks[i + 1]);
-                } else {
-                    self.builder
-                        .build_conditional_branch(final_cmp, call_instr, rotate_pointers);
-                }
-
-                // Calls the correct instruction
-                self.builder.position_at_end(call_instr);
-                if let Some(instr) = instr {
-                    let instr_fn = self.module.get_function(instr.to_llvm_name()).unwrap();
-                    let instr_str_addr = self
-                        .module
-                        .get_global(&(instr.to_llvm_name().to_owned() + "_fmt"))
-                        .unwrap()
-                        .as_any_value_enum()
-                        .into_pointer_value();
-
-                    // let instr_str = unsafe { self.builder.build_gep(instr_str_addr, &[const_0, const_0], "") };
-                    // self.builder.build_call(printf_fn, &[instr_str.into()], "");
-
-                    if instr == Instruction::Push {
-                        self.builder.build_call(instr_fn, &[block_size.into()], "");
+                    if j + 1 < dirvec.len() {
+                        self.builder.build_conditional_branch(
+                            and_dp_cc,
+                            call_instr,
+                            dirvec_blocks[j + 1],
+                        );
                     } else {
-                        self.builder.build_call(instr_fn, &[], "");
+                        if i + 1 < adj_blocks.len() {
+                            self.builder.build_conditional_branch(
+                                and_dp_cc,
+                                call_instr,
+                                adj_blocks[i + 1],
+                            );
+                        } else {
+                            self.builder.build_conditional_branch(
+                                and_dp_cc,
+                                call_instr,
+                                rotate_pointers,
+                            );
+                        }
                     }
-                    // self.builder.build_call(print_pointers_fn, &[], "");
-                    // self.builder.build_call(print_stack_fn, &[], "");
+
+                    // Calls the correct instruction
+                    self.builder.position_at_end(call_instr);
+                    if let Some(instr) = instr {
+                        // Rotate by n
+                        let instr_fn = self.module.get_function(instr.to_llvm_name()).unwrap();
+                        let instr_str_addr = self
+                            .module
+                            .get_global(&(instr.to_llvm_name().to_owned() + "_fmt"))
+                            .unwrap()
+                            .as_any_value_enum()
+                            .into_pointer_value();
+
+                        let instr_str = unsafe {
+                            self.builder
+                                .build_gep(instr_str_addr, &[const_0, const_0], "")
+                        };
+                        // self.builder.build_call(printf_fn, &[instr_str.into()], "");
+
+                        if instr == Instruction::Push {
+                            self.builder.build_call(instr_fn, &[block_size.into()], "");
+                        } else {
+                            self.builder.build_call(instr_fn, &[], "");
+                        }
+                        // self.builder.build_call(print_pointers_fn, &[], "");
+                        // self.builder.build_call(print_stack_fn, &[], "");
+                    }
+                    for _ in 0..rotate_by {
+                        self.builder.build_call(retry_fn, &[], "");
+                    }
+                    let next_block = self.get_basic_block_by_name(adj.get_label()).unwrap();
+                    let jmp_to_next = self.builder.build_unconditional_branch(next_block);
                 }
-                let next_block = self.get_basic_block_by_name(adj.get_label()).unwrap();
-                let jmp_to_next = self.builder.build_unconditional_branch(next_block);
             }
             // Rotates dp / cc and jumps to the beginning
             if adjs.len() > 0 {

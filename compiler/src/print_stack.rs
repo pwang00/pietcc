@@ -74,11 +74,16 @@ impl<'a, 'b> CodeGen<'a, 'b> {
         let const_fmt_stack_id_gep =
             unsafe { self.builder.build_gep(stack_id, &[const_0, const_0], "") };
 
-        let const_fmt_stack_id_empty_gep =
-            unsafe { self.builder.build_gep(stack_id_empty, &[const_0, const_0], "") };
+        let const_fmt_stack_id_empty_gep = unsafe {
+            self.builder
+                .build_gep(stack_id_empty, &[const_0, const_0], "")
+        };
 
-        let size_eq_0 = self.builder.build_int_compare(IntPredicate::EQ, stack_size_val, const_0, "");
-        self.builder.build_conditional_branch(size_eq_0, size_zero_block, size_gt_zero_block);
+        let size_eq_0 =
+            self.builder
+                .build_int_compare(IntPredicate::EQ, stack_size_val, const_0, "");
+        self.builder
+            .build_conditional_branch(size_eq_0, size_zero_block, size_gt_zero_block);
 
         self.builder.position_at_end(size_zero_block);
 
