@@ -134,7 +134,7 @@ To compile a Piet program to an ELF executable, LLVM IR, and LLVM bitcode respec
 
 Here are some example images with compilation logs:
 
-[piet_pi.png](https://github.com/pwang00/pietcc/blob/main/images/piet_pi.png)
+[Piet Pi Approximation](https://github.com/pwang00/pietcc/blob/main/images/piet_pi.png)
 
 <img src="https://github.com/pwang00/pietcc/blob/main/images/piet_pi_big.png" alt="Piet Pi"/>
 
@@ -147,7 +147,7 @@ $ ./piet_pi
 Stack empty
 ```
 
-[hw1-11.gif](https://github.com/pwang00/pietcc/blob/main/images/hw1-11.gif)
+[Hello World 1](https://github.com/pwang00/pietcc/blob/main/images/hw1-11.gif)
 
 <img src="https://github.com/pwang00/pietcc/blob/main/images/hw1-11.gif" alt="Hello World with Codel Size 11"/>
 
@@ -158,7 +158,7 @@ Hello, world!
 Stack empty
 ```
 
-[Piet Brainfuck interpreter](https://github.com/pwang00/pietcc/blob/main/images/piet_bfi.gif)
+[Piet Brainfuck Interpreter](https://github.com/pwang00/pietcc/blob/main/images/piet_bfi.gif)
 
 <img src="https://github.com/pwang00/pietcc/blob/main/images/piet_bfi.gif" alt="Piet Brainfuck interpreter" width="300"/>
 
