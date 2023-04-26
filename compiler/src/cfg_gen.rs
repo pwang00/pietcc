@@ -1,17 +1,20 @@
 use parser::decode::DecodeInstruction;
 use parser::infer::{CodelSettings, InferCodelWidth};
 use std::collections::{HashMap, HashSet, VecDeque};
+use std::fmt;
 use std::hash::Hash;
 use std::rc::Rc;
 use types::color::{Lightness, Lightness::*};
 use types::flow::{DirVec, FindAdj, FURTHEST, MOVE_IN};
+use types::instruction::Instruction;
 use types::program::Program;
 use types::state::{Position, ENTRY};
 
 use crate::consts::DIRECTIONS;
 
 pub(crate) type Node = Rc<ColorBlock>;
-pub(crate) type Adjacencies = HashMap<Node, Vec<DirVec>>;
+pub(crate) type Info = Vec<(DirVec, i8, Option<Instruction>)>;
+pub(crate) type Adjacencies = HashMap<Node, Info>;
 pub(crate) type CFG = HashMap<Node, Adjacencies>;
 
 #[allow(unused)]
@@ -22,7 +25,7 @@ pub struct CFGGenerator<'a> {
 }
 
 #[allow(unused)]
-#[derive(Debug, Eq)]
+#[derive(Eq)]
 pub(crate) struct ColorBlock {
     label: String,
     lightness: Lightness,
@@ -57,6 +60,15 @@ impl ColorBlock {
 
     pub(crate) fn get_lightness(&self) -> Lightness {
         self.lightness
+    }
+}
+
+impl fmt::Debug for ColorBlock {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("ColorBlock")
+            .field("label", &self.label)
+            .field("size", &self.region.len())
+            .finish()
     }
 }
 
@@ -119,13 +131,12 @@ impl<'a> CFGGenerator<'a> {
             .collect::<Vec<_>>()
     }
 
-    pub(crate) fn trace_white(&self, entry: Position, dir: DirVec) -> Vec<(Position, DirVec)> {
+    pub(crate) fn trace_white(&self, entry: Position, dir: DirVec) -> Option<(Position, DirVec)> {
         let (mut x, mut y) = entry;
         let (mut dp, mut cc) = dir;
-        let mut exits = HashSet::new();
         let mut retries = 0;
 
-        while retries < 8 {
+        while retries < 4 {
             let next_pos = Some((x, y, self.codel_width))
                 .map(MOVE_IN[dp as usize])
                 .unwrap();
@@ -140,13 +151,12 @@ impl<'a> CFGGenerator<'a> {
             }
 
             if lightness != Some(&White) {
-                exits.insert((next_pos, (dp, cc)));
+                return Some((next_pos, (dp, cc)));
             }
 
             (x, y) = next_pos
         }
-
-        exits.into_iter().collect::<Vec<_>>()
+        return None;
     }
 
     fn explore_region(&self, entry: Position) -> Node {
@@ -194,16 +204,42 @@ impl<'a> CFGGenerator<'a> {
         while !queue.is_empty() {
             let curr_block = queue.pop_front().unwrap();
             let curr_exits = self.possible_exits(curr_block.get_region());
-            let mut bordering = HashMap::<Rc<ColorBlock>, Vec<DirVec>>::new();
+            let mut bordering = Adjacencies::new();
 
             discovered_regions.insert(curr_block.clone());
 
             for (boundary, dir) in curr_exits {
                 let adj_block = self.explore_region(boundary);
-                bordering
-                    .entry(adj_block.clone())
-                    .and_modify(|vec| vec.push(dir))
-                    .or_insert(Vec::from([dir]));
+                let instr =
+                    Self::decode_instr(curr_block.get_lightness(), adj_block.get_lightness());
+                if adj_block.get_lightness() != White {
+                    bordering
+                        .entry(adj_block.clone())
+                        .and_modify(|vec| vec.push((dir, 0, instr)))
+                        .or_insert(Vec::from([(dir, 0, instr)]));
+                } else {
+                    let exit_state = self.trace_white(boundary, dir);
+                    if let Some((next_pos, next_dir)) = exit_state {
+                        let white_adj_lightness =
+                            self.program.get(next_pos).map(|lightness| *lightness);
+                        let new_adj_block = self.explore_region(next_pos);
+                        let curr_dir_idx = DIRECTIONS.iter().position(|&x| x == dir).unwrap() as i8;
+                        let next_dir_idx =
+                            DIRECTIONS.iter().position(|&x| x == next_dir).unwrap() as i8;
+
+                        let diff = (next_dir_idx - curr_dir_idx).rem_euclid(8) as i8;
+
+                        bordering
+                            .entry(new_adj_block.clone())
+                            .and_modify(|vec| vec.push((dir, diff, None)))
+                            .or_insert(Vec::from([(dir, diff, None)]));
+
+                        if !discovered_regions.contains(&new_adj_block) {
+                            discovered_regions.insert(new_adj_block.clone());
+                            queue.push_back(new_adj_block)
+                        }
+                    }
+                }
 
                 if !discovered_regions.contains(&adj_block) {
                     discovered_regions.insert(adj_block.clone());
