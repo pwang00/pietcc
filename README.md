@@ -1,6 +1,6 @@
 # PietCC
 
-PietCC is a Rust interpreter and compiler for the Piet esoteric language.
+PietCC is a Rust interpreter and compiler for the [Piet](https://www.dangermouse.net/esoteric/piet.html) esoteric language.
 
 ## Organization
 
