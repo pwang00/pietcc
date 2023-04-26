@@ -28,7 +28,8 @@ Interpreter:
 
 Compiler:
 
-* Add optimization pass support.  
+* Add optimization pass support.
+* Decrease compilation times
 
 ## Installation
 
@@ -106,7 +107,7 @@ Doing `cargo run --release images/fizzbuzz.png -i -v 2` will also work.
 
 ## Compiling Piet Programs
 
-PietCC supports emitting executables, LLVM IR, and LLVM bitcode.  The latter two options can be useful for targeting other architectures other than x86_64.  The relevant flags are shown below.
+PietCC supports emitting executables, LLVM IR, and LLVM bitcode.  The latter two options can be useful for targeting other architectures other than x86_64. The relevant flags are shown below.
 
 ```
 USAGE:
@@ -157,7 +158,21 @@ Hello, world!
 Stack empty
 ```
 
-Note that codel size inference is being done implicitly.
+[Piet Brainfuck interpreter](https://github.com/pwang00/pietcc/blob/main/images/piet_bfi.gif)
+
+Per the relevant section under [piet samples](https://www.dangermouse.net/esoteric/piet/samples.html)
+
+"The Piet program takes a Brainfuck program, and its input (seperated by |), from STDIN and prints the output of the Brainfuck program to STDOUT. E.g. the input ",+>,+>,+>,+.<.<.<.|sdhO" would generate the output 'Piet'"
+
+```
+$ ./pietcc images/piet_bfi.gif -o piet_bfi
+$ ./piet_bfi 
+Enter char: ,+>,+>,+>,+.<.<.<.|sdhO
+Enter char: Enter char: Enter char: Enter char: Enter char: Enter char: Enter char: Enter char: Enter char: Enter char: Enter char: Enter char: Enter char: Enter char: Enter char: Enter char: Enter char: Enter char: Enter char: Enter char: Enter char: Enter char: Piet
+Stack (size 29): 18 0 7 18 80 0 105 0 101 0 116 44 43 62 44 43 62 44 43 62 44 43 46 60 46 60 46 60 46 
+```
+
+Note that in all compilation examples, codel size inference is being done implicitly.
 
 ## Generating control flow graph from Piet LLVM IR
 
