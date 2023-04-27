@@ -39,20 +39,20 @@ mod test_parse {
     struct Test;
     impl DecodeInstruction for Test {}
     impl ConvertToLightness for Test {}
-
+    const SETTINGS: UnknownPixelSettings = UnknownPixelSettings::TreatAsError;
     #[test]
     fn test_convert_hue_change() {
         let pix1 = Rgb::<u8>([0xFF, 0xC0, 0xFF]);
         let pix2 = Rgb::<u8>([0xC0, 0xC0, 0xFF]);
-        let l1 = Test::rgb_to_lightness(&pix1);
-        let l2 = Test::rgb_to_lightness(&pix2);
+        let l1 = Test::rgb_to_lightness(&pix1, SETTINGS);
+        let l2 = Test::rgb_to_lightness(&pix2, SETTINGS);
 
         assert_eq!(Test::decode_instr(l1, l2), Some(Instruction::Add));
 
         let pix1 = Rgb::<u8>([0xFF, 0xC0, 0xFF]);
         let pix2 = Rgb::<u8>([0xC0, 0xFF, 0xFF]);
-        let l1 = Test::rgb_to_lightness(&pix1);
-        let l2 = Test::rgb_to_lightness(&pix2);
+        let l1 = Test::rgb_to_lightness(&pix1, SETTINGS);
+        let l2 = Test::rgb_to_lightness(&pix2, SETTINGS);
 
         assert_eq!(Test::decode_instr(l1, l2), Some(Instruction::Div))
     }
@@ -61,15 +61,15 @@ mod test_parse {
     fn test_convert_lightness_change() {
         let pix1 = Rgb::<u8>([0xFF, 0xC0, 0xC0]);
         let pix2 = Rgb::<u8>([0xFF, 0x00, 0x00]);
-        let l1 = Test::rgb_to_lightness(&pix1);
-        let l2 = Test::rgb_to_lightness(&pix2);
+        let l1 = Test::rgb_to_lightness(&pix1, SETTINGS);
+        let l2 = Test::rgb_to_lightness(&pix2, SETTINGS);
 
         assert_eq!(Test::decode_instr(l1, l2), Some(Instruction::Push));
 
         let pix1 = Rgb::<u8>([0xFF, 0xC0, 0xC0]);
         let pix2 = Rgb::<u8>([0xC0, 0x00, 0x00]);
-        let l1 = Test::rgb_to_lightness(&pix1);
-        let l2 = Test::rgb_to_lightness(&pix2);
+        let l1 = Test::rgb_to_lightness(&pix1, SETTINGS);
+        let l2 = Test::rgb_to_lightness(&pix2, SETTINGS);
 
         assert_eq!(Test::decode_instr(l1, l2), Some(Instruction::Pop))
     }
@@ -78,8 +78,8 @@ mod test_parse {
     fn test_convert_hue_lightness_change() {
         let pix1 = Rgb::<u8>([0xFF, 0xC0, 0xFF]);
         let pix2 = Rgb::<u8>([0xC0, 0x00, 0x00]);
-        let l1 = Test::rgb_to_lightness(&pix1);
-        let l2 = Test::rgb_to_lightness(&pix2);
+        let l1 = Test::rgb_to_lightness(&pix1, SETTINGS);
+        let l2 = Test::rgb_to_lightness(&pix2, SETTINGS);
 
         println!("{:?}, {:?}", l1, l2);
         println!("{:?}", l1 - l2);
@@ -92,8 +92,8 @@ mod test_parse {
         let pix1 = Rgb::<u8>([0xFF, 0xFF, 0xFF]);
         let pix2 = Rgb::<u8>([0xC0, 0xC0, 0xFF]);
 
-        let l1 = Test::rgb_to_lightness(&pix1);
-        let l2 = Test::rgb_to_lightness(&pix2);
+        let l1 = Test::rgb_to_lightness(&pix1, SETTINGS);
+        let l2 = Test::rgb_to_lightness(&pix2, SETTINGS);
 
         assert_eq!(Test::decode_instr(l1, l2), None);
     }
@@ -103,8 +103,8 @@ mod test_parse {
         let pix1 = Rgb::<u8>([0x00, 0x00, 0x00]);
         let pix2 = Rgb::<u8>([0xC0, 0xC0, 0xFF]);
 
-        let l1 = Test::rgb_to_lightness(&pix1);
-        let l2 = Test::rgb_to_lightness(&pix2);
+        let l1 = Test::rgb_to_lightness(&pix1, SETTINGS);
+        let l2 = Test::rgb_to_lightness(&pix2, SETTINGS);
 
         assert_eq!(Test::decode_instr(l1, l2), None);
     }

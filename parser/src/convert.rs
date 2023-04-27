@@ -1,9 +1,17 @@
 use image::Rgb;
+use std::panic;
 use types::color::{Hue::*, Lightness, Lightness::*};
+use UnknownPixelSettings::*;
 
+#[derive(Copy, Clone)]
+pub enum UnknownPixelSettings {
+    TreatAsError,
+    TreatAsWhite,
+    TreatAsBlack,
+}
 // I feel like converting pixels to lightness would make the code more maintainable
 pub trait ConvertToLightness {
-    fn rgb_to_lightness(pixel: &Rgb<u8>) -> Lightness {
+    fn rgb_to_lightness(pixel: &Rgb<u8>, settings: UnknownPixelSettings) -> Lightness {
         match pixel.0 {
             [0x00, 0x00, 0x00] => Black,
             [0xFF, 0xFF, 0xFF] => White,
@@ -25,7 +33,11 @@ pub trait ConvertToLightness {
             [0x00, 0xC0, 0xC0] => Dark(Cyan),
             [0x00, 0x00, 0xC0] => Dark(Blue),
             [0xC0, 0x00, 0xC0] => Dark(Magenta),
-            _ => panic!("Invalid pixel encountered! {:?}", pixel.0),
+            _ => match settings {
+                TreatAsError => panic!("Invalid pixel encountered! {:?}", pixel.0),
+                TreatAsWhite => White,
+                TreatAsBlack => Black,
+            },
         }
     }
 }

@@ -18,14 +18,10 @@ The repository is organized into four main components:
 
 ## Progress
 
-- [x] Interpreter: functionally complete for all images with correct pixel colors.  
+- [x] Interpreter: functionally complete, supports treating unknown colors as white / black.
 - [x] Compiler: functionally complete and correct to my knowledge, with white block tracing / elimination implemented as well as support for running LLVM module optimization passes. To read more about the compiler, visit this [page](https://github.com/pwang00/pietcc/blob/main/Compiler.md).  
 
 ## TODO
-
-Interpreter: 
-
-* Add functionality to allow treating unknown colors as white / black
 
 Compiler:
 
@@ -106,7 +102,7 @@ FizzBuzz
 
 Doing `cargo run --release images/fizzbuzz.png -i -v 2` will also work.
 
-## Compiling Piet Programs
+## Compiling Piet programs
 
 PietCC supports emitting executables, LLVM IR, and LLVM bitcode.  The latter two options can be useful for targeting other architectures other than x86_64. The relevant flags are shown below.
 
