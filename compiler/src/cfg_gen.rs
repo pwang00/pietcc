@@ -212,6 +212,7 @@ impl<'a> CFGGenerator<'a> {
                 let adj_block = self.explore_region(boundary);
                 let instr =
                     Self::decode_instr(curr_block.get_lightness(), adj_block.get_lightness());
+                    
                 if adj_block.get_lightness() != White {
                     bordering
                         .entry(adj_block.clone())
@@ -222,13 +223,8 @@ impl<'a> CFGGenerator<'a> {
                     if let Some((next_pos, next_dir)) = exit_state {
                         let white_adj_lightness =
                             self.program.get(next_pos).map(|lightness| *lightness);
-                        let new_adj_block = self.explore_region(next_pos);
-                        let curr_dir_idx =
-                            ROTATE_ORDERING.iter().position(|&x| x == dir).unwrap() as i8;
-                        let next_dir_idx =
-                            ROTATE_ORDERING.iter().position(|&x| x == next_dir).unwrap() as i8;
 
-                        let diff = (next_dir_idx - curr_dir_idx).rem_euclid(8) as i8;
+                        let new_adj_block = self.explore_region(next_pos);
 
                         bordering
                             .entry(new_adj_block.clone())
