@@ -10,7 +10,7 @@ use types::instruction::Instruction;
 use types::program::Program;
 use types::state::{Position, ENTRY};
 
-use crate::consts::{DIRECTIONS, ROTATE_ORDERING};
+use crate::consts::DIRECTIONS;
 
 pub(crate) type Node = Rc<ColorBlock>;
 pub(crate) type Info = Vec<(DirVec, DirVec, Option<Instruction>)>;
@@ -212,7 +212,7 @@ impl<'a> CFGGenerator<'a> {
                 let adj_block = self.explore_region(boundary);
                 let instr =
                     Self::decode_instr(curr_block.get_lightness(), adj_block.get_lightness());
-                    
+
                 if adj_block.get_lightness() != White {
                     bordering
                         .entry(adj_block.clone())
