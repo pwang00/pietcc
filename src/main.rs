@@ -5,6 +5,7 @@ use compiler::codegen::CodeGen;
 use compiler::settings::CompilerSettings;
 use compiler::{cfg_gen::CFGGenerator, settings::SaveOptions};
 use inkwell::context::Context;
+use inkwell::OptimizationLevel;
 use interpreter::{interpreter::Interpreter, settings::*};
 use parser::{infer::CodelSettings, loader::Loader};
 use types::program::Program;
@@ -71,6 +72,33 @@ fn main() -> Result<(), Error> {
                 .requires("interpret")
                 .help("Sets the interpreter's verbosity"),
         )
+        .arg(
+            Arg::with_name("o1")
+                .long("o1")
+                .takes_value(false)
+                .conflicts_with("o2")
+                .conflicts_with("interpret")
+                .conflicts_with("o3")
+                .help("Sets the compiler optimization level to 1 (LLVM Less)"),
+        )
+        .arg(
+            Arg::with_name("o2")
+                .long("o2")
+                .takes_value(false)
+                .conflicts_with("o1")
+                .conflicts_with("interpret")
+                .conflicts_with("o3")
+                .help("Sets the compiler optimization level to 2 (LLVM Default)"),
+        )
+        .arg(
+            Arg::with_name("o3")
+                .long("o3")
+                .takes_value(false)
+                .conflicts_with("o1")
+                .conflicts_with("interpret")
+                .conflicts_with("o2")
+                .help("Sets the compiler optimization level to 3 (LLVM Aggressive)"),
+        )
         .get_matches();
 
     let filename = matches.value_of("input").unwrap();
@@ -120,6 +148,7 @@ fn main() -> Result<(), Error> {
             // Program
 
             let mut save_options = SaveOptions::EmitExecutable;
+            let mut opt_level = OptimizationLevel::None;
 
             if matches.is_present("emit-llvm") {
                 save_options = SaveOptions::EmitLLVMIR
@@ -129,8 +158,20 @@ fn main() -> Result<(), Error> {
                 save_options = SaveOptions::EmitLLVMBitcode
             }
 
+            if matches.is_present("o1") {
+                opt_level = OptimizationLevel::Less
+            }
+
+            if matches.is_present("o2") {
+                opt_level = OptimizationLevel::Default
+            }
+
+            if matches.is_present("o3") {
+                opt_level = OptimizationLevel::Aggressive
+            }
+
             let compile_options = CompilerSettings {
-                opt_level: inkwell::OptimizationLevel::None,
+                opt_level,
                 codel_settings,
                 save_options,
                 output_fname,
