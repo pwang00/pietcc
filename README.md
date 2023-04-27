@@ -19,7 +19,7 @@ The repository is organized into four main components:
 ## Progress
 
 - [x] Interpreter: functionally complete for all images with correct pixel colors.  
-- [ ] Compiler: in active development, completely functional to my knowledge with white block tracing / elimination implemented as well as support for running LLVM module optimization passes. To read more about the compiler, visit this [page](https://github.com/pwang00/pietcc/blob/main/Compiler.md).  
+- [x] Compiler: functionally complete and correct to my knowledge, with white block tracing / elimination implemented as well as support for running LLVM module optimization passes. To read more about the compiler, visit this [page](https://github.com/pwang00/pietcc/blob/main/Compiler.md).  
 
 ## TODO
 
