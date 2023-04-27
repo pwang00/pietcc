@@ -24,6 +24,11 @@ impl<'a, 'b> CodeGen<'a, 'b> {
         let start_fn = self.module.add_function("start", void_type, None);
         let basic_block = self.context.append_basic_block(start_fn, "");
         let printf_fn = self.module.get_function("printf").unwrap();
+        let expected_ptr_fmt = self
+            .module
+            .get_global("expected_ptr_fmt")
+            .unwrap()
+            .as_pointer_value();
         let print_stack_fn = self.module.get_function("print_piet_stack").unwrap();
         let print_pointers_fn = self.module.get_function("print_pointers").unwrap();
         self.builder.position_at_end(basic_block);
@@ -41,10 +46,17 @@ impl<'a, 'b> CodeGen<'a, 'b> {
             .as_any_value_enum()
             .into_pointer_value();
 
+        let rctr_addr = self.module.get_global("rctr").unwrap().as_pointer_value();
+
         // Constants
         let const_0 = i64_type.const_zero();
         // Functions
         let retry_fn = self.module.get_function("retry").unwrap();
+
+        let const_fmt_gep = unsafe {
+            self.builder
+                .build_gep(expected_ptr_fmt, &[const_0, const_0], "")
+        };
 
         let mut vector_of_blocks = Vec::new();
         // Generate all basic blocks
@@ -64,7 +76,6 @@ impl<'a, 'b> CodeGen<'a, 'b> {
         // increment the retries counter until we find one that matches.
         for node in cfg.keys() {
             let adjs = cfg.get(node).unwrap();
-            let curr_lightness = node.get_lightness();
             let block_size = i64_type.const_int(node.get_region_size(), false);
 
             let color_block_start = self.get_basic_block_by_name(node.get_label()).unwrap();
@@ -74,9 +85,17 @@ impl<'a, 'b> CodeGen<'a, 'b> {
             );
             self.builder.position_at_end(color_block_start);
 
-            let global_dp = self.builder.build_load(dp_addr, "").into_int_value();
-            let global_cc = self.builder.build_load(cc_addr, "").into_int_value();
-
+            let global_dp = self.builder.build_load(dp_addr, "load_dp").into_int_value();
+            let global_cc = self.builder.build_load(cc_addr, "load_cc").into_int_value();
+            unsafe {
+                self.builder.build_global_string(
+                    &("Curr: ".to_owned() + node.get_label() + "\n"),
+                    &(node.get_label().to_owned() + "curr"),
+                );
+            }
+            /* let curr_node_fmt = self.module.get_global(&(node.get_label().to_owned() + "curr")).unwrap().as_pointer_value();
+            let curr_node_gep = unsafe { self.builder.build_gep(curr_node_fmt, &[const_0, const_0], "") };
+            self.builder.build_call(printf_fn, &[curr_node_gep.into()], ""); */
             let adj_blocks = adjs
                 .keys()
                 .enumerate()
@@ -113,15 +132,23 @@ impl<'a, 'b> CodeGen<'a, 'b> {
                 self.builder.position_at_end(adj_blocks[i]);
                 self.builder.build_unconditional_branch(dirvec_blocks[0]);
 
-                for (j, &((dp, cc), rotate_by, instr)) in dirvec.iter().enumerate() {
+                for (j, &((dp, cc), (new_dp, new_cc), instr)) in dirvec.iter().enumerate() {
                     let call_instr = self.context.insert_basic_block_after(
                         dirvec_blocks[j],
                         &("call_instr_".to_owned() + node.get_label().as_str()),
                     );
 
                     self.builder.position_at_end(dirvec_blocks[j]);
+
                     let dp_as_const = i8_type.const_int(dp as i8 as u64, false);
                     let cc_as_const = i8_type.const_int(cc as i8 as u64, false);
+                    // self.builder.build_call(printf_fn, &[const_fmt_gep.into(), dp_as_const.into(), cc_as_const.into()], "");
+
+                    /* unsafe {
+                        self.builder
+                        .build_global_string(&("Next: ".to_owned() + adj.get_label() + "\n\n"), &adj.get_label());
+                    } */
+
                     let dp_cmp = self.builder.build_int_compare(
                         inkwell::IntPredicate::EQ,
                         global_dp,
@@ -174,19 +201,29 @@ impl<'a, 'b> CodeGen<'a, 'b> {
                             self.builder
                                 .build_gep(instr_str_addr, &[const_0, const_0], "")
                         };
-                        // self.builder.build_call(printf_fn, &[instr_str.into()], "");
 
                         if instr == Instruction::Push {
                             self.builder.build_call(instr_fn, &[block_size.into()], "");
                         } else {
                             self.builder.build_call(instr_fn, &[], "");
                         }
+                        // self.builder.build_call(printf_fn, &[instr_str.into()], "");
                         // self.builder.build_call(print_pointers_fn, &[], "");
                         // self.builder.build_call(print_stack_fn, &[], "");
+
+                        // let expected_node_fmt = self.module.get_global(&adj.get_label()).unwrap().as_pointer_value();
+                        // let node_gep = unsafe { self.builder.build_gep(expected_node_fmt, &[const_0, const_0], "") };
+                        // self.builder.build_call(printf_fn, &[node_gep.into()], "");
                     }
-                    for _ in 0..rotate_by {
-                        self.builder.build_call(retry_fn, &[], "");
+
+                    if instr.is_none() {
+                        let new_dp_as_const = i8_type.const_int(new_dp as i8 as u64, false);
+                        let new_cc_as_const = i8_type.const_int(new_cc as i8 as u64, false);
+                        self.builder.build_store(dp_addr, new_dp_as_const);
+                        self.builder.build_store(cc_addr, new_cc_as_const);
                     }
+                    let const_0_i8 = self.builder.build_int_truncate(const_0, i8_type, "");
+                    self.builder.build_store(rctr_addr, const_0_i8);
                     let next_block = self.get_basic_block_by_name(adj.get_label()).unwrap();
                     let jmp_to_next = self.builder.build_unconditional_branch(next_block);
                 }

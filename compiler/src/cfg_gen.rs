@@ -10,10 +10,10 @@ use types::instruction::Instruction;
 use types::program::Program;
 use types::state::{Position, ENTRY};
 
-use crate::consts::DIRECTIONS;
+use crate::consts::{DIRECTIONS, ROTATE_ORDERING};
 
 pub(crate) type Node = Rc<ColorBlock>;
-pub(crate) type Info = Vec<(DirVec, i8, Option<Instruction>)>;
+pub(crate) type Info = Vec<(DirVec, DirVec, Option<Instruction>)>;
 pub(crate) type Adjacencies = HashMap<Node, Info>;
 pub(crate) type CFG = HashMap<Node, Adjacencies>;
 
@@ -136,7 +136,7 @@ impl<'a> CFGGenerator<'a> {
         let (mut dp, mut cc) = dir;
         let mut retries = 0;
 
-        while retries < 4 {
+        while retries < 8 {
             let next_pos = Some((x, y, self.codel_width))
                 .map(MOVE_IN[dp as usize])
                 .unwrap();
@@ -215,24 +215,25 @@ impl<'a> CFGGenerator<'a> {
                 if adj_block.get_lightness() != White {
                     bordering
                         .entry(adj_block.clone())
-                        .and_modify(|vec| vec.push((dir, 0, instr)))
-                        .or_insert(Vec::from([(dir, 0, instr)]));
+                        .and_modify(|vec| vec.push((dir, dir, instr)))
+                        .or_insert(Vec::from([(dir, dir, instr)]));
                 } else {
                     let exit_state = self.trace_white(boundary, dir);
                     if let Some((next_pos, next_dir)) = exit_state {
                         let white_adj_lightness =
                             self.program.get(next_pos).map(|lightness| *lightness);
                         let new_adj_block = self.explore_region(next_pos);
-                        let curr_dir_idx = DIRECTIONS.iter().position(|&x| x == dir).unwrap() as i8;
+                        let curr_dir_idx =
+                            ROTATE_ORDERING.iter().position(|&x| x == dir).unwrap() as i8;
                         let next_dir_idx =
-                            DIRECTIONS.iter().position(|&x| x == next_dir).unwrap() as i8;
+                            ROTATE_ORDERING.iter().position(|&x| x == next_dir).unwrap() as i8;
 
                         let diff = (next_dir_idx - curr_dir_idx).rem_euclid(8) as i8;
 
                         bordering
                             .entry(new_adj_block.clone())
-                            .and_modify(|vec| vec.push((dir, diff, None)))
-                            .or_insert(Vec::from([(dir, diff, None)]));
+                            .and_modify(|vec| vec.push((dir, next_dir, None)))
+                            .or_insert(Vec::from([(dir, next_dir, None)]));
 
                         if !discovered_regions.contains(&new_adj_block) {
                             discovered_regions.insert(new_adj_block.clone());
@@ -246,7 +247,9 @@ impl<'a> CFGGenerator<'a> {
                     queue.push_back(adj_block)
                 }
             }
-            self.adjacencies.insert(curr_block, bordering);
+            if curr_block.get_lightness() != White {
+                self.adjacencies.insert(curr_block, bordering);
+            }
         }
     }
 
