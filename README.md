@@ -13,23 +13,24 @@ The repository is organized into four main components:
 4. [src](https://github.com/pwang00/pietcc/tree/main/src): main CLI, allows users to run either the interpreter or compiler with a variety of flags.
 
 ## Dependencies
+
 - LLVM libraries (14.0.0), including clang and llc.
 
 ## Progress
 
 - [x] Interpreter: functionally complete for all images with correct pixel colors.  
-- [ ] Compiler: in active development, should be completely functional. To read more about the compiler, visit this [page](https://github.com/pwang00/pietcc/blob/main/Compiler.md).
+- [ ] Compiler: in active development, completely functional to my knowledge with white block tracing / elimination implemented as well as support for running LLVM module optimization passes. To read more about the compiler, visit this [page](https://github.com/pwang00/pietcc/blob/main/Compiler.md).  
 
 ## TODO
 
 Interpreter: 
 
-* Add functionality to allow treating unknown colors as white / black 
+* Add functionality to allow treating unknown colors as white / black
 
 Compiler:
 
-* Add optimization pass support.
 * Decrease compilation times
+* Maybe attempt to add custom LLVM passes upon proving Piet program properties to further improve compiled program efficiency
 
 ## Installation
 
@@ -122,6 +123,9 @@ OPTIONS:
         --emit-llvm-bitcode        Emit LLVM bitcode for a given Piet program
     -i, --interpret                Interpret the given program
     -o, --output <out>             Output an executable into <file> [default: program.out]
+        --o1                       Sets the compiler optimization level to 1 (LLVM Less)
+        --o2                       Sets the compiler optimization level to 2 (LLVM Default)
+        --o3                       Sets the compiler optimization level to 3 (LLVM Aggressive)
     -s, --size <codel_size>        Interpret or compile with a supplied codel size
 ```
 
@@ -131,6 +135,9 @@ To compile a Piet program to an ELF executable, LLVM IR, and LLVM bitcode respec
 * `./pietcc <image> -o <output> --emit-llvm`
 * `./pietcc <image> -o <output> --emit-llvm-bitcode`
 
+And to specify an optimization level while compiling, do
+
+`./pietcc --o[1|2|3] <image> -o <output>`
 
 Here are some example images with compilation logs:
 

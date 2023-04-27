@@ -1,11 +1,12 @@
-use crate::cfg_gen::{CFGGenerator, CFG};
+use crate::cfg_gen::CFGGenerator;
 use crate::settings::{CompilerSettings, SaveOptions};
+use inkwell::targets::{InitializationConfig, Target};
 use inkwell::{builder::Builder, context::Context, module::Module};
 
 use inkwell::passes::{PassManager, PassManagerBuilder};
 use inkwell::OptimizationLevel;
 use parser::decode::DecodeInstruction;
-use std::fs::{remove_file, write, OpenOptions};
+use std::fs::{remove_file, OpenOptions};
 use std::io::{Error, Write};
 use std::process::Command;
 use types::instruction::Instruction;
@@ -115,7 +116,12 @@ impl<'a, 'b> CodeGen<'a, 'b> {
         Ok(())
     }
 
-    fn generate(&mut self, save_file: &str, options: SaveOptions) -> Result<(), Error> {
+    fn generate(
+        &mut self,
+        save_file: &str,
+        opt_level: OptimizationLevel,
+        options: SaveOptions,
+    ) -> Result<(), Error> {
         self.generate_cfg();
         let cfg = self.cfg_gen.get_cfg();
         self.build_globals();
@@ -143,6 +149,17 @@ impl<'a, 'b> CodeGen<'a, 'b> {
         self.build_entry(&cfg);
         self.build_main();
 
+        let config = InitializationConfig::default();
+        Target::initialize_native(&config).unwrap();
+
+        let pass_manager_builder = PassManagerBuilder::create();
+        pass_manager_builder.set_optimization_level(opt_level);
+
+        let module_pm = PassManager::create(());
+        pass_manager_builder.populate_module_pass_manager(&module_pm);
+
+        let res = module_pm.run_on(&self.module);
+
         match options {
             SaveOptions::EmitExecutable => self.generate_executable(save_file),
             SaveOptions::EmitLLVMBitcode => self.generate_llvm_bitcode(save_file),
@@ -151,7 +168,11 @@ impl<'a, 'b> CodeGen<'a, 'b> {
     }
 
     pub fn run(&mut self, settings: CompilerSettings) -> Result<(), Error> {
-        self.generate(settings.output_fname, settings.save_options)?;
+        self.generate(
+            settings.output_fname,
+            settings.opt_level,
+            settings.save_options,
+        )?;
         Ok(())
     }
 }
@@ -172,7 +193,11 @@ mod test {
         let cfg_gen = CFGGenerator::new(&program, 1);
         let mut cg = CodeGen::new(&context, module, builder, cfg_gen, 1);
         let options = SaveOptions::EmitLLVMIR;
-        let ir = cg.generate("../../compilation.ll", options);
+        let ir = cg.generate(
+            "../../compilation.ll",
+            OptimizationLevel::Aggressive,
+            options,
+        );
         Ok(())
     }
 }
