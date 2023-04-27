@@ -262,13 +262,14 @@ impl<'a> CFGGenerator<'a> {
 
 mod test {
     use super::*;
-    use parser::loader::Loader;
+    use parser::{loader::Loader, convert::UnknownPixelSettings};
     use std::{
         collections::{hash_map::DefaultHasher, HashMap, HashSet, VecDeque},
         fs,
         hash::Hasher,
     };
     use types::color::{Hue::*, Lightness, Lightness::*};
+    const SETTINGS: UnknownPixelSettings = UnknownPixelSettings::TreatAsError;
 
     fn get_hash<T: Hash>(obj: &T) -> u64 {
         let mut hasher = DefaultHasher::new();
@@ -311,7 +312,7 @@ mod test {
     }
     #[test]
     fn test_program() {
-        let prog = Loader::convert("../images/hw1-1.png").unwrap();
+        let prog = Loader::convert("../images/hw1-1.png", SETTINGS).unwrap();
         let mut cfg_gen = CFGGenerator::new(&prog, 1);
 
         println!("loaded");

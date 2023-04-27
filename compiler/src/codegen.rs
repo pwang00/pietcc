@@ -180,16 +180,18 @@ impl<'a, 'b> CodeGen<'a, 'b> {
 mod test {
     use super::*;
     use inkwell::{builder::Builder, context::Context, module::Module};
-    use parser::loader::Loader;
+    use parser::{loader::Loader, convert::UnknownPixelSettings};
     use std::fs;
     use types::program::Program;
+
+    const SETTINGS: UnknownPixelSettings = UnknownPixelSettings::TreatAsError;
     #[test]
     fn test_entrypoint() -> std::io::Result<()> {
         let context = Context::create();
         let module = context.create_module("piet");
         let builder = context.create_builder();
         // Program
-        let program = Loader::convert("../images/alpha_filled.png").unwrap();
+        let program = Loader::convert("../images/alpha_filled.png", SETTINGS).unwrap();
         let cfg_gen = CFGGenerator::new(&program, 1);
         let mut cg = CodeGen::new(&context, module, builder, cfg_gen, 1);
         let options = SaveOptions::EmitLLVMIR;
