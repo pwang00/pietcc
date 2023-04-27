@@ -1,4 +1,4 @@
-# Compiling Piet to x86_64
+# Compiling Piet to LLVM IR
 
 ## Control Flow
 
