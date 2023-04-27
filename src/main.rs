@@ -7,6 +7,7 @@ use compiler::{cfg_gen::CFGGenerator, settings::SaveOptions};
 use inkwell::context::Context;
 use inkwell::OptimizationLevel;
 use interpreter::{interpreter::Interpreter, settings::*};
+use parser::convert::UnknownPixelSettings;
 use parser::{infer::CodelSettings, loader::Loader};
 use types::program::Program;
 
@@ -99,13 +100,36 @@ fn main() -> Result<(), Error> {
                 .conflicts_with("o2")
                 .help("Sets the compiler optimization level to 3 (LLVM Aggressive)"),
         )
+        .arg(
+            Arg::with_name("treat_white")
+                .long("uw")
+                .takes_value(false)
+                .conflicts_with("treat_black")
+                .help("Treats unknown pixels as white (default: error)"),
+        )
+        .arg(
+            Arg::with_name("treat_black")
+                .long("ub")
+                .takes_value(false)
+                .conflicts_with("treat_white")
+                .help("Treats unknown pixels as black (default: error)"),
+        )
         .get_matches();
 
     let filename = matches.value_of("input").unwrap();
     let mut interpreter: Interpreter;
     let program: Program;
+    let mut behavior = UnknownPixelSettings::TreatAsError;
 
-    if let Ok(prog) = Loader::convert(filename) {
+    if matches.is_present("treat_white") {
+        behavior = UnknownPixelSettings::TreatAsWhite
+    }
+
+    if matches.is_present("treat_black") {
+        behavior = UnknownPixelSettings::TreatAsBlack
+    }
+
+    if let Ok(prog) = Loader::convert(filename, behavior) {
         program = prog;
         let mut codel_settings = CodelSettings::Infer;
 
