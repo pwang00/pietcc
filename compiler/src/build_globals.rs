@@ -141,7 +141,7 @@ impl<'a, 'b> CodeGen<'a, 'b> {
 
         // fdopen to get pointer to stdout
         let fdopen_type = i8_ptr_type.fn_type(&[i32_type.into(), c_string_type.into()], false);
-        let fdopen_fn = self.module.add_function("fdopen", fdopen_type, None);
+        let _fdopen_fn = self.module.add_function("fdopen", fdopen_type, None);
 
         self.builder.build_return(None);
     }

@@ -22,11 +22,6 @@ impl<'a, 'b> CodeGen<'a, 'b> {
         let void_type = self.context.void_type().fn_type(&[], false);
         let start_fn = self.module.add_function("start", void_type, None);
         let basic_block = self.context.append_basic_block(start_fn, "");
-        let expected_ptr_fmt = self
-            .module
-            .get_global("expected_ptr_fmt")
-            .unwrap()
-            .as_pointer_value();
         self.builder.position_at_end(basic_block);
         // Globals
         let dp_addr = self
@@ -179,7 +174,7 @@ impl<'a, 'b> CodeGen<'a, 'b> {
                             .as_any_value_enum()
                             .into_pointer_value();
 
-                        let instr_str = unsafe {
+                        let _instr_str = unsafe {
                             self.builder
                                 .build_gep(instr_str_addr, &[const_0, const_0], "")
                         };
@@ -200,7 +195,7 @@ impl<'a, 'b> CodeGen<'a, 'b> {
                     let const_0_i8 = self.builder.build_int_truncate(const_0, i8_type, "");
                     self.builder.build_store(rctr_addr, const_0_i8);
                     let next_block = self.get_basic_block_by_name(adj.get_label()).unwrap();
-                    let jmp_to_next = self.builder.build_unconditional_branch(next_block);
+                    let _jmp_to_next = self.builder.build_unconditional_branch(next_block);
                 }
             }
             // Rotates dp / cc and jumps to the beginning

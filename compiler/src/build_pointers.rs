@@ -217,7 +217,7 @@ impl<'a, 'b> CodeGen<'a, 'b> {
         let i8_type = self.context.i8_type();
         let retry_fn_type = void_type.fn_type(&[], false);
         let retry_fn = self.module.add_function("retry", retry_fn_type, None);
-        let print_ptr_fn = self.module.get_function("print_pointers").unwrap();
+        let _print_ptr_fn = self.module.get_function("print_pointers").unwrap();
         // Basic blocks
         let basic_block = self.context.append_basic_block(retry_fn, "");
         let one_mod_two = self.context.append_basic_block(retry_fn, "one_mod_two");
