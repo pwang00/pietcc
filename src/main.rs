@@ -124,7 +124,7 @@ fn main() -> Result<(), Error> {
                 .takes_value(false)
                 .requires("output")
                 .conflicts_with("interpret")
-                .help("Attempts to detect non-termination behavior in a Piet program during compilation"),
+                .help("Attempts to detect nontermination behavior in a Piet program during compilation"),
         )
         .get_matches();
 
