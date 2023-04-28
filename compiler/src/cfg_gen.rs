@@ -5,7 +5,7 @@ use std::fmt;
 use std::hash::Hash;
 use std::rc::Rc;
 use types::color::{Lightness, Lightness::*};
-use types::flow::{DirVec, FindAdj, FURTHEST, MOVE_IN};
+use types::flow::{EntryDir, ExitDir, FindAdj, FURTHEST, MOVE_IN};
 use types::instruction::Instruction;
 use types::program::Program;
 use types::state::{Position, ENTRY};
@@ -13,7 +13,7 @@ use types::state::{Position, ENTRY};
 use crate::consts::DIRECTIONS;
 
 pub(crate) type Node = Rc<ColorBlock>;
-pub(crate) type Info = Vec<(DirVec, DirVec, Option<Instruction>)>;
+pub(crate) type Info = Vec<(EntryDir, ExitDir, Option<Instruction>)>;
 pub(crate) type Adjacencies = HashMap<Node, Info>;
 pub(crate) type CFG = HashMap<Node, Adjacencies>;
 
@@ -113,7 +113,7 @@ impl<'a> CFGGenerator<'a> {
         }
     }
 
-    fn possible_exits(&self, cb: &HashSet<Position>) -> Vec<(Position, DirVec)> {
+    fn possible_exits(&self, cb: &HashSet<Position>) -> Vec<(Position, ExitDir)> {
         // first char is dp orientation, second char is cc orientation
         (0..8)
             .map(|x| {
@@ -131,7 +131,7 @@ impl<'a> CFGGenerator<'a> {
             .collect::<Vec<_>>()
     }
 
-    pub(crate) fn trace_white(&self, entry: Position, dir: DirVec) -> Option<(Position, DirVec)> {
+    pub(crate) fn trace_white(&self, entry: Position, dir: EntryDir) -> Option<(Position, ExitDir)> {
         let (mut x, mut y) = entry;
         let (mut dp, mut cc) = dir;
         let mut retries = 0;

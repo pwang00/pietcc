@@ -67,6 +67,9 @@ OPTIONS:
     -o, --output <out>             Output an executable into <file> [default: program.out]
     -s, --size <codel_size>        Interpret or compile with a supplied codel size
     -v, --verbosity <verbosity>    Sets the interpreter's verbosity
+    -s, --size <codel_size>        Interpret or compile with a supplied codel size
+    --ub                           Treats unknown pixels as black (default: error)
+    --uw                           Treats unknown pixels as white (default: error)
 ```
 
 PietCC will by default try to infer the codel width of the program.  The heuristic used computes the gcd of all the block widths and heights with each other and the program width / height, and will produce a correct estimate of the codel width with high probability.  However, to correctly interpret some programs, supplying the size flag with a corresponding value for the codel width is necessary.
@@ -123,6 +126,8 @@ OPTIONS:
         --o2                       Sets the compiler optimization level to 2 (LLVM Default)
         --o3                       Sets the compiler optimization level to 3 (LLVM Aggressive)
     -s, --size <codel_size>        Interpret or compile with a supplied codel size
+    --ub                           Treats unknown pixels as black (default: error)
+    --uw                           Treats unknown pixels as white (default: error)    
 ```
 
 To compile a Piet program to an ELF executable, LLVM IR, and LLVM bitcode respectively, do
@@ -131,9 +136,13 @@ To compile a Piet program to an ELF executable, LLVM IR, and LLVM bitcode respec
 * `./pietcc <image> -o <output> --emit-llvm`
 * `./pietcc <image> -o <output> --emit-llvm-bitcode`
 
-And to specify an optimization level while compiling, do
+To specify an optimization level while compiling, do
 
 `./pietcc --o[1|2|3] <image> -o <output>`
+
+and to specify behavior when encountering unknown pixels, do
+
+`./pietcc --[ub|uw] <image> -o <output>`
 
 Here are some example images with compilation logs:
 

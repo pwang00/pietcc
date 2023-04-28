@@ -72,12 +72,6 @@ impl<'a, 'b> CodeGen<'a, 'b> {
 
             let global_dp = self.builder.build_load(dp_addr, "load_dp").into_int_value();
             let global_cc = self.builder.build_load(cc_addr, "load_cc").into_int_value();
-            unsafe {
-                self.builder.build_global_string(
-                    &("Curr: ".to_owned() + node.get_label() + "\n"),
-                    &(node.get_label().to_owned() + "curr"),
-                );
-            }
 
             let adj_blocks = adjs
                 .keys()
