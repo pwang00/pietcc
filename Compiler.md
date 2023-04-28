@@ -109,7 +109,7 @@ define void @set_stdout_unbuffered() {
 * `@rctr = internal global i8 0`
     * Retries counter (this differs from the interpreter in that it's used for parity checking only when deciding whether to increment the dp or cc)
 
-The stack is initialized by `init_globals`:
+The stack is initialized by `init_globals`, and we get the kth element from the top by doing `stack[stack_size - 1 - k]`.
 
 ```llvm
 define void @init_globals() {
@@ -120,6 +120,16 @@ define void @init_globals() {
 ```
 
 There are also a lot of format strings for `printf` and `scanf`, such as `"%s", "%d"`, etc.  These aren't super important.
+
+### Piet instructions
+
+All Piet instructions are compiled into each program, and they follow spec [here](https://www.dangermouse.net/esoteric/piet.html).  Since Push and Dup increment the stack size, we need to make sure that the stack size is less than the constant size of `STACK_SIZE`.  Currently, the stack size is initialized as 
+
+```rust
+pub const STACK_SIZE: u32 = 1 << 18;
+```
+
+and the call to `malloc` allocates STACK_SIZE * sizeof(i64) = STACK_SIZE * 8 bytes.
 
 ### Program entrypoint
 
