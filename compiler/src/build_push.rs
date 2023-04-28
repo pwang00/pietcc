@@ -10,9 +10,13 @@ impl<'a, 'b> CodeGen<'a, 'b> {
         let push_fn =
             self.module
                 .add_function(Instruction::Push.to_llvm_name(), push_fn_type, None);
+
         let basic_block = self.context.append_basic_block(push_fn, "");
         self.builder.position_at_end(basic_block);
 
+        let stack_size_check_fn = self.module.get_function("stack_size_check").unwrap();
+        self.builder
+            .build_call(stack_size_check_fn, &[], "call_stack_size_check");
         let stack_addr = self
             .module
             .get_global("piet_stack")

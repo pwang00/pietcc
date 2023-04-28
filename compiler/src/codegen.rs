@@ -141,6 +141,8 @@ impl<'a, 'b> CodeGen<'a, 'b> {
         self.build_globals();
         self.build_stdout_unbuffered();
         self.build_print_stack();
+        self.build_terminate();
+        self.build_stack_size_check();
         self.build_binops(Instruction::Add);
         self.build_binops(Instruction::Sub);
         self.build_binops(Instruction::Div);
@@ -195,7 +197,7 @@ impl<'a, 'b> CodeGen<'a, 'b> {
 mod test {
     use super::*;
     use inkwell::{builder::Builder, context::Context, module::Module};
-    use parser::{loader::Loader, convert::UnknownPixelSettings};
+    use parser::{convert::UnknownPixelSettings, loader::Loader};
     use std::fs;
     use types::program::Program;
 
@@ -214,7 +216,7 @@ mod test {
             "../../compilation.ll",
             OptimizationLevel::Aggressive,
             options,
-            false
+            false,
         );
         Ok(())
     }

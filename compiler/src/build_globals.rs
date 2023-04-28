@@ -62,12 +62,18 @@ impl<'a, 'b> CodeGen<'a, 'b> {
                 .build_global_string("\nStack empty", "stack_id_empty");
 
             self.builder.build_global_string("w", "fdopen_mode");
+
             for instr in Instruction::iter() {
                 self.builder.build_global_string(
                     &(instr.to_llvm_name().to_owned() + "\n"),
                     &(instr.to_llvm_name().to_owned() + "_fmt"),
                 );
             }
+
+            self.builder.build_global_string(
+                "\nStack memory exhausted, terminating program.",
+                "exhausted_fmt",
+            );
             self.builder
                 .build_global_string("Calling retry", "retry_fmt");
             self.builder.build_global_string("\n", "newline");
@@ -95,7 +101,10 @@ impl<'a, 'b> CodeGen<'a, 'b> {
 
         let _scanf_fn = self.module.add_function("__isoc99_scanf", scanf_type, None);
 
-        let size_value = self.context.i64_type().const_int(STACK_SIZE as u64, false);
+        let size_value = self
+            .context
+            .i64_type()
+            .const_int((STACK_SIZE * 8) as u64, false);
         let malloc_call = self
             .builder
             .build_call(malloc_fn, &[size_value.into()], "malloc");
@@ -118,7 +127,10 @@ impl<'a, 'b> CodeGen<'a, 'b> {
         let _llvm_stacksave_fn =
             self.module
                 .add_function("llvm.stacksave", llvm_stacksave_type, None);
-            
+
+        let exit_fn_type = i64_type.fn_type(&[i64_type.into()], false);
+        let _exit_fn = self.module.add_function("exit", exit_fn_type, None);
+
         // setvbuf to disable buffering
         let i32_type = self.context.i32_type();
         let i8_ptr_type = self.context.i8_type().ptr_type(AddressSpace::default());
