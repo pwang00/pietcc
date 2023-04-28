@@ -197,7 +197,27 @@ Note that in all compilation examples, codel size inference is being done implic
 
 ### Nonterminating Piet programs.
 
-I believe that some programs on the [piet samples](https://www.dangermouse.net/esoteric/piet/samples.html) page are a bit buggy.  While most Piet programs are not formally spec'd, a common mistake between these programs is non-termination. 
+I believe that some programs on the [piet samples](https://www.dangermouse.net/esoteric/piet/samples.html) page are a bit buggy, and a common mistake between these programs is non-termination.  Since Piet is Turing-complete, reasoning about arbitrary Piet program termination is equivalent to solving the halting problem; however, it is possible to enumerate a class of Piet programs that never terminate--the programs whose nodes all have outdegree greater than 0.  This is explained [here](https://github.com/pwang00/pietcc/blob/main/Compiler.md#Termination).
+
+Here are a few examples of non-terminating Piet programs.  Running PietCC with the `-w` or `--warn-nt` flag warns users accordingly regarding non-termination.
+
+[Hello World 2](https://github.com/pwang00/pietcc/blob/main/images/hw2-11.gif)
+
+<img src="https://github.com/pwang00/pietcc/blob/main/images/hw2-11.gif" alt="Buggy Hello World"/>
+
+```
+$ ./pietcc images/hw2-11.gif --warn-nt -o hw2-11
+pietcc: warning: every node in program CFG has nonzero outdegree.  This implies nontermination!
+```
+
+[Hello World 5](https://github.com/pwang00/pietcc/blob/main/images/hw5.gif)
+
+<img src="https://github.com/pwang00/pietcc/blob/main/images/hw5.gif" alt="Another Buggy Hello World"/>
+
+```
+$ ./pietcc images/hw5.png --warn-nt -o hw5
+pietcc: warning: every node in program CFG has nonzero outdegree.  This implies nontermination!
+```
 
 ## Generating control flow graph from Piet LLVM IR
 

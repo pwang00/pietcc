@@ -1,3 +1,6 @@
+pub mod verbosity;
+
+use crate::Verbosity;
 use clap::{App, Arg};
 use compiler::codegen::CodeGen;
 use compiler::settings::CompilerSettings;
@@ -9,6 +12,7 @@ use parser::convert::UnknownPixelSettings;
 use parser::{infer::CodelSettings, loader::Loader};
 use std::env;
 use std::io::Error;
+use std::process::exit;
 use types::program::Program;
 
 fn main() -> Result<(), Error> {
@@ -70,8 +74,7 @@ fn main() -> Result<(), Error> {
                 .long("verbosity")
                 .takes_value(true)
                 .default_missing_value("0")
-                .requires("interpret")
-                .help("Sets the interpreter's verbosity"),
+                .help("Sets the interpreter or compiler's verbosity"),
         )
         .arg(
             Arg::with_name("o1")
@@ -143,7 +146,7 @@ fn main() -> Result<(), Error> {
     if let Ok(prog) = res {
         program = prog;
         let mut codel_settings = CodelSettings::Infer;
-
+        let mut verbosity = Verbosity::Normal;
         let mut interp_settings = InterpSettings {
             verbosity: Verbosity::Normal,
             codel_settings,
@@ -160,14 +163,12 @@ fn main() -> Result<(), Error> {
         }
 
         if let Some(val) = matches.value_of("verbosity") {
-            let verbosity = match val {
+            verbosity = match val {
                 "0" => Verbosity::Low,
                 "2" => Verbosity::Verbose,
                 _ => Verbosity::Normal,
             };
             interp_settings.verbosity = verbosity;
-
-            println!("Running with verbosity set to {:?}", verbosity);
         }
 
         if matches.is_present("interpret") {
@@ -210,15 +211,21 @@ fn main() -> Result<(), Error> {
                 warn_nt = true;
             }
 
+            let show_codel_size = match verbosity {
+                Verbosity::Low | Verbosity::Normal => false,
+                _ => true,
+            };
+
             let compile_options = CompilerSettings {
                 opt_level,
                 codel_settings,
                 save_options,
                 output_fname,
                 warn_nt,
+                show_codel_size,
             };
 
-            let cfg_gen = CFGGenerator::new(&program, codel_settings);
+            let cfg_gen = CFGGenerator::new(&program, codel_settings, show_codel_size);
             let mut cg = CodeGen::new(&context, module, builder, cfg_gen, compile_options);
             if let Err(e) = cg.run(compile_options) {
                 println!("{:?}", e);
@@ -238,6 +245,7 @@ fn main() -> Result<(), Error> {
                 eprintln!("pietcc terminated.");
             }
         }
+        exit(1);
     }
     Ok(())
 }

@@ -2,13 +2,14 @@ use crate::settings::{InterpSettings, Verbosity};
 use parser::infer::{CodelSettings, InferCodelWidth};
 use parser::{convert::ConvertToLightness, decode::DecodeInstruction};
 use std::collections::{HashSet, VecDeque};
+use std::env;
+use std::io::Write;
 use std::{io, io::Read};
 use types::color::Lightness::{Black, White};
 use types::error::ExecutionError;
 use types::flow::{Codel, Direction, FindAdj, FURTHEST, MOVE_IN};
 use types::instruction::Instruction;
 use types::program::Program;
-use std::io::{Write};
 use types::state::{ExecutionResult, ExecutionState, Position};
 
 pub struct Interpreter<'a> {
@@ -405,11 +406,19 @@ impl<'a> Interpreter<'a> {
 
     pub fn run(&mut self) -> ExecutionResult {
         match self.settings.verbosity {
-            Verbosity::Normal | Verbosity::Verbose => println!(
-                "Running with codel width of {} (size of {})\n",
-                self.codel_width,
-                self.codel_width.pow(2)
-            ),
+            Verbosity::Normal | Verbosity::Verbose => match env::consts::OS {
+                "linux" => {
+                    println!("\x1B[1;37mpietcc:\x1B[0m \x1B[1;96minfo: \x1B[0mrunning with codel width {} (size of {})", 
+                        self.codel_width, self.codel_width.pow(2))
+                }
+                _ => {
+                    println!(
+                        "pietcc: info: running with codel width {} (size of {})",
+                        self.codel_width,
+                        self.codel_width.pow(2)
+                    )
+                }
+            },
             _ => (),
         }
 

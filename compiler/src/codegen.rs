@@ -209,7 +209,7 @@ mod test {
         let builder = context.create_builder();
         // Program
         let program = Loader::convert("../images/alpha_filled.png", SETTINGS).unwrap();
-        let cfg_gen = CFGGenerator::new(&program, 1);
+        let cfg_gen = CFGGenerator::new(&program, 1, true);
         let mut cg = CodeGen::new(&context, module, builder, cfg_gen, 1);
         let options = SaveOptions::EmitLLVMIR;
         let ir = cg.generate(

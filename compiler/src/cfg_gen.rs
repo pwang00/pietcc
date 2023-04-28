@@ -1,9 +1,9 @@
 use parser::decode::DecodeInstruction;
 use parser::infer::{CodelSettings, InferCodelWidth};
 use std::collections::{HashMap, HashSet, VecDeque};
-use std::fmt;
 use std::hash::Hash;
 use std::rc::Rc;
+use std::{env, fmt};
 use types::color::{Lightness, Lightness::*};
 use types::flow::{EntryDir, ExitDir, FindAdj, FURTHEST, MOVE_IN};
 use types::instruction::Instruction;
@@ -99,12 +99,23 @@ impl<'a> InferCodelWidth for CFGGenerator<'a> {}
 #[allow(unused)]
 impl<'a> CFGGenerator<'a> {
     // Returns the list of adjacencies for a given position and whether or not it is a boundary
-    pub fn new(prog: &'a Program, codel_settings: CodelSettings) -> Self {
+    pub fn new(prog: &'a Program, codel_settings: CodelSettings, show_codel_size: bool) -> Self {
         let codel_width = match codel_settings {
             CodelSettings::Default => 1,
             CodelSettings::Infer => Self::infer_codel_width(prog),
             CodelSettings::Width(codel_width) => codel_width,
         };
+
+        if show_codel_size {
+            match env::consts::OS {
+                "linux" => {
+                    println!("\x1B[1;37mpietcc:\x1B[0m \x1B[1;96minfo: \x1B[0mcompiling with codel width {}", codel_width)
+                }
+                _ => {
+                    println!("pietcc: info: compiling with codel width {}", codel_width)
+                }
+            }
+        }
 
         CFGGenerator {
             program: prog,
@@ -324,7 +335,7 @@ mod test {
     #[test]
     fn test_program() {
         let prog = Loader::convert("../images/hw1-1.png", SETTINGS).unwrap();
-        let mut cfg_gen = CFGGenerator::new(&prog, 1);
+        let mut cfg_gen = CFGGenerator::new(&prog, 1, true);
 
         println!("loaded");
         cfg_gen.analyze();
