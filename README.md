@@ -197,7 +197,7 @@ Note that in all compilation examples, codel size inference is being done implic
 
 ### Nonterminating Piet programs.
 
-I believe that some programs on the [piet samples](https://www.dangermouse.net/esoteric/piet/samples.html) page are a bit buggy, and a common mistake between these programs is non-termination.  Since Piet is Turing-complete, reasoning about arbitrary Piet program termination is equivalent to solving the halting problem; however, it is possible to enumerate a class of Piet programs that never terminate--the programs whose nodes all have outdegree greater than 0.  This is explained [here](https://github.com/pwang00/pietcc/blob/main/Compiler.md#Termination).
+I believe that some programs on the [piet samples](https://www.dangermouse.net/esoteric/piet/samples.html) page are a bit buggy, and a common mistake between these programs is non-termination.  Since Piet is Turing-complete, reasoning about arbitrary Piet program termination is equivalent to solving the halting problem; however, it is possible to enumerate a class of Piet programs that never terminate--the programs whose CFG nodes all have outdegree greater than 0.  This is explained [here](https://github.com/pwang00/pietcc/blob/main/Compiler.md#Termination).
 
 Here are a few examples of non-terminating Piet programs.  Running PietCC with the `-w` or `--warn-nt` flag warns users accordingly regarding non-termination.
 
