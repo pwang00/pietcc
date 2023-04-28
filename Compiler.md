@@ -123,13 +123,46 @@ There are also a lot of format strings for `printf` and `scanf`, such as `"%s", 
 
 ### Piet instructions
 
-All Piet instructions are compiled into each program, and they follow spec [here](https://www.dangermouse.net/esoteric/piet.html).  Since Push and Dup increment the stack size, we need to make sure that the stack size is less than the constant size of `STACK_SIZE`.  Currently, the stack size is initialized as 
+All Piet instructions are compiled into each program, and they follow spec [here](https://www.dangermouse.net/esoteric/piet.html).  Since Push and Dup increment the stack size, we need to make sure that the stack size is less than the constant size of `STACK_SIZE`.  If the runtime stack exceeds STACK_SIZE, then the program terminates. Currently, the stack size is initialized as 
 
 ```rust
 pub const STACK_SIZE: u32 = 1 << 18;
 ```
 
-and the call to `malloc` allocates STACK_SIZE * sizeof(i64) = STACK_SIZE * 8 bytes.
+and the call to `malloc` allocates STACK_SIZE * sizeof(i64) = STACK_SIZE * 8 bytes.  Push and Dup both call `stack_size_check` before modifying the stack, which then calls `terminate`, which prints "Stack memory exhausted" and exits with code 1.
+
+```
+define void @piet_push(i64 %0) {
+  call void @stack_size_check()
+  ...
+}
+
+define void @piet_dup() {
+  call void @stack_size_check()
+  ...
+}
+
+define void @stack_size_check() {
+  %stack_size = load i64, i64* @stack_size, align 4
+  %check_overflow = icmp uge i64 %stack_size, 262144
+  br i1 %check_overflow, label %1, label %2
+
+1:                                                ; preds = %0
+  %call_terminate = call i64 @terminate()
+  unreachable
+
+2:                                                ; preds = %0
+  ret void
+}
+
+define i64 @terminate() {
+  %load_exhausted_fmt = load [46 x i8], [46 x i8]* @exhausted_fmt, align 1
+  %1 = call i64 (i8*, ...) @printf(i8* getelementptr inbounds ([46 x i8], [46 x i8]* @exhausted_fmt, i64 0, i64 0))
+  call void @print_piet_stack()
+  %call_exit = call i64 @exit(i64 1)
+  ret i64 1
+}
+```
 
 ### Program entrypoint
 
