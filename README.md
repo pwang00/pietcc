@@ -1,6 +1,6 @@
 # PietCC
 
-PietCC is a Rust interpreter and compiler for the [Piet](https://www.dangermouse.net/esoteric/piet.html) esoteric language.
+PietCC is a Rust interpreter and compiler for the [Piet](https://www.dangermouse.net/esoteric/piet.html) esoteric language using LLVM as a backend.  To read more about the compiler, visit this [writeup](https://github.com/pwang00/pietcc/blob/main/Compiler.md). 
 
 ## Organization
 
@@ -19,7 +19,7 @@ The repository is organized into four main components:
 ## Progress
 
 - [x] Interpreter: functionally complete, supports treating unknown colors as white / black.
-- [x] Compiler: functionally complete and correct to my knowledge, with white block tracing / elimination and non-termination detection implemented as well as support for running LLVM module optimization passes. To read more about the compiler, visit this [page](https://github.com/pwang00/pietcc/blob/main/Compiler.md).  
+- [x] Compiler: functionally complete and correct to my knowledge, with white block tracing / elimination and non-termination detection implemented as well as support for running LLVM module optimization passes.
 
 ## TODO
 
@@ -48,7 +48,7 @@ mv target/release/pietcc .
 
 Alternatively, it is possible to combine the build / run workflow via 
 
-`cargo run --release <image> --flags`, but this attempts to check for changes to the PietCC source on every run, so is not recommended.
+`cargo run --release <image> <flags>`, but this attempts to check for changes to the PietCC source on every run, so is not recommended.
 
 ## Interpreting Piet programs
 
@@ -70,7 +70,6 @@ OPTIONS:
     -s, --size <codel_size>        Interpret or compile with a supplied codel size
     --ub                           Treats unknown pixels as black (default: error)
     --uw                           Treats unknown pixels as white (default: error)
-    -w, --warn-nt                  Attempts to detect non-termination behavior in a Piet program during compilation
 ```
 
 PietCC will by default try to infer the codel width of the program.  The heuristic used computes the gcd of all the block widths and heights with each other and the program width / height, and will produce a correct estimate of the codel width with high probability.  However, to correctly interpret some programs, supplying the size flag with a corresponding value for the codel width is necessary.
@@ -128,7 +127,8 @@ OPTIONS:
         --o3                       Sets the compiler optimization level to 3 (LLVM Aggressive)
     -s, --size <codel_size>        Interpret or compile with a supplied codel size
     --ub                           Treats unknown pixels as black (default: error)
-    --uw                           Treats unknown pixels as white (default: error)    
+    --uw                           Treats unknown pixels as white (default: error)
+    -w, --warn-nt                  Attempts to detect non-termination behavior in a Piet program during compilation
 ```
 
 To compile a Piet program to an ELF executable, LLVM IR, and LLVM bitcode respectively, do
