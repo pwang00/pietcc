@@ -210,9 +210,9 @@ $ ./pietcc images/hw2-11.gif --warn-nt -o hw2-11
 pietcc: warning: every node in program CFG has nonzero outdegree.  This implies nontermination!
 ```
 
-[Hello World 5](https://github.com/pwang00/pietcc/blob/main/images/hw5.gif)
+[Hello World 5](https://github.com/pwang00/pietcc/blob/main/images/hw5_big.png)
 
-<img src="https://github.com/pwang00/pietcc/blob/main/images/hw5.png" alt="Another Buggy Hello World"/>
+<img src="https://github.com/pwang00/pietcc/blob/main/images/hw5_big.png" alt="Another Buggy Hello World"/>
 
 ```
 $ ./pietcc images/hw5.png --warn-nt -o hw5
