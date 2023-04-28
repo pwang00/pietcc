@@ -120,10 +120,16 @@ impl<'a, 'b> CodeGen<'a, 'b> {
         &mut self,
         save_file: &str,
         opt_level: OptimizationLevel,
+        warn_nt: bool,
         options: SaveOptions,
     ) -> Result<(), Error> {
         self.generate_cfg();
         let cfg = self.cfg_gen.get_cfg();
+
+        if self.cfg_gen.determine_runs_forever() {
+            eprintln!("Warning: every node in program CFG has nonzero outdegree.  This implies nontermination!")
+        }
+
         self.build_globals();
         self.build_stdout_unbuffered();
         self.build_print_stack();
@@ -171,6 +177,7 @@ impl<'a, 'b> CodeGen<'a, 'b> {
         self.generate(
             settings.output_fname,
             settings.opt_level,
+            settings.warn_nt,
             settings.save_options,
         )?;
         Ok(())
@@ -199,6 +206,7 @@ mod test {
             "../../compilation.ll",
             OptimizationLevel::Aggressive,
             options,
+            false
         );
         Ok(())
     }

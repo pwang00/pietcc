@@ -256,6 +256,13 @@ impl<'a> CFGGenerator<'a> {
     pub(crate) fn get_cfg(&self) -> &CFG {
         &self.adjacencies
     }
+
+    // We can't determine whether an arbitrary Piet program halts since Piet is Turing-complete, which makes this equivalent to solving the halting problem.
+    // However, one condition in which a Piet program is guaranteed to run forever is if there are no nodes with outdegree zero.
+    // This is because our compilation procedure inserts a return for any such node, which is the only way for termination to occur.
+    pub(crate) fn determine_runs_forever(&self) -> bool {
+        self.adjacencies.iter().all(|(_, y)| y.len() > 0)
+    }
 }
 
 #[cfg(test)]

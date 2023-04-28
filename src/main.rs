@@ -114,6 +114,14 @@ fn main() -> Result<(), Error> {
                 .conflicts_with("treat_white")
                 .help("Treats unknown pixels as black (default: error)"),
         )
+        .arg(
+            Arg::with_name("warn_nontermination")
+                .short('w')
+                .long("warn-nt")
+                .takes_value(false)
+                .requires("output")
+                .help("Attempts to detect non-termination behavior in a Piet program"),
+        )
         .get_matches();
 
     let filename = matches.value_of("input").unwrap();
@@ -173,6 +181,7 @@ fn main() -> Result<(), Error> {
 
             let mut save_options = SaveOptions::EmitExecutable;
             let mut opt_level = OptimizationLevel::None;
+            let mut warn_nt = false;
 
             if matches.is_present("emit-llvm") {
                 save_options = SaveOptions::EmitLLVMIR
@@ -194,11 +203,16 @@ fn main() -> Result<(), Error> {
                 opt_level = OptimizationLevel::Aggressive
             }
 
+            if matches.is_present("warn_nontermination"){
+                warn_nt = true;
+            }
+            
             let compile_options = CompilerSettings {
                 opt_level,
                 codel_settings,
                 save_options,
                 output_fname,
+                warn_nt
             };
 
             let cfg_gen = CFGGenerator::new(&program, codel_settings);

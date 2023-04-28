@@ -15,4 +15,5 @@ pub struct CompilerSettings<'a> {
     pub codel_settings: CodelSettings,
     pub save_options: SaveOptions,
     pub output_fname: &'a str,
+    pub warn_nt: bool
 }
