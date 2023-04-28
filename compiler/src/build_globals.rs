@@ -118,10 +118,7 @@ impl<'a, 'b> CodeGen<'a, 'b> {
         let _llvm_stacksave_fn =
             self.module
                 .add_function("llvm.stacksave", llvm_stacksave_type, None);
-
-        let exit_fn_type = void_type.fn_type(&[i64_type.into()], false);
-        let _llvm_stacksave_fn = self.module.add_function("exit", exit_fn_type, None);
-
+            
         // setvbuf to disable buffering
         let i32_type = self.context.i32_type();
         let i8_ptr_type = self.context.i8_type().ptr_type(AddressSpace::default());

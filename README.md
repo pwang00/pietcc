@@ -19,7 +19,7 @@ The repository is organized into four main components:
 ## Progress
 
 - [x] Interpreter: functionally complete, supports treating unknown colors as white / black.
-- [x] Compiler: functionally complete and correct to my knowledge, with white block tracing / elimination implemented as well as support for running LLVM module optimization passes. To read more about the compiler, visit this [page](https://github.com/pwang00/pietcc/blob/main/Compiler.md).  
+- [x] Compiler: functionally complete and correct to my knowledge, with white block tracing / elimination and non-termination detection implemented as well as support for running LLVM module optimization passes. To read more about the compiler, visit this [page](https://github.com/pwang00/pietcc/blob/main/Compiler.md).  
 
 ## TODO
 
@@ -67,6 +67,10 @@ OPTIONS:
     -o, --output <out>             Output an executable into <file> [default: program.out]
     -s, --size <codel_size>        Interpret or compile with a supplied codel size
     -v, --verbosity <verbosity>    Sets the interpreter's verbosity
+    -s, --size <codel_size>        Interpret or compile with a supplied codel size
+    --ub                           Treats unknown pixels as black (default: error)
+    --uw                           Treats unknown pixels as white (default: error)
+    -w, --warn-nt                  Attempts to detect non-termination behavior in a Piet program during compilation
 ```
 
 PietCC will by default try to infer the codel width of the program.  The heuristic used computes the gcd of all the block widths and heights with each other and the program width / height, and will produce a correct estimate of the codel width with high probability.  However, to correctly interpret some programs, supplying the size flag with a corresponding value for the codel width is necessary.
@@ -123,6 +127,8 @@ OPTIONS:
         --o2                       Sets the compiler optimization level to 2 (LLVM Default)
         --o3                       Sets the compiler optimization level to 3 (LLVM Aggressive)
     -s, --size <codel_size>        Interpret or compile with a supplied codel size
+    --ub                           Treats unknown pixels as black (default: error)
+    --uw                           Treats unknown pixels as white (default: error)    
 ```
 
 To compile a Piet program to an ELF executable, LLVM IR, and LLVM bitcode respectively, do
@@ -131,11 +137,21 @@ To compile a Piet program to an ELF executable, LLVM IR, and LLVM bitcode respec
 * `./pietcc <image> -o <output> --emit-llvm`
 * `./pietcc <image> -o <output> --emit-llvm-bitcode`
 
-And to specify an optimization level while compiling, do
+To specify an optimization level while compiling, do
 
-`./pietcc --o[1|2|3] <image> -o <output>`
+`./pietcc <image> --o[1|2|3] -o <output>`
 
-Here are some example images with compilation logs:
+To specify behavior when encountering unknown pixels, do
+
+`./pietcc <image> --[ub|uw] -o <output>`
+
+and to specify warning about non-termination, do
+
+`./pietcc <image> -w -o <output>`
+
+### Terminating Piet programs
+
+Here are some example terminating Piet program images with compilation logs:
 
 [Piet Pi Approximation](https://github.com/pwang00/pietcc/blob/main/images/piet_pi.png)
 
@@ -178,6 +194,10 @@ Stack (size 29): 18 0 7 18 80 0 105 0 101 0 116 44 43 62 44 43 62 44 43 62 44 43
 ```
 
 Note that in all compilation examples, codel size inference is being done implicitly.
+
+### Nonterminating Piet programs.
+
+I believe that some programs on the [piet samples](https://www.dangermouse.net/esoteric/piet/samples.html) page are a bit buggy.  While most Piet programs are not formally spec'd, a common mistake between these programs is non-termination. 
 
 ## Generating control flow graph from Piet LLVM IR
 

@@ -1,5 +1,5 @@
 use std::io::Error;
-
+use std::env;
 use clap::{App, Arg};
 use compiler::codegen::CodeGen;
 use compiler::settings::CompilerSettings;
@@ -114,6 +114,15 @@ fn main() -> Result<(), Error> {
                 .conflicts_with("treat_white")
                 .help("Treats unknown pixels as black (default: error)"),
         )
+        .arg(
+            Arg::with_name("warn_nontermination")
+                .short('w')
+                .long("warn-nt")
+                .takes_value(false)
+                .requires("output")
+                .conflicts_with("interpret")
+                .help("Attempts to detect non-termination behavior in a Piet program during compilation"),
+        )
         .get_matches();
 
     let filename = matches.value_of("input").unwrap();
@@ -129,7 +138,9 @@ fn main() -> Result<(), Error> {
         behavior = UnknownPixelSettings::TreatAsBlack
     }
 
-    if let Ok(prog) = Loader::convert(filename, behavior) {
+    let res = Loader::convert(filename, behavior);
+
+    if let Ok(prog) = res {
         program = prog;
         let mut codel_settings = CodelSettings::Infer;
 
@@ -173,6 +184,7 @@ fn main() -> Result<(), Error> {
 
             let mut save_options = SaveOptions::EmitExecutable;
             let mut opt_level = OptimizationLevel::None;
+            let mut warn_nt = false;
 
             if matches.is_present("emit-llvm") {
                 save_options = SaveOptions::EmitLLVMIR
@@ -194,17 +206,33 @@ fn main() -> Result<(), Error> {
                 opt_level = OptimizationLevel::Aggressive
             }
 
+            if matches.is_present("warn_nontermination"){
+                warn_nt = true;
+            }
+
             let compile_options = CompilerSettings {
                 opt_level,
                 codel_settings,
                 save_options,
                 output_fname,
+                warn_nt
             };
 
             let cfg_gen = CFGGenerator::new(&program, codel_settings);
             let mut cg = CodeGen::new(&context, module, builder, cfg_gen, compile_options);
             if let Err(e) = cg.run(compile_options) {
                 println!("{:?}", e);
+            }
+        }
+    } else {
+        match env::consts::OS {
+            "linux" => {
+                eprintln!("\x1B[1;37mpietcc: \x1B[0m\x1B[1;31mfatal error: \x1B[0m{}: No such file or directory.", filename);
+                eprintln!("pietcc terminated.");
+            }
+            _ => {
+                eprintln!("pietcc: fatal error: {}: No such file or directory.", filename);
+                eprintln!("pietcc terminated.");
             }
         }
     }

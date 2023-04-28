@@ -6,6 +6,7 @@ use inkwell::{builder::Builder, context::Context, module::Module};
 use inkwell::passes::{PassManager, PassManagerBuilder};
 use inkwell::OptimizationLevel;
 use parser::decode::DecodeInstruction;
+use std::env;
 use std::fs::{remove_file, OpenOptions};
 use std::io::{Error, Write};
 use std::process::Command;
@@ -120,10 +121,23 @@ impl<'a, 'b> CodeGen<'a, 'b> {
         &mut self,
         save_file: &str,
         opt_level: OptimizationLevel,
+        warn_nt: bool,
         options: SaveOptions,
     ) -> Result<(), Error> {
         self.generate_cfg();
         let cfg = self.cfg_gen.get_cfg();
+
+        if self.cfg_gen.determine_runs_forever() {
+            match env::consts::OS {
+                "linux" => {
+                    eprintln!("\x1B[1;37mpietcc:\x1B[0m \x1B[1;93mwarning:\x1B[0m every node in program CFG has nonzero outdegree.  This implies nontermination!")
+                }
+                _ => {
+                    eprintln!("pietcc: warning: every node in program CFG has nonzero outdegree.  This implies nontermination!")
+                }
+            }
+        }
+
         self.build_globals();
         self.build_stdout_unbuffered();
         self.build_print_stack();
@@ -171,6 +185,7 @@ impl<'a, 'b> CodeGen<'a, 'b> {
         self.generate(
             settings.output_fname,
             settings.opt_level,
+            settings.warn_nt,
             settings.save_options,
         )?;
         Ok(())
@@ -199,6 +214,7 @@ mod test {
             "../../compilation.ll",
             OptimizationLevel::Aggressive,
             options,
+            false
         );
         Ok(())
     }

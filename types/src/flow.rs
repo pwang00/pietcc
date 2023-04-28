@@ -54,6 +54,8 @@ impl Codel {
 }
 
 pub type DirVec = (Direction, Codel);
+pub type EntryDir = (Direction, Codel);
+pub type ExitDir = (Direction, Codel);
 
 pub trait DirectionOps {
     fn from_idx(i: i64) -> Self;
