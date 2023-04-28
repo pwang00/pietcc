@@ -1,5 +1,5 @@
 use std::io::Error;
-
+use std::env;
 use clap::{App, Arg};
 use compiler::codegen::CodeGen;
 use compiler::settings::CompilerSettings;
@@ -120,7 +120,8 @@ fn main() -> Result<(), Error> {
                 .long("warn-nt")
                 .takes_value(false)
                 .requires("output")
-                .help("Attempts to detect non-termination behavior in a Piet program"),
+                .conflicts_with("interpret")
+                .help("Attempts to detect non-termination behavior in a Piet program during compilation"),
         )
         .get_matches();
 
@@ -137,7 +138,9 @@ fn main() -> Result<(), Error> {
         behavior = UnknownPixelSettings::TreatAsBlack
     }
 
-    if let Ok(prog) = Loader::convert(filename, behavior) {
+    let res = Loader::convert(filename, behavior);
+
+    if let Ok(prog) = res {
         program = prog;
         let mut codel_settings = CodelSettings::Infer;
 
@@ -206,7 +209,7 @@ fn main() -> Result<(), Error> {
             if matches.is_present("warn_nontermination"){
                 warn_nt = true;
             }
-            
+
             let compile_options = CompilerSettings {
                 opt_level,
                 codel_settings,
@@ -219,6 +222,17 @@ fn main() -> Result<(), Error> {
             let mut cg = CodeGen::new(&context, module, builder, cfg_gen, compile_options);
             if let Err(e) = cg.run(compile_options) {
                 println!("{:?}", e);
+            }
+        }
+    } else {
+        match env::consts::OS {
+            "linux" => {
+                eprintln!("\x1B[1;37mpietcc: \x1B[0m\x1B[1;31mfatal error: \x1B[0m{}: No such file or directory.", filename);
+                eprintln!("pietcc terminated.");
+            }
+            _ => {
+                eprintln!("pietcc: fatal error: {}: No such file or directory.", filename);
+                eprintln!("pietcc terminated.");
             }
         }
     }

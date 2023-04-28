@@ -6,6 +6,7 @@ use inkwell::{builder::Builder, context::Context, module::Module};
 use inkwell::passes::{PassManager, PassManagerBuilder};
 use inkwell::OptimizationLevel;
 use parser::decode::DecodeInstruction;
+use std::env;
 use std::fs::{remove_file, OpenOptions};
 use std::io::{Error, Write};
 use std::process::Command;
@@ -127,7 +128,14 @@ impl<'a, 'b> CodeGen<'a, 'b> {
         let cfg = self.cfg_gen.get_cfg();
 
         if self.cfg_gen.determine_runs_forever() {
-            eprintln!("Warning: every node in program CFG has nonzero outdegree.  This implies nontermination!")
+            match env::consts::OS {
+                "linux" => {
+                    eprintln!("\x1B[1;37mpietcc:\x1B[0m \x1B[1;93mwarning:\x1B[0m every node in program CFG has nonzero outdegree.  This implies nontermination!")
+                }
+                _ => {
+                    eprintln!("pietcc: warning: every node in program CFG has nonzero outdegree.  This implies nontermination!")
+                }
+            }
         }
 
         self.build_globals();
