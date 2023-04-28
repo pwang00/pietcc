@@ -212,7 +212,7 @@ pietcc: warning: every node in program CFG has nonzero outdegree.  This implies 
 
 [Hello World 5](https://github.com/pwang00/pietcc/blob/main/images/hw5.gif)
 
-<img src="https://github.com/pwang00/pietcc/blob/main/images/hw5.gif" alt="Another Buggy Hello World"/>
+<img src="https://github.com/pwang00/pietcc/blob/main/images/hw5.png" alt="Another Buggy Hello World"/>
 
 ```
 $ ./pietcc images/hw5.png --warn-nt -o hw5
