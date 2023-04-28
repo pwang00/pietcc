@@ -1,5 +1,3 @@
-use std::io::Error;
-use std::env;
 use clap::{App, Arg};
 use compiler::codegen::CodeGen;
 use compiler::settings::CompilerSettings;
@@ -9,6 +7,8 @@ use inkwell::OptimizationLevel;
 use interpreter::{interpreter::Interpreter, settings::*};
 use parser::convert::UnknownPixelSettings;
 use parser::{infer::CodelSettings, loader::Loader};
+use std::env;
+use std::io::Error;
 use types::program::Program;
 
 fn main() -> Result<(), Error> {
@@ -206,7 +206,7 @@ fn main() -> Result<(), Error> {
                 opt_level = OptimizationLevel::Aggressive
             }
 
-            if matches.is_present("warn_nontermination"){
+            if matches.is_present("warn_nontermination") {
                 warn_nt = true;
             }
 
@@ -215,7 +215,7 @@ fn main() -> Result<(), Error> {
                 codel_settings,
                 save_options,
                 output_fname,
-                warn_nt
+                warn_nt,
             };
 
             let cfg_gen = CFGGenerator::new(&program, codel_settings);
@@ -231,7 +231,10 @@ fn main() -> Result<(), Error> {
                 eprintln!("pietcc terminated.");
             }
             _ => {
-                eprintln!("pietcc: fatal error: {}: No such file or directory.", filename);
+                eprintln!(
+                    "pietcc: fatal error: {}: No such file or directory.",
+                    filename
+                );
                 eprintln!("pietcc terminated.");
             }
         }

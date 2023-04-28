@@ -1,5 +1,5 @@
 use crate::codegen::CodeGen;
-use inkwell::IntPredicate;
+use inkwell::{values::BasicValue, IntPredicate};
 use types::instruction::Instruction;
 
 #[allow(unused)]
@@ -18,6 +18,10 @@ impl<'a, 'b> CodeGen<'a, 'b> {
         let ret_block = self.context.append_basic_block(dup_fn, "ret");
 
         self.builder.position_at_end(basic_block);
+
+        let stack_size_check_fn = self.module.get_function("stack_size_check").unwrap();
+        self.builder
+            .build_call(stack_size_check_fn, &[], "call_stack_size_check");
 
         let stack_size_addr = self
             .module
@@ -57,7 +61,12 @@ impl<'a, 'b> CodeGen<'a, 'b> {
         let load_piet_stack = self
             .builder
             .build_load(stack_addr, "load_piet_stack")
-            .into_pointer_value();
+            .as_instruction_value()
+            .unwrap();
+
+        load_piet_stack.set_alignment(8);
+
+        let load_piet_stack = load_piet_stack.try_into().unwrap();
 
         let top_ptr = unsafe { self.builder.build_gep(load_piet_stack, &[top_idx], "") };
         let top_ptr_val = self.builder.build_load(top_ptr, "top_elem_ptr");

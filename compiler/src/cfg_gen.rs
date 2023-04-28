@@ -131,7 +131,11 @@ impl<'a> CFGGenerator<'a> {
             .collect::<Vec<_>>()
     }
 
-    pub(crate) fn trace_white(&self, entry: Position, dir: EntryDir) -> Option<(Position, ExitDir)> {
+    pub(crate) fn trace_white(
+        &self,
+        entry: Position,
+        dir: EntryDir,
+    ) -> Option<(Position, ExitDir)> {
         let (mut x, mut y) = entry;
         let (mut dp, mut cc) = dir;
         let mut retries = 0;
@@ -269,7 +273,7 @@ impl<'a> CFGGenerator<'a> {
 
 mod test {
     use super::*;
-    use parser::{loader::Loader, convert::UnknownPixelSettings};
+    use parser::{convert::UnknownPixelSettings, loader::Loader};
     use std::{
         collections::{hash_map::DefaultHasher, HashMap, HashSet, VecDeque},
         fs,
