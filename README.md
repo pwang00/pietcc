@@ -201,7 +201,7 @@ Stack (size 29): 18 0 7 18 80 0 105 0 101 0 116 44 43 62 44 43 62 44 43 62 44 43
 
 ```
 $ ./pietcc images/pietquest.png -o pietquest
-$ ./piet_bfi 
+$ ./pietquest
 ================
 = Piet's Quest =
 ================
