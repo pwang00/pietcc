@@ -19,7 +19,7 @@ The repository is organized into four main components:
 ## Progress
 
 - [x] Interpreter: functionally complete, supports treating unknown colors as white / black.
-- [x] Compiler: functionally complete and correct to my knowledge, with white block tracing / elimination and non-termination detection implemented as well as support for running LLVM module optimization passes.
+- [x] Compiler: functionally complete and correct to my knowledge, with white block tracing / elimination and nontermination detection implemented as well as support for running LLVM module optimization passes.
 
 ## TODO
 
@@ -128,7 +128,7 @@ OPTIONS:
     -s, --size <codel_size>        Interpret or compile with a supplied codel size
     --ub                           Treats unknown pixels as black (default: error)
     --uw                           Treats unknown pixels as white (default: error)
-    -w, --warn-nt                  Attempts to detect non-termination behavior in a Piet program during compilation
+    -w, --warn-nt                  Attempts to detect nontermination behavior in a Piet program during compilation
 ```
 
 To compile a Piet program to an ELF executable, LLVM IR, and LLVM bitcode respectively, do
@@ -145,7 +145,7 @@ To specify behavior when encountering unknown pixels, do
 
 `./pietcc <image> --[ub|uw] -o <output>`
 
-and to specify warning about non-termination, do
+and to specify warning about nontermination, do
 
 `./pietcc <image> -w -o <output>`
 
@@ -193,13 +193,55 @@ Enter char: Enter char: Enter char: Enter char: Enter char: Enter char: Enter ch
 Stack (size 29): 18 0 7 18 80 0 105 0 101 0 116 44 43 62 44 43 62 44 43 62 44 43 46 60 46 60 46 60 46 
 ```
 
+[Piet text-based quest](https://github.com/pwang00/pietcc/blob/main/images/pietquest.png)
+
+<img src="https://github.com/pwang00/pietcc/blob/main/images/pietquest.png" alt="Piet text-based quest"/>
+
+(This one takes a really long time to compile.)
+
+```
+$ ./pietcc images/pietquest.png -o pietquest
+$ ./piet_bfi 
+================
+= Piet's Quest =
+================
+
+
+You find yourself in a rather dark studio.
+There is an easel here.
+There is a ladder leading down.
+
+Please select:
+
+1 - paint
+2 - go down ladder
+Enter char: 2
+Enter char: 
+You find yourself in a dusty, dim hallway.
+There is a door to the kitchen here.
+There is a door to the bedroom here.
+There is a rickety loft ladder here.
+
+Where do you want to go today?
+1 - kitchen
+2 - bedroom
+3 - loft
+Enter char: 1
+Enter char: 
+
+You find yourself in a well-stocked kitchen.
+It smells invitingly of apple pancake.
+Your wife is here.
+She gives you a look.
+```
+
 Note that in all compilation examples, codel size inference is being done implicitly.
 
 ### Nonterminating Piet programs.
 
-I believe that some programs on the [piet samples](https://www.dangermouse.net/esoteric/piet/samples.html) page are a bit buggy, and a common mistake between these programs is non-termination.  Since Piet is Turing-complete, reasoning about arbitrary Piet program termination is equivalent to solving the halting problem; however, it is possible to enumerate a class of Piet programs that never terminate--the programs whose CFG nodes all have outdegree greater than 0.  This is explained [here](https://github.com/pwang00/pietcc/blob/main/Compiler.md#Termination).
+I believe that some programs on the [piet samples](https://www.dangermouse.net/esoteric/piet/samples.html) page are a bit buggy, and a common mistake between these programs is nontermination.  Since Piet is Turing-complete, reasoning about arbitrary Piet program termination is equivalent to solving the halting problem; however, it is possible to enumerate a class of Piet programs that never terminate--the programs whose CFG nodes all have outdegree greater than 0.  This is explained [here](https://github.com/pwang00/pietcc/blob/main/Compiler.md#Termination).
 
-Here are a few examples of non-terminating Piet programs.  Running PietCC with the `-w` or `--warn-nt` flag warns users accordingly regarding this class of non-terminating Piet programs.
+Here are a few examples of nonterminating Piet programs.  Running PietCC with the `-w` or `--warn-nt` flag warns users accordingly regarding this class of nonterminating Piet programs.
 
 [Hello World 2](https://github.com/pwang00/pietcc/blob/main/images/hw2-11.gif)
 

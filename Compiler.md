@@ -51,7 +51,7 @@ Generating a CFG for Piet can be done in the following steps:
 (EntryDir, ExitDir, Option<Instruction>);
 ```
 
-We set the `EntryDir` and `ExitDir` to be the same, since from a control-flow perspective, only hitting restrictions or tracing white blocks can change the dp / cc, and we don't explicitly represent restrictions in our CFG (if a block's exit is out of bounds or black, we simply don't add it).  We set the `Instruction` to be the corresponding one based on the lightness / hue differences between the current and adjacent block colors.  During compilation, we add an LLVM basic block for each 
+We set the `EntryDir` and `ExitDir` to be the same, since from a control-flow perspective, only hitting restrictions or tracing white blocks can change the dp / cc, and we don't explicitly represent restrictions in our CFG (if a block's exit is out of bounds or black, we simply don't add it).  We set the `Instruction` to be the corresponding one based on the lightness / hue differences between the current and adjacent block colors.  During compilation, we generate LLVM basic blocks for each node and its adjacencies using this information.
 
 
 ## White block tracing and elimination
