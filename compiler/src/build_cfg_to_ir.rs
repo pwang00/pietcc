@@ -1,27 +1,18 @@
-use crate::{cfg_gen::CFG, codegen::CodeGen};
+use std::collections::HashMap;
 use inkwell::{basic_block::BasicBlock, values::AnyValue};
 use types::instruction::Instruction;
+use crate::{cfg_gen::CFG, codegen::CodeGen};
 
 impl<'a, 'b> CodeGen<'a, 'b> {
-    fn get_basic_block_by_name(&self, name: &str) -> Option<BasicBlock<'b>> {
-        let func = self.module.get_function("start").unwrap();
-        let mut curr_block = func.get_first_basic_block();
-
-        while let Some(block) = curr_block {
-            if block.get_name().to_str().unwrap() == name {
-                return Some(block);
-            }
-            curr_block = block.get_next_basic_block();
-        }
-        return None;
-    }
-
     pub(crate) fn build_entry(&self, cfg: &CFG) {
         let i8_type = self.context.i8_type();
         let i64_type = self.context.i64_type();
         let void_type = self.context.void_type().fn_type(&[], false);
         let start_fn = self.module.add_function("start", void_type, None);
         let basic_block = self.context.append_basic_block(start_fn, "");
+
+        let mut block_lookup_table = HashMap::<&str, BasicBlock>::new();
+
         self.builder.position_at_end(basic_block);
         // Globals
         let dp_addr = self
@@ -46,10 +37,12 @@ impl<'a, 'b> CodeGen<'a, 'b> {
         let mut vector_of_blocks = Vec::new();
         // Generate all basic blocks
         for node in cfg.keys() {
-            vector_of_blocks.push(self.context.append_basic_block(start_fn, &node.get_label()));
+            let block = self.context.append_basic_block(start_fn, &node.get_label());
+            vector_of_blocks.push(block);
+            block_lookup_table.insert(node.get_label(), block);
         }
 
-        let entry = self.get_basic_block_by_name("Entry").unwrap();
+        let entry = block_lookup_table.get("Entry").unwrap().to_owned();
         let ret_block = self.context.append_basic_block(start_fn, "ret");
 
         // Init (jumps to entry block)
@@ -63,11 +56,12 @@ impl<'a, 'b> CodeGen<'a, 'b> {
             let adjs = cfg.get(node).unwrap();
             let block_size = i64_type.const_int(node.get_region_size(), false);
 
-            let color_block_start = self.get_basic_block_by_name(node.get_label()).unwrap();
+            let color_block_start = block_lookup_table.get(&node.get_label() as &str).unwrap().to_owned();
             let rotate_pointers = self.context.insert_basic_block_after(
                 color_block_start,
                 &("rotate_pointers_".to_owned() + &node.get_label()),
             );
+            
             self.builder.position_at_end(color_block_start);
 
             let global_dp = self.builder.build_load(dp_addr, "load_dp").into_int_value();
@@ -87,13 +81,9 @@ impl<'a, 'b> CodeGen<'a, 'b> {
                 })
                 .collect::<Vec<_>>();
 
-            let first_adjacency_name =
-                &("adjacency_".to_owned() + &color_block_start.get_name().to_string_lossy() + "_0");
-
             if adj_blocks.len() > 0 {
-                let first_adjacency = self.get_basic_block_by_name(&first_adjacency_name);
                 self.builder
-                    .build_unconditional_branch(first_adjacency.unwrap());
+                    .build_unconditional_branch(adj_blocks[0]);
             }
 
             for (i, adj) in adjs.keys().enumerate() {
@@ -188,7 +178,7 @@ impl<'a, 'b> CodeGen<'a, 'b> {
                     }
                     let const_0_i8 = self.builder.build_int_truncate(const_0, i8_type, "");
                     self.builder.build_store(rctr_addr, const_0_i8);
-                    let next_block = self.get_basic_block_by_name(adj.get_label()).unwrap();
+                    let next_block = block_lookup_table.get(adj.get_label() as &str).unwrap().to_owned();
                     let _jmp_to_next = self.builder.build_unconditional_branch(next_block);
                 }
             }

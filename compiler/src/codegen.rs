@@ -164,7 +164,6 @@ impl<'a, 'b> CodeGen<'a, 'b> {
         self.build_retry();
         self.build_entry(&cfg);
         self.build_main();
-
         let config = InitializationConfig::default();
         Target::initialize_native(&config).unwrap();
 
