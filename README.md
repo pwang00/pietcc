@@ -197,7 +197,7 @@ Stack (size 29): 18 0 7 18 80 0 105 0 101 0 116 44 43 62 44 43 62 44 43 62 44 43
 
 <img src="https://github.com/pwang00/pietcc/blob/main/images/pietquest.png" alt="Piet text-based quest"/>
 
-(This one takes a really long time to compile.)
+(This one takes a really long time to compile--upon profiling, I think it's because llc takes a long time to verify the input LLVM IR module.)
 
 ```
 $ ./pietcc images/pietquest.png -o pietquest
