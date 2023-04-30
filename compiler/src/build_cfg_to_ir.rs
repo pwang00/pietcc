@@ -1,7 +1,7 @@
-use std::collections::HashMap;
-use inkwell::{basic_block::BasicBlock, values::AnyValue};
-use types::instruction::Instruction;
 use crate::{cfg_gen::CFG, codegen::CodeGen};
+use inkwell::{basic_block::BasicBlock, values::AnyValue};
+use std::collections::HashMap;
+use types::instruction::Instruction;
 
 impl<'a, 'b> CodeGen<'a, 'b> {
     pub(crate) fn build_entry(&self, cfg: &CFG) {
@@ -56,12 +56,15 @@ impl<'a, 'b> CodeGen<'a, 'b> {
             let adjs = cfg.get(node).unwrap();
             let block_size = i64_type.const_int(node.get_region_size(), false);
 
-            let color_block_start = block_lookup_table.get(&node.get_label() as &str).unwrap().to_owned();
+            let color_block_start = block_lookup_table
+                .get(&node.get_label() as &str)
+                .unwrap()
+                .to_owned();
             let rotate_pointers = self.context.insert_basic_block_after(
                 color_block_start,
                 &("rotate_pointers_".to_owned() + &node.get_label()),
             );
-            
+
             self.builder.position_at_end(color_block_start);
 
             let global_dp = self.builder.build_load(dp_addr, "load_dp").into_int_value();
@@ -82,8 +85,7 @@ impl<'a, 'b> CodeGen<'a, 'b> {
                 .collect::<Vec<_>>();
 
             if adj_blocks.len() > 0 {
-                self.builder
-                    .build_unconditional_branch(adj_blocks[0]);
+                self.builder.build_unconditional_branch(adj_blocks[0]);
             }
 
             for (i, adj) in adjs.keys().enumerate() {
@@ -178,7 +180,10 @@ impl<'a, 'b> CodeGen<'a, 'b> {
                     }
                     let const_0_i8 = self.builder.build_int_truncate(const_0, i8_type, "");
                     self.builder.build_store(rctr_addr, const_0_i8);
-                    let next_block = block_lookup_table.get(adj.get_label() as &str).unwrap().to_owned();
+                    let next_block = block_lookup_table
+                        .get(adj.get_label() as &str)
+                        .unwrap()
+                        .to_owned();
                     let _jmp_to_next = self.builder.build_unconditional_branch(next_block);
                 }
             }

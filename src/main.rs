@@ -189,21 +189,15 @@ fn main() -> Result<(), Error> {
 
             if matches.is_present("emit-llvm") {
                 save_options = SaveOptions::EmitLLVMIR
-            }
-
-            if matches.is_present("emit-llvm-bitcode") {
+            } else if matches.is_present("emit-llvm-bitcode") {
                 save_options = SaveOptions::EmitLLVMBitcode
             }
 
             if matches.is_present("o1") {
                 opt_level = OptimizationLevel::Less
-            }
-
-            if matches.is_present("o2") {
+            } else if matches.is_present("o2") {
                 opt_level = OptimizationLevel::Default
-            }
-
-            if matches.is_present("o3") {
+            } else if matches.is_present("o3") {
                 opt_level = OptimizationLevel::Aggressive
             }
 
@@ -216,12 +210,18 @@ fn main() -> Result<(), Error> {
                 _ => true,
             };
 
+            let show_cfg_size = match verbosity {
+                Verbosity::Low => false,
+                _ => true,
+            };
+
             let compile_options = CompilerSettings {
                 opt_level,
                 codel_settings,
                 save_options,
                 output_fname,
                 warn_nt,
+                show_cfg_size,
                 show_codel_size,
             };
 

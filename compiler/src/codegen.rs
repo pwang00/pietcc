@@ -122,10 +122,22 @@ impl<'a, 'b> CodeGen<'a, 'b> {
         save_file: &str,
         opt_level: OptimizationLevel,
         warn_nt: bool,
+        show_cfg_size: bool,
         options: SaveOptions,
     ) -> Result<(), Error> {
         self.generate_cfg();
         let cfg = self.cfg_gen.get_cfg();
+
+        if show_cfg_size {
+            match env::consts::OS {
+                "linux" => {
+                    println!("\x1B[1;37mpietcc:\x1B[0m \x1B[1;96minfo: \x1B[0mgenerated CFG with size {}", cfg.len())
+                }
+                _ => {
+                    println!("pietcc: info: generated CFG with size {}", cfg.len())
+                }
+            }
+        }
 
         if self.cfg_gen.determine_runs_forever() {
             match env::consts::OS {
@@ -187,6 +199,7 @@ impl<'a, 'b> CodeGen<'a, 'b> {
             settings.output_fname,
             settings.opt_level,
             settings.warn_nt,
+            settings.show_cfg_size,
             settings.save_options,
         )?;
         Ok(())
@@ -214,8 +227,9 @@ mod test {
         let ir = cg.generate(
             "../../compilation.ll",
             OptimizationLevel::Aggressive,
-            options,
             false,
+            false,
+            options,
         );
         Ok(())
     }
