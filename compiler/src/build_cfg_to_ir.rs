@@ -34,11 +34,9 @@ impl<'a, 'b> CodeGen<'a, 'b> {
         let const_0 = i64_type.const_zero();
         // Functions
         let retry_fn = self.module.get_function("retry").unwrap();
-        let mut vector_of_blocks = Vec::new();
         // Generate all basic blocks
         for node in cfg.keys() {
             let block = self.context.append_basic_block(start_fn, &node.get_label());
-            vector_of_blocks.push(block);
             block_lookup_table.insert(node.get_label(), block);
         }
 
@@ -201,7 +199,7 @@ impl<'a, 'b> CodeGen<'a, 'b> {
             }
         }
         // Ret
-        ret_block.move_after(*vector_of_blocks.last().unwrap()).ok();
+        ret_block.move_after(*block_lookup_table.values().last().unwrap()).ok();
         self.builder.position_at_end(ret_block);
         self.builder.build_return(None);
     }
