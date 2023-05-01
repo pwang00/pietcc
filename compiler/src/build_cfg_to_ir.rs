@@ -168,14 +168,13 @@ impl<'a, 'b> CodeGen<'a, 'b> {
                         } else {
                             self.builder.build_call(instr_fn, &[], "");
                         }
-                    }
-
-                    if instr.is_none() {
+                    } else {
                         let new_dp_as_const = i8_type.const_int(new_dp as i8 as u64, false);
                         let new_cc_as_const = i8_type.const_int(new_cc as i8 as u64, false);
                         self.builder.build_store(dp_addr, new_dp_as_const);
                         self.builder.build_store(cc_addr, new_cc_as_const);
                     }
+
                     let const_0_i8 = self.builder.build_int_truncate(const_0, i8_type, "");
                     self.builder.build_store(rctr_addr, const_0_i8);
                     let next_block = block_lookup_table
@@ -199,7 +198,9 @@ impl<'a, 'b> CodeGen<'a, 'b> {
             }
         }
         // Ret
-        ret_block.move_after(*block_lookup_table.values().last().unwrap()).ok();
+        ret_block
+            .move_after(*block_lookup_table.values().last().unwrap())
+            .ok();
         self.builder.position_at_end(ret_block);
         self.builder.build_return(None);
     }
