@@ -175,6 +175,7 @@ fn main() -> Result<(), Error> {
             interp_settings.codel_settings = codel_settings;
             interpreter = Interpreter::new(&program, interp_settings);
             println!("\n{}", interpreter.run());
+            exit(0);
         }
 
         if let Some(output_fname) = matches.value_of("out") {

@@ -406,7 +406,7 @@ impl<'a> Interpreter<'a> {
 
     pub fn run(&mut self) -> ExecutionResult {
         match self.settings.verbosity {
-            Verbosity::Normal | Verbosity::Verbose => match env::consts::OS {
+            Verbosity::Verbose => match env::consts::OS {
                 "linux" => {
                     println!("\x1B[1;37mpietcc:\x1B[0m \x1B[1;96minfo: \x1B[0mrunning with codel width {} (size of {})", 
                         self.codel_width, self.codel_width.pow(2))
