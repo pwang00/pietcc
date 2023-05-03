@@ -46,7 +46,7 @@ fn main() -> Result<(), Error> {
                 .short('s')
                 .long("size")
                 .takes_value(true)
-                .help("Interpret or compile with a supplied codel size"),
+                .help("Interpret or compile with a supplied codel size (must divide program height and width)"),
         )
         .arg(
             Arg::with_name("use_default")
@@ -154,6 +154,30 @@ fn main() -> Result<(), Error> {
 
         if let Some(val) = matches.value_of("codel_size") {
             if let Ok(val) = val.parse::<u32>() {
+                if program.dimensions().0 % val != 0 || program.dimensions().1 % val != 0 {
+                    match env::consts::OS {
+                        "linux" => {
+                            eprintln!(
+                                "\x1B[1;37mpietcc: \x1B[0m\x1B[1;31mfatal error: \x1B[0m{}: supplied codel width {} does not divide program dimensions: {:?}", 
+                                filename,
+                                val,
+                                program.dimensions()
+                            );
+                            eprintln!("pietcc terminated.");
+                        }
+                        _ => {
+                            eprintln!(
+                                "pietcc: fatal error: {}: supplied codel width {} does not divide program dimensions: {:?}",
+                                filename,
+                                val,
+                                program.dimensions()
+                            );
+                            eprintln!("pietcc terminated.");
+                        }
+                    }
+                    exit(1);
+                }
+
                 codel_settings = CodelSettings::Width(val);
             }
         }

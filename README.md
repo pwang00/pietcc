@@ -65,9 +65,9 @@ OPTIONS:
 ...
     -i, --interpret                Interpret the given program
     -o, --output <out>             Output an executable into <file> [default: program.out]
-    -s, --size <codel_size>        Interpret or compile with a supplied codel size
+    -s, --size <codel_size>        Interpret or compile with a supplied codel size (must divide
+                                   program height and width)
     -v, --verbosity <verbosity>    Sets the interpreter's verbosity
-    -s, --size <codel_size>        Interpret or compile with a supplied codel size
     --ub                           Treats unknown pixels as black (default: error)
     --uw                           Treats unknown pixels as white (default: error)
 ```
@@ -125,7 +125,8 @@ OPTIONS:
         --o1                       Sets the compiler optimization level to 1 (LLVM Less)
         --o2                       Sets the compiler optimization level to 2 (LLVM Default)
         --o3                       Sets the compiler optimization level to 3 (LLVM Aggressive)
-    -s, --size <codel_size>        Interpret or compile with a supplied codel size
+    -s, --size <codel_size>        Interpret or compile with a supplied codel size (must divide
+                                   program height and width)
     --ub                           Treats unknown pixels as black (default: error)
     --uw                           Treats unknown pixels as white (default: error)
     -w, --warn-nt                  Attempts to detect nontermination behavior in a Piet program during compilation
