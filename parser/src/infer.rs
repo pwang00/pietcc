@@ -19,7 +19,7 @@ pub trait InferCodelWidth: FindAdj {
         // The idea of this heuristic is that since the codel size is constant across the program,
         // each block must have width and height as a multiple of the codel size.  A somewhat reasonable metric
         // is to explore all colorblocks and compute the gcd of that block's width and height with the program's,
-        // and store those minimums, and fold those gcds.
+        // and store those minimums, and take the gcds of those gcds.
 
         let mut gcds = Vec::<u32>::new();
         let mut discovered = HashSet::new();

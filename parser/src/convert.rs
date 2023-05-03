@@ -9,6 +9,7 @@ pub enum UnknownPixelSettings {
     TreatAsWhite,
     TreatAsBlack,
 }
+
 // I feel like converting pixels to lightness would make the code more maintainable
 pub trait ConvertToLightness {
     fn rgb_to_lightness(pixel: &Rgb<u8>, settings: UnknownPixelSettings) -> Lightness {
