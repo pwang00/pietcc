@@ -6,6 +6,3 @@ pub enum ExecutionError {
     StackOutOfBoundsError(Instruction, String),
     DivisionByZeroError(Instruction, String),
 }
-
-#[derive(Debug)]
-pub struct InvalidPixelError(pub [u8; 3]);
