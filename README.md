@@ -4,8 +4,6 @@ PietCC is a Rust interpreter and compiler for the [Piet](https://www.dangermouse
 
 ## Organization
 
-The repository is organized into four main components:
-
 1. [types](https://github.com/pwang00/pietcc/tree/main/types): core types shared between the interpreter, compiler, and parser
 2. [interpreter](https://github.com/pwang00/pietcc/tree/main/interpreter): core interpreter logic
 3. [compiler](https://github.com/pwang00/pietcc/tree/main/compiler): core compiler logic, handles CFG generation and uses Inkwell to generate LLVM IR from CFGs.

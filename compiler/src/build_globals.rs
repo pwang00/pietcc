@@ -53,10 +53,6 @@ impl<'a, 'b> CodeGen<'a, 'b> {
             self.builder.build_global_string("%c\0", "char_fmt");
             self.builder.build_global_string("%ld \0", "stack_fmt");
             self.builder
-                .build_global_string("dp: %d, cc: %d\0", "ptr_fmt");
-            self.builder
-                .build_global_string("Expected dp: %d, cc: %d\n\0", "expected_ptr_fmt");
-            self.builder
                 .build_global_string("\nStack (size %d): ", "stack_id");
             self.builder
                 .build_global_string("\nStack empty", "stack_id_empty");
