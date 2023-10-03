@@ -217,7 +217,6 @@ impl<'a, 'b> CodeGen<'a, 'b> {
         let i8_type = self.context.i8_type();
         let retry_fn_type = void_type.fn_type(&[], false);
         let retry_fn = self.module.add_function("retry", retry_fn_type, None);
-        let _print_ptr_fn = self.module.get_function("print_pointers").unwrap();
         // Basic blocks
         let basic_block = self.context.append_basic_block(retry_fn, "");
         let one_mod_two = self.context.append_basic_block(retry_fn, "one_mod_two");
@@ -283,45 +282,6 @@ impl<'a, 'b> CodeGen<'a, 'b> {
             self.builder
                 .build_int_truncate(rctr_mod_8, self.context.i8_type(), "trunc_to_i8");
         self.builder.build_store(rctr_addr, rctr_to_i8);
-        self.builder.build_return(None);
-    }
-
-    pub(crate) fn build_print_pointers(&self) {
-        let void_type = self.context.void_type();
-        let i8_type = self.context.i8_type();
-        let print_ptr_fn_type = void_type.fn_type(&[], false);
-
-        let print_ptr_fn = self
-            .module
-            .add_function("print_pointers", print_ptr_fn_type, None);
-
-        let printf_fn = self.module.get_function("printf").unwrap();
-        let ptr_fmt = self
-            .module
-            .get_global("ptr_fmt")
-            .unwrap()
-            .as_pointer_value();
-
-        let basic_block = self.context.append_basic_block(print_ptr_fn, "");
-        let ret_block = self.context.append_basic_block(print_ptr_fn, "ret");
-
-        self.builder.position_at_end(basic_block);
-        let dp_addr = self.module.get_global("dp").unwrap().as_pointer_value();
-        let cc_addr = self.module.get_global("cc").unwrap().as_pointer_value();
-
-        let const_0 = i8_type.const_int(0, false);
-        let const_fmt_gep = unsafe { self.builder.build_gep(ptr_fmt, &[const_0, const_0], "") };
-
-        let dp_val = self.builder.build_load(dp_addr, "load_dp").into_int_value();
-        let cc_val = self.builder.build_load(cc_addr, "load_cc").into_int_value();
-
-        self.builder.build_call(
-            printf_fn,
-            &[const_fmt_gep.into(), dp_val.into(), cc_val.into()],
-            "",
-        );
-        self.builder.build_unconditional_branch(ret_block);
-        self.builder.position_at_end(ret_block);
         self.builder.build_return(None);
     }
 }

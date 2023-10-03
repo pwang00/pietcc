@@ -172,7 +172,6 @@ impl<'a, 'b> CodeGen<'a, 'b> {
         self.build_not();
         self.build_switch();
         self.build_rotate();
-        self.build_print_pointers();
         self.build_retry();
         self.build_entry(&cfg);
         self.build_main();
