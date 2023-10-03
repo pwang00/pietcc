@@ -1,6 +1,6 @@
 # PietCC
 
-PietCC is a Rust interpreter and compiler for the [Piet](https://www.dangermouse.net/esoteric/piet.html) esoteric language using LLVM as a backend.  To read more about the compiler, visit this [writeup](https://github.com/pwang00/pietcc/blob/main/Compiler.md). 
+PietCC is a Rust interpreter and compiler for the [Piet](https://www.dangermouse.net/esoteric/piet.html) esoteric language using [inkwell](https://github.com/TheDan64/inkwell/tree/master) and LLVM as a backend / IR generator.  To read more about the compiler, visit this [writeup](https://github.com/pwang00/pietcc/blob/main/Compiler.md). 
 
 ## Organization
 
@@ -12,7 +12,8 @@ PietCC is a Rust interpreter and compiler for the [Piet](https://www.dangermouse
 
 ## Dependencies
 
-- LLVM libraries (14.0.0), including clang and llc.
+- Rust 1.56+ (Stable, Beta, or Nightly), for inkwell
+- LLVM libraries, including clang and llc, for generating IR / lowering to assembly.
 
 ## Progress
 
@@ -37,7 +38,33 @@ cd pietcc
 
 ## Building PietCC
 
-To build PietCC, run
+To build PietCC, first make sure you have supported versions of rustc and LLVM on your system.  You may need to modify inkwell's cargo feature flags in the Cargo.tomls of the [project root](https://github.com/pwang00/pietcc/blob/main/Cargo.toml) and [compiler](https://github.com/pwang00/pietcc/blob/main/compiler/Cargo.toml).  This project sets them at LLVM 14.0:
+
+```
+inkwell = { git = "https://github.com/TheDan64/inkwell", branch = "master", features = ["llvm14-0"] }
+```
+
+However, other versions are supported as well per the inkwell docs:
+
+| LLVM Version | Cargo Feature Flag |
+| :----------: | :-----------: |
+| 4.0.x        | llvm4-0       |
+| 5.0.x        | llvm5-0       |
+| 6.0.x        | llvm6-0       |
+| 7.0.x        | llvm7-0       |
+| 8.0.x        | llvm8-0       |
+| 9.0.x        | llvm9-0       |
+| 10.0.x       | llvm10-0      |
+| 11.0.x       | llvm11-0      |
+| 12.0.x       | llvm12-0      |
+| 13.0.x       | llvm13-0      |
+| 14.0.x       | llvm14-0      |
+| 15.0.x       | llvm15-0      |
+| 16.0.x       | llvm16-0      |
+
+so replace `features = ["llvm14-0"]` with the desired cargo feature flag.
+
+Once you have verified that the LLVM version is correct, run
 
 ```bash
 cargo build --release
