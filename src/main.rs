@@ -210,7 +210,7 @@ fn main() -> Result<(), Error> {
 
             let mut save_options = SaveOptions::EmitExecutable;
             let mut opt_level = OptimizationLevel::None;
-            let mut warn_nt = false;
+            
 
             if matches.is_present("emit-llvm") {
                 save_options = SaveOptions::EmitLLVMIR
@@ -226,9 +226,7 @@ fn main() -> Result<(), Error> {
                 opt_level = OptimizationLevel::Aggressive
             }
 
-            if matches.is_present("warn_nontermination") {
-                warn_nt = true;
-            }
+            let warn_nt = matches.is_present("warn_nontermination");
 
             let show_codel_size = match verbosity {
                 Verbosity::Low | Verbosity::Normal => false,
