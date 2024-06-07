@@ -24,8 +24,7 @@ PietCC is a Rust interpreter and compiler for the [Piet](https://www.dangermouse
 
 Compiler:
 
-* Decrease compilation times
-* Maybe attempt to add custom LLVM passes upon proving Piet program properties to further improve compiled program efficiency
+* Add SMT solver-based optimizations at the source or IR level to eliminate unreachable blocks
 
 ## Installation
 
