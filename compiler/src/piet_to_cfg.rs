@@ -18,10 +18,11 @@ pub(crate) type Adjacencies = HashMap<Node, Info>;
 pub(crate) type CFG = HashMap<Node, Adjacencies>;
 
 #[allow(unused)]
-pub struct CFGGenerator<'a> {
+pub struct CFGBuilder<'a> {
     program: &'a Program<'a>,
     adjacencies: CFG,
     codel_width: u32,
+    contains_input_instrs: bool
 }
 
 #[allow(unused)]
@@ -90,14 +91,14 @@ impl PartialEq for ColorBlock {
     }
 }
 
-impl<'a> DecodeInstruction for CFGGenerator<'a> {}
+impl<'a> DecodeInstruction for CFGBuilder<'a> {}
 
-impl<'a> FindAdj for CFGGenerator<'a> {}
+impl<'a> FindAdj for CFGBuilder<'a> {}
 
-impl<'a> InferCodelWidth for CFGGenerator<'a> {}
+impl<'a> InferCodelWidth for CFGBuilder<'a> {}
 
 #[allow(unused)]
-impl<'a> CFGGenerator<'a> {
+impl<'a> CFGBuilder<'a> {
     // Returns the list of adjacencies for a given position and whether or not it is a boundary
     pub fn new(prog: &'a Program, codel_settings: CodelSettings, show_codel_size: bool) -> Self {
         let codel_width = match codel_settings {
@@ -117,11 +118,16 @@ impl<'a> CFGGenerator<'a> {
             }
         }
 
-        CFGGenerator {
+        CFGBuilder {
             program: prog,
             adjacencies: HashMap::new(),
             codel_width,
+            contains_input_instrs: false
         }
+    }
+
+    pub fn get_program(&self) -> &'a Program<'a> {
+        self.program
     }
 
     fn possible_exits(&self, cb: &HashSet<Position>) -> Vec<(Position, ExitDir)> {
@@ -211,7 +217,7 @@ impl<'a> CFGGenerator<'a> {
         Rc::new(ColorBlock::new(label, lightness, discovered))
     }
 
-    pub(crate) fn analyze(&mut self) {
+    pub(crate) fn build(&mut self) {
         let init_block = self.explore_region(ENTRY);
         let mut discovered_regions = HashSet::from([init_block.clone()]);
         let mut queue = VecDeque::<Rc<ColorBlock>>::from([init_block]);
@@ -335,10 +341,10 @@ mod test {
     #[test]
     fn test_program() {
         let prog = Loader::convert("../images/hw1-1.png", SETTINGS).unwrap();
-        let mut cfg_gen = CFGGenerator::new(&prog, 1, true);
+        let mut cfg_gen = CFGBuilder::new(&prog, 1, true);
 
         println!("loaded");
-        cfg_gen.analyze();
+        cfg_gen.build();
 
         let adjacencies = &cfg_gen.get_state().adjacencies;
 

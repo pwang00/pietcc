@@ -1,6 +1,6 @@
 use std::collections::VecDeque;
 
-use crate::flow::*;
+use crate::{flow::*, instruction::Instruction};
 pub type Position = (u32, u32);
 
 pub const ENTRY: Position = (0, 0);
@@ -13,6 +13,7 @@ pub struct ExecutionState {
     pub rctr: u8,
     pub stdin: String,
     pub steps: u64,
+    pub executed: Vec<Instruction>
 }
 
 pub struct ExecutionResult<'a> {
@@ -32,6 +33,7 @@ impl std::fmt::Display for ExecutionResult<'_> {
         writeln!(f, "    stdin: {:?}", self.state.stdin);
         writeln!(f, "    steps: {:?}", self.state.steps);
         writeln!(f, "    stack: {:?}", self.stack);
+        writeln!(f, "    last instr: {:?}", self.state.executed.last());
         writeln!(f, "}}")
     }
 }

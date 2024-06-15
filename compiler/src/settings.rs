@@ -10,8 +10,14 @@ pub enum SaveOptions {
 }
 
 #[derive(Copy, Clone, Debug)]
+pub struct PartialEvalSettings {
+    pub max_steps: u32
+}
+
+#[derive(Copy, Clone, Debug)]
 pub struct CompilerSettings<'a> {
-    pub opt_level: OptimizationLevel,
+    pub llvm_opt_level: OptimizationLevel,
+    pub partial_eval_settings: Option<PartialEvalSettings>,
     pub codel_settings: CodelSettings,
     pub save_options: SaveOptions,
     pub output_fname: &'a str,

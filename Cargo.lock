@@ -523,6 +523,7 @@ version = "0.1.0"
 dependencies = [
  "image",
  "inkwell",
+ "piet-interpreter",
  "piet-parser",
  "piet-types",
  "strum",

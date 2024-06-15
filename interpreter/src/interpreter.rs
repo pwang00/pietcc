@@ -391,6 +391,9 @@ impl<'a> Interpreter<'a> {
     #[inline]
     pub(crate) fn int_out(&mut self) {
         if let Some(n) = self.stack.pop_front() {
+            if self.settings.collect_instructions_only { 
+                return 
+            }
             print!("{n}");
         }
     }
@@ -399,6 +402,9 @@ impl<'a> Interpreter<'a> {
     pub(crate) fn char_out(&mut self) {
         if let Some(n) = self.stack.pop_front() {
             if let Some(c) = char::from_u32(n as u32) {
+                if self.settings.collect_instructions_only { 
+                    return 
+                }    
                 print!("{c}");
             }
         }

@@ -4,7 +4,7 @@ use crate::Verbosity;
 use clap::{App, Arg};
 use compiler::codegen::CodeGen;
 use compiler::settings::CompilerSettings;
-use compiler::{cfg_gen::CFGGenerator, settings::SaveOptions};
+use compiler::{piet_to_cfg::CFGBuilder, settings::SaveOptions};
 use inkwell::context::Context;
 use inkwell::OptimizationLevel;
 use interpreter::{interpreter::Interpreter, settings::*};
@@ -102,6 +102,13 @@ fn main() -> Result<(), Error> {
                 .conflicts_with("interpret")
                 .conflicts_with("o2")
                 .help("Sets the compiler optimization level to 3 (LLVM Aggressive)"),
+        )
+        .arg(
+            Arg::with_name("interpret_to_optimize")
+                .long("oi")
+                .takes_value(false)
+                .conflicts_with("i")
+                .help("Use the Piet interpreter to optimize compilation"),
         )
         .arg(
             Arg::with_name("treat_white")
@@ -239,16 +246,18 @@ fn main() -> Result<(), Error> {
             };
 
             let compile_options = CompilerSettings {
-                opt_level,
+                llvm_opt_level: opt_level,
                 codel_settings,
                 save_options,
                 output_fname,
                 warn_nt,
                 show_cfg_size,
                 show_codel_size,
+                interp_opt: todo!(),
+                max_steps: todo!(),
             };
 
-            let cfg_gen = CFGGenerator::new(&program, codel_settings, show_codel_size);
+            let cfg_gen = CFGBuilder::new(&program, codel_settings, show_codel_size);
             let mut cg = CodeGen::new(&context, module, builder, cfg_gen, compile_options);
             if let Err(e) = cg.run(compile_options) {
                 println!("{:?}", e);

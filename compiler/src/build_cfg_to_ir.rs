@@ -1,4 +1,4 @@
-use crate::{cfg_gen::CFG, codegen::CodeGen};
+use crate::{piet_to_cfg::CFG, codegen::CodeGen};
 use inkwell::{basic_block::BasicBlock, values::AnyValue};
 use std::collections::HashMap;
 use types::instruction::Instruction;
