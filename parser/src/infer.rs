@@ -2,7 +2,7 @@ use gcd::Gcd;
 use std::cmp::min;
 use std::collections::{HashSet, VecDeque};
 use types::flow::FindAdj;
-use types::program::Program;
+use types::program::PietSource;
 use types::state::Position;
 
 #[derive(Copy, Clone, Default, Debug)]
@@ -14,7 +14,7 @@ pub enum CodelSettings {
 }
 
 pub trait InferCodelWidth: FindAdj {
-    fn infer_codel_width(program: &Program) -> u32 {
+    fn infer_codel_width(program: &PietSource) -> u32 {
         let (height, width) = program.dimensions();
         // The idea of this heuristic is that since the codel size is constant across the program,
         // each block must have width and height as a multiple of the codel size.  A somewhat reasonable metric

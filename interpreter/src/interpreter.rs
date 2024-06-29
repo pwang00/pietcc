@@ -1,91 +1,33 @@
 use crate::settings::{InterpSettings, Verbosity};
 use parser::infer::{CodelSettings, InferCodelWidth};
+use parser::cfg::{self, CFGBuilder, Node, CFG};
 use parser::{convert::ConvertToLightness, decode::DecodeInstruction};
 use std::collections::{HashSet, VecDeque};
 use std::env;
-use std::io::Write;
+use std::io::{Stdout, Write};
 use std::{io, io::Read};
 use types::color::Lightness::{Black, White};
 use types::error::ExecutionError;
-use types::flow::{Codel, Direction, FindAdj, FURTHEST, MOVE_IN};
 use types::instruction::Instruction;
-use types::program::Program;
 use types::state::{ExecutionResult, ExecutionState, Position};
 
-pub struct Interpreter<'a> {
-    program: &'a Program<'a>,
+pub struct Interpreter {
+    cfg: CFG,
     state: ExecutionState,
     stack: VecDeque<i64>,
-    codel_width: u32,
-    settings: InterpSettings,
+    stdout_instrs: Vec<(Instruction, i64)>,
+    settings: InterpSettings
 }
 
-impl<'a> DecodeInstruction for Interpreter<'a> {}
-impl<'a> ConvertToLightness for Interpreter<'a> {}
-impl<'a> FindAdj for Interpreter<'a> {}
-impl<'a> InferCodelWidth for Interpreter<'a> {}
-
-impl<'a> Interpreter<'a> {
-    pub fn new(program: &'a Program, settings: InterpSettings) -> Self {
-        let codel_width = match settings.codel_settings {
-            CodelSettings::Default => 1,
-            CodelSettings::Infer => Self::infer_codel_width(&program),
-            CodelSettings::Width(codel_width) => codel_width,
-        };
-
+impl Interpreter {
+    pub fn new(cfg: CFG, settings: InterpSettings) -> Self {
         Self {
-            program,
+            cfg,
             state: ExecutionState::default(),
             stack: VecDeque::new(),
-            codel_width,
-            settings,
+            stdout_instrs: Vec::new(),
+            settings
         }
-    }
-
-    pub(crate) fn furthest_in_direction(&mut self, region: &HashSet<Position>) -> Position {
-        let idx = match (self.state.dp, self.state.cc) {
-            (Direction::Right, Codel::Left) => 0,
-            (Direction::Right, Codel::Right) => 1,
-            (Direction::Down, Codel::Left) => 2,
-            (Direction::Down, Codel::Right) => 3,
-            (Direction::Left, Codel::Left) => 4,
-            (Direction::Left, Codel::Right) => 5,
-            (Direction::Up, Codel::Left) => 6,
-            (Direction::Up, Codel::Right) => 7,
-        };
-
-        *region.iter().max_by_key(FURTHEST[idx]).unwrap()
-    }
-
-    pub(crate) fn move_to_next_block(&self, (x, y): Position) -> Position {
-        Some((x, y, self.codel_width))
-            .map(MOVE_IN[self.state.dp as usize])
-            .unwrap()
-    }
-
-    pub(crate) fn explore_region(&self, entry: Position) -> HashSet<Position> {
-        let mut queue = VecDeque::from([entry]);
-        let mut discovered = HashSet::new();
-        let lightness = *self.program.get(entry).unwrap();
-
-        while !queue.is_empty() {
-            let pos = queue.pop_front().unwrap();
-            discovered.insert(pos);
-
-            let adjs = Self::adjacencies(pos, self.program, self.codel_width);
-            let in_block = adjs
-                .iter()
-                .filter(|&&pos| *self.program.get(pos).unwrap() == lightness)
-                .collect::<Vec<_>>();
-
-            for adj in in_block {
-                if !discovered.contains(adj) {
-                    queue.push_back(*adj);
-                }
-                discovered.insert(*adj);
-            }
-        }
-        discovered
     }
 
     pub(crate) fn recalculate_entry(&mut self, region: &HashSet<Position>) -> Position {
@@ -98,30 +40,28 @@ impl<'a> Interpreter<'a> {
         self.furthest_in_direction(region)
     }
 
-    pub(crate) fn trace_white(&mut self) -> (u32, u32) {
-        let (mut x, mut y) = self.state.pos;
+    pub fn next_block(&self, block: Node) -> (Node, Option<Instruction>) {
+        let bordering = self.cfg.get(&block).unwrap();
 
-        loop {
-            let next_pos = Some((x, y, self.codel_width))
-                .map(MOVE_IN[self.state.dp as usize])
-                .unwrap();
+        for adj in bordering.keys() {
+            for (entry, exit, instr) in bordering.get(&adj) {
 
-            let lightness = self.program.get(next_pos);
-
-            if lightness.is_none() || lightness == Some(&Black) {
-                self.state.dp = self.state.dp.rotate(1);
-                self.state.cc = self.state.cc.switch(1);
-                continue;
             }
-
-            if lightness != Some(&White) {
-                (x, y) = next_pos;
-                break;
-            }
-
-            (x, y) = next_pos
         }
-        (x, y)
+
+        
+    }
+
+    pub fn get_state(&self) -> ExecutionState {
+        self.state.clone()
+    }
+
+    pub fn get_stack(&self) -> VecDeque<i64> {
+        self.stack.clone()
+    }
+
+    pub fn get_stdout_instrs(&self) -> Vec<(Instruction, i64)> {
+        self.stdout_instrs.clone()
     }
 
     pub fn exec_instr(&mut self, instr: Instruction) -> Result<(), ExecutionError> {
@@ -391,9 +331,6 @@ impl<'a> Interpreter<'a> {
     #[inline]
     pub(crate) fn int_out(&mut self) {
         if let Some(n) = self.stack.pop_front() {
-            if self.settings.collect_instructions_only { 
-                return 
-            }
             print!("{n}");
         }
     }
@@ -402,16 +339,18 @@ impl<'a> Interpreter<'a> {
     pub(crate) fn char_out(&mut self) {
         if let Some(n) = self.stack.pop_front() {
             if let Some(c) = char::from_u32(n as u32) {
-                if self.settings.collect_instructions_only { 
-                    return 
-                }    
                 print!("{c}");
             }
         }
     }
 
+    pub fn get_entry(&self) -> Node {
+        *self.cfg.keys().find(|node| *node.get_label() == "Entry").unwrap()
+    }
+
     pub fn run(&mut self) -> ExecutionResult {
-        match self.settings.verbosity {
+        
+        /* match self.settings.verbosity {
             Verbosity::Verbose => match env::consts::OS {
                 "linux" => {
                     println!("\x1B[1;37mpietcc:\x1B[0m \x1B[1;96minfo: \x1B[0mrunning with codel width {} (size of {})", 
@@ -426,48 +365,29 @@ impl<'a> Interpreter<'a> {
                 }
             },
             _ => (),
-        }
+        } */
 
+        let block = self.get_entry();
+        
         // A Piet program terminates when the retries counter reaches 8
         while self.state.rctr < 8 {
             io::stdout().flush().unwrap();
-            let block = self.explore_region(self.state.pos);
-            let lightness = *self.program.get(self.state.pos).unwrap();
-            let furthest_in_dir = self.furthest_in_direction(&block);
-            let next_pos = if lightness != White {
-                self.move_to_next_block(furthest_in_dir)
-            } else {
-                self.trace_white()
-            };
-            let adj_lightness = self.program.get(next_pos);
-            self.state.cb = block.len() as u64;
-
-            match adj_lightness {
-                None | Some(&Black) => {
-                    self.state.pos = self.recalculate_entry(&block);
-                    self.state.rctr += 1;
-                }
-                Some(&color) => {
-                    self.state.pos = next_pos;
-                    if let Some(instr) = <Self as DecodeInstruction>::decode_instr(lightness, color)
-                    {
-                        let res = self.exec_instr(instr);
-                        if let Err(res) = res {
-                            if self.settings.verbosity == Verbosity::Verbose {
-                                eprintln!("{:?}", res);
-                            }
-                        }
-                    }
-                    self.state.rctr = 0;
-                }
-            };
+            
+            let (block, next) = self.next_block(block);
 
             self.state.steps += 1;
+
+            if let Some(max_steps) = self.settings.max_steps {
+                if self.state.steps == max_steps {
+                    break
+                }
+            }
         }
 
         ExecutionResult {
             state: &self.state,
             stack: &self.stack,
+            stdout: &self.stdout_instrs,
         }
     }
 }
@@ -481,7 +401,7 @@ mod test {
     fn test_roll() {
         // Setup
         let vec = Vec::<Lightness>::new();
-        let program = Program::new(&vec, 0, 0);
+        let program = PietSource::new(&vec, 0, 0);
         let mut interpreter = Interpreter::new(&program, InterpSettings::default());
 
         // Positive roll to depth 2

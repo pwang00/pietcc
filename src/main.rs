@@ -13,7 +13,7 @@ use parser::{infer::CodelSettings, loader::Loader};
 use std::env;
 use std::io::Error;
 use std::process::exit;
-use types::program::Program;
+use types::program::PietSource;
 
 fn main() -> Result<(), Error> {
     let matches = App::new("pietcc")
@@ -104,6 +104,12 @@ fn main() -> Result<(), Error> {
                 .help("Sets the compiler optimization level to 3 (LLVM Aggressive)"),
         )
         .arg(
+            Arg::with_name("pe")
+                .long("pe")
+                .takes_value(false)
+                .help("Use partial evaluation to optimize compilation"),
+        )
+        .arg(
             Arg::with_name("interpret_to_optimize")
                 .long("oi")
                 .takes_value(false)
@@ -137,7 +143,7 @@ fn main() -> Result<(), Error> {
 
     let filename = matches.value_of("input").unwrap();
     let mut interpreter: Interpreter;
-    let program: Program;
+    let program: PietSource;
     let mut behavior = UnknownPixelSettings::TreatAsError;
 
     if matches.is_present("treat_white") {
@@ -154,10 +160,7 @@ fn main() -> Result<(), Error> {
         program = prog;
         let mut codel_settings = CodelSettings::Infer;
         let mut verbosity = Verbosity::Normal;
-        let mut interp_settings = InterpSettings {
-            verbosity: Verbosity::Normal,
-            codel_settings,
-        };
+        let mut interp_settings = InterpSettings::default();
 
         if let Some(val) = matches.value_of("codel_size") {
             if let Ok(val) = val.parse::<u32>() {
@@ -253,8 +256,7 @@ fn main() -> Result<(), Error> {
                 warn_nt,
                 show_cfg_size,
                 show_codel_size,
-                interp_opt: todo!(),
-                max_steps: todo!(),
+                partial_eval_settings: todo!(),
             };
 
             let cfg_gen = CFGBuilder::new(&program, codel_settings, show_codel_size);

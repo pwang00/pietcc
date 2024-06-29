@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use crate::{program::Program, state::Position};
+use crate::{program::PietSource, state::Position};
 
 type C1 = fn(&&(u32, u32)) -> (i64, i64);
 type C2 = fn((u32, u32, u32)) -> (u32, u32);
@@ -84,7 +84,7 @@ impl DirectionOps for Codel {
 }
 
 pub trait FindAdj {
-    fn adjacencies((r, c): Position, program: &Program, cs: u32) -> HashSet<Position> {
+    fn adjacencies((r, c): Position, program: &PietSource, cs: u32) -> HashSet<Position> {
         vec![
             (r.wrapping_add(cs), c),
             (r.wrapping_sub(cs), c),

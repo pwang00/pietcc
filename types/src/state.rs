@@ -1,10 +1,12 @@
 use std::collections::VecDeque;
 
-use crate::{flow::*, instruction::Instruction};
+use crate::{flow::*, instruction::*};
 pub type Position = (u32, u32);
 
 pub const ENTRY: Position = (0, 0);
-#[derive(Debug, Default)]
+
+/// Immmediate state information excluding stack
+#[derive(Debug, Default, Clone)]
 pub struct ExecutionState {
     pub dp: Direction,
     pub cc: Codel,
@@ -13,12 +15,12 @@ pub struct ExecutionState {
     pub rctr: u8,
     pub stdin: String,
     pub steps: u64,
-    pub executed: Vec<Instruction>
 }
 
 pub struct ExecutionResult<'a> {
     pub state: &'a ExecutionState,
     pub stack: &'a VecDeque<i64>,
+    pub stdout: &'a Vec<(Instruction, i64)>
 }
 
 #[allow(unused_must_use)]
@@ -33,7 +35,6 @@ impl std::fmt::Display for ExecutionResult<'_> {
         writeln!(f, "    stdin: {:?}", self.state.stdin);
         writeln!(f, "    steps: {:?}", self.state.steps);
         writeln!(f, "    stack: {:?}", self.stack);
-        writeln!(f, "    last instr: {:?}", self.state.executed.last());
         writeln!(f, "}}")
     }
 }

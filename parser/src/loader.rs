@@ -1,6 +1,6 @@
 use crate::convert::{ConvertToLightness, UnknownPixelSettings};
 use image::ImageError;
-use types::program::Program;
+use types::program::PietSource;
 pub struct Loader;
 
 impl ConvertToLightness for Loader {}
@@ -9,7 +9,7 @@ impl Loader {
     pub fn convert<'a>(
         filename: &str,
         settings: UnknownPixelSettings,
-    ) -> Result<Program<'a>, ImageError> {
+    ) -> Result<PietSource<'a>, ImageError> {
         let img = image::open(filename)?.into_rgb8();
         let (w, h) = img.dimensions();
 
@@ -19,6 +19,6 @@ impl Loader {
                 .collect::<Vec<_>>(),
         ));
 
-        Ok(Program::new(leaked, h, w))
+        Ok(PietSource::new(leaked, h, w))
     }
 }

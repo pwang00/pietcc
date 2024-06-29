@@ -1,3 +1,4 @@
+workspace = { members = ["cfg_to_ir", "codegen", "optimizations"] }
 [package]
 name = "piet-compiler"
 version = "0.1.0"

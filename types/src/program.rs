@@ -1,15 +1,15 @@
 use crate::color::Lightness;
 use crate::state::Position;
 
-pub struct Program<'a> {
+pub struct PietSource<'a> {
     height: u32,
     width: u32,
     prog: &'a Vec<Lightness>,
 }
 
-impl<'a> Program<'a> {
+impl<'a> PietSource<'a> {
     pub fn new(prog: &'a Vec<Lightness>, height: u32, width: u32) -> Self {
-        Program {
+        PietSource {
             height,
             width,
             prog,
@@ -51,7 +51,7 @@ mod test {
             Dark(Magenta),
         ];
 
-        let prog = Program::new(&vec, 3, 3);
+        let prog = PietSource::new(&vec, 3, 3);
         let pos1 = (1, 2);
         let pos2 = (0, 2);
         let pos3 = (2, 1);
