@@ -63,7 +63,7 @@ impl<'a, 'b> CodeGen<'a, 'b> {
         let bitcode_path = std::path::Path::new(bitcode_fname);
         self.module.write_bitcode_to_path(bitcode_path);
 
-        let llc_output = Command::new("llc")
+        let llc_output = Command::new("llc-16")
             .arg(bitcode_fname)
             .arg("-o")
             .arg(asm_fname)

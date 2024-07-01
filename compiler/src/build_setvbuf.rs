@@ -24,7 +24,7 @@ impl<'a, 'b> CodeGen<'a, 'b> {
             .unwrap()
             .as_pointer_value();
         let fdopen_fmt_gep =
-            unsafe { self.builder.build_gep(fdopen_mode, &[const_0, const_0], "") };
+            unsafe { self.builder.build_gep(fdopen_mode.get_type(), fdopen_mode, &[const_0, const_0], "").unwrap() };
         self.builder.position_at_end(basic_block);
 
         let stdout_file_ptr = self
@@ -34,6 +34,7 @@ impl<'a, 'b> CodeGen<'a, 'b> {
                 &[stdout_fd.into(), fdopen_fmt_gep.into()],
                 "stdout",
             )
+            .unwrap()
             .try_as_basic_value()
             .unwrap_left()
             .into_pointer_value();
@@ -54,8 +55,8 @@ impl<'a, 'b> CodeGen<'a, 'b> {
                 const_0.into(),
             ],
             "",
-        );
+        ).ok();
 
-        self.builder.build_return(None);
+        self.builder.build_return(None).ok();
     }
 }

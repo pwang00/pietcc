@@ -30,7 +30,8 @@ impl<'a, 'b> CodeGen<'a, 'b> {
 
         let stack_size_val = self
             .builder
-            .build_load(stack_size_addr, "stack_size")
+            .build_load(self.context.i64_type(), stack_size_addr, "stack_size")
+            .unwrap()
             .into_int_value();
 
         let cmp = self.builder.build_int_compare(
@@ -38,7 +39,7 @@ impl<'a, 'b> CodeGen<'a, 'b> {
             stack_size_val,
             const_1,
             "check_stack_size",
-        );
+        ).unwrap();
 
         self.builder
             .build_conditional_branch(cmp, then_block, ret_block);
@@ -47,11 +48,13 @@ impl<'a, 'b> CodeGen<'a, 'b> {
 
         let updated_stack_size =
             self.builder
-                .build_int_sub(stack_size_val, const_1, "decrement_stack_size");
+                .build_int_sub(stack_size_val, const_1, "decrement_stack_size")
+                .unwrap();
 
         let store = self
             .builder
-            .build_store(stack_size_addr, updated_stack_size);
+            .build_store(stack_size_addr, updated_stack_size)
+            .unwrap();
 
         store.set_alignment(8).ok();
         self.builder.build_unconditional_branch(ret_block);
