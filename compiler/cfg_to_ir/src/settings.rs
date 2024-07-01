@@ -1,5 +1,4 @@
 use inkwell::OptimizationLevel;
-use interpreter::settings::PartialEvalSettings;
 use parser::infer::CodelSettings;
 
 #[derive(Copy, Clone, Default, Debug)]
@@ -13,7 +12,6 @@ pub enum SaveOptions {
 #[derive(Copy, Clone, Debug)]
 pub struct CompilerSettings<'a> {
     pub llvm_opt_level: OptimizationLevel,
-    pub partial_eval_settings: Option<PartialEvalSettings>,
     pub codel_settings: CodelSettings,
     pub save_options: SaveOptions,
     pub output_fname: &'a str,

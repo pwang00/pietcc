@@ -1,13 +1,15 @@
 use crate::settings::{InterpSettings, Verbosity};
 use parser::infer::{CodelSettings, InferCodelWidth};
 use parser::cfg::{self, CFGBuilder, Node, CFG};
-use parser::{convert::ConvertToLightness, decode::DecodeInstruction};
+use parser::{convert::ConvertToLightness, decode::DecodeInstruction, consts::DIRECTIONS};
 use std::collections::{HashSet, VecDeque};
 use std::env;
 use std::io::{Stdout, Write};
+use std::ops::Index;
 use std::{io, io::Read};
 use types::color::Lightness::{Black, White};
 use types::error::ExecutionError;
+use types::flow::Direction;
 use types::instruction::Instruction;
 use types::state::{ExecutionResult, ExecutionState, Position};
 
@@ -30,26 +32,36 @@ impl Interpreter {
         }
     }
 
-    pub(crate) fn recalculate_entry(&mut self, region: &HashSet<Position>) -> Position {
+    pub(crate) fn rotate_pointers(&mut self) {
         if self.state.rctr % 2 == 1 {
             self.state.dp = self.state.dp.rotate(1);
         } else {
             self.state.cc = self.state.cc.switch(1);
         }
-
-        self.furthest_in_direction(region)
     }
 
-    pub fn next_block(&self, block: Node) -> (Node, Option<Instruction>) {
-        let bordering = self.cfg.get(&block).unwrap();
-
-        for adj in bordering.keys() {
-            for (entry, exit, instr) in bordering.get(&adj) {
-
-            }
-        }
-
+    pub fn next_block(&mut self, block: Node) -> (i8, Node, Option<Instruction>) {
+        let bordering = &mut self.cfg.get(&block).clone().unwrap();
+        let mut directions = vec![];
         
+        for adj in bordering.keys() {
+            directions.extend(
+                bordering.get(&*adj)
+                .unwrap()
+                .iter()
+                .map(|(_, exit, instr)| {
+                    let &(dp, cc) = exit;
+                    return (2 * (self.state.dp - dp) + (self.state.cc - cc), adj, instr)
+                }));
+        }        
+        
+        // Calculates the block who is the minimum amount of rotations away from the current entry direction
+        match directions.into_iter().min_by_key(|&(a, _, _)| a) {
+            Some((rotate, adj, instr)) => {
+                (rotate, adj.clone(), *instr)
+            },
+            None => (0, block, None)
+        }
     }
 
     pub fn get_state(&self) -> ExecutionState {
@@ -345,7 +357,7 @@ impl Interpreter {
     }
 
     pub fn get_entry(&self) -> Node {
-        *self.cfg.keys().find(|node| *node.get_label() == "Entry").unwrap()
+        self.cfg.keys().find(|node| *node.get_label() == "Entry").unwrap().clone()
     }
 
     pub fn run(&mut self) -> ExecutionResult {
@@ -373,7 +385,11 @@ impl Interpreter {
         while self.state.rctr < 8 {
             io::stdout().flush().unwrap();
             
-            let (block, next) = self.next_block(block);
+            let (rotate, block, next) = self.next_block(block.clone());
+            
+            if let Some(instr) = next {
+
+            }
 
             self.state.steps += 1;
 

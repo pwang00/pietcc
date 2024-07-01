@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, ops::Rem};
 
 use crate::{program::PietSource, state::Position};
 
@@ -50,6 +50,22 @@ impl Direction {
 impl Codel {
     pub fn switch(self, n: i64) -> Self {
         <Codel as DirectionOps>::from_idx(self as i64 + n)
+    }
+}
+
+impl std::ops::Sub for Direction {
+    type Output = i8;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        self as i8 - rhs as i8
+    }
+}
+
+impl std::ops::Sub for Codel {
+    type Output = i8;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        (self as i8 - rhs as i8).rem(4)
     }
 }
 

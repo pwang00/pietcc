@@ -285,11 +285,9 @@ impl<'a> CFGBuilder<'a> {
     }
 }
 
-#[cfg(test)]
-
 mod test {
     use super::*;
-    use parser::{convert::UnknownPixelSettings, loader::Loader};
+    use crate::{convert::UnknownPixelSettings, loader::Loader};
     use std::{
         collections::{hash_map::DefaultHasher, HashMap, HashSet, VecDeque},
         fs,
@@ -340,7 +338,7 @@ mod test {
     #[test]
     fn test_program() {
         let prog = Loader::convert("../images/hw1-1.png", SETTINGS).unwrap();
-        let mut cfg_gen = CFGBuilder::new(&prog, 1, true);
+        let mut cfg_gen = CFGBuilder::new(&prog, CodelSettings::Width(1), true);
 
         println!("loaded");
         cfg_gen.build();

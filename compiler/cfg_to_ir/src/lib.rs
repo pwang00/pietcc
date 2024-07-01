@@ -12,7 +12,6 @@ mod build_push;
 mod build_roll;
 mod build_setvbuf;
 mod build_terminate;
-pub mod piet_to_cfg;
 pub mod codegen;
 mod consts;
 mod print_stack;

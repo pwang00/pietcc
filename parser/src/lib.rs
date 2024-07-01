@@ -3,4 +3,4 @@ pub mod decode;
 pub mod infer;
 pub mod loader;
 pub mod cfg;
-mod consts;
+pub mod consts;

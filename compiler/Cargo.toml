@@ -16,3 +16,4 @@ piet-parser = { version = "0.1", path = "../parser" }
 piet-interpreter = { version = "0.1", path = "../interpreter" }
 strum = "0.24.1"
 strum_macros = "0.24"
+cfg_to_ir = { version = "0.1", path = "cfg_to_ir" }
