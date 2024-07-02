@@ -1,5 +1,5 @@
 use crate::codegen::CodeGen;
-use inkwell::{values::BasicValue, IntPredicate};
+use inkwell::{values::{BasicValue, PointerValue}, IntPredicate};
 use types::instruction::Instruction;
 
 #[allow(unused)]
@@ -39,7 +39,8 @@ impl<'a, 'b> CodeGen<'a, 'b> {
 
         let stack_size_val = self
             .builder
-            .build_load(stack_size_addr, "stack_size")
+            .build_load(self.context.i64_type(), stack_size_addr, "stack_size")
+            .unwrap()
             .into_int_value();
 
         let stack_size_cmp = self.builder.build_int_compare(
@@ -47,7 +48,7 @@ impl<'a, 'b> CodeGen<'a, 'b> {
             stack_size_val,
             const_1,
             "check_stack_size",
-        );
+        ).unwrap();
 
         self.builder
             .build_conditional_branch(stack_size_cmp, then_block, ret_block);
@@ -55,31 +56,35 @@ impl<'a, 'b> CodeGen<'a, 'b> {
 
         let top_idx = self
             .builder
-            .build_int_sub(stack_size_val, const_1, "top_elem_idx");
+            .build_int_sub(stack_size_val, const_1, "top_elem_idx")
+            .unwrap();
 
         // Need to deref twice since LLVM globals are themselves pointers and we're operating on an i64**
         let load_piet_stack = self
             .builder
-            .build_load(stack_addr, "load_piet_stack")
+            .build_load(stack_addr.get_type(), stack_addr, "load_piet_stack")
+            .unwrap()
             .as_instruction_value()
             .unwrap();
 
         load_piet_stack.set_alignment(8);
 
-        let load_piet_stack = load_piet_stack.try_into().unwrap();
+        let load_piet_stack: PointerValue = load_piet_stack.try_into().unwrap();
 
-        let top_ptr = unsafe { self.builder.build_gep(load_piet_stack, &[top_idx], "") };
-        let top_ptr_val = self.builder.build_load(top_ptr, "top_elem_ptr");
+        let top_ptr = unsafe { self.builder.build_gep(load_piet_stack.get_type(), load_piet_stack, &[top_idx], "").unwrap() };
+        let top_ptr_val = self.builder.build_load(self.context.i64_type(), top_ptr, "top_elem_ptr").unwrap();
 
         let new_top_ptr = unsafe {
             self.builder
-                .build_gep(load_piet_stack, &[stack_size_val], "")
+                .build_gep(self.context.i64_type(), load_piet_stack, &[stack_size_val], "")
+                .unwrap()
         };
 
         // Dup always increases stack size by 1
         let updated_stack_size =
             self.builder
-                .build_int_add(stack_size_val, const_1, "increment_stack_size");
+                .build_int_add(stack_size_val, const_1, "increment_stack_size")
+                .unwrap();
 
         // Push (dup) top element to stack
         self.builder.build_store(new_top_ptr, top_ptr_val);

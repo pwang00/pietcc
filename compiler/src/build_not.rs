@@ -37,7 +37,8 @@ impl<'a, 'b> CodeGen<'a, 'b> {
 
         let stack_size_val = self
             .builder
-            .build_load(stack_size_addr, "stack_size")
+            .build_load(self.context.i64_type(), stack_size_addr, "stack_size")
+            .unwrap()
             .into_int_value();
 
         let stack_size_cmp = self.builder.build_int_compare(
@@ -45,27 +46,31 @@ impl<'a, 'b> CodeGen<'a, 'b> {
             stack_size_val,
             const_1,
             "check_stack_size",
-        );
+        ).unwrap();
 
         self.builder
             .build_conditional_branch(stack_size_cmp, then_block, ret_block);
         self.builder.position_at_end(then_block);
         let top_idx = self
             .builder
-            .build_int_sub(stack_size_val, const_1, "top_elem_idx");
+            .build_int_sub(stack_size_val, const_1, "top_elem_idx")
+            .unwrap();
 
         let load_piet_stack = self
             .builder
-            .build_load(stack_addr, "load_piet_stack")
+            .build_load(stack_addr.get_type(), stack_addr, "load_piet_stack")
+            .unwrap()
             .into_pointer_value();
         let top_ptr = unsafe {
             self.builder
-                .build_gep(load_piet_stack, &[top_idx], "top_elem_ptr")
+                .build_gep(load_piet_stack.get_type(), load_piet_stack, &[top_idx], "top_elem_ptr")
+                .unwrap()
         };
 
         let top_ptr_val = self
             .builder
-            .build_load(top_ptr, "top_elem_val")
+            .build_load(self.context.i64_type(), top_ptr, "top_elem_val")
+            .unwrap()
             .into_int_value();
 
         let value_cmp = self.builder.build_int_compare(
@@ -73,11 +78,12 @@ impl<'a, 'b> CodeGen<'a, 'b> {
             top_ptr_val,
             const_0,
             "top_value_is_zero",
-        );
+        ).unwrap();
 
         let zext_cmp =
             self.builder
-                .build_int_z_extend(value_cmp, self.context.i64_type(), "zero_extend_cmp");
+                .build_int_z_extend(value_cmp, self.context.i64_type(), "zero_extend_cmp")
+                .unwrap();
 
         self.builder.build_store(top_ptr, zext_cmp);
 

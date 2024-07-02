@@ -26,10 +26,11 @@ impl<'a, 'b> CodeGen<'a, 'b> {
 
         let load_piet_stack = self
             .builder
-            .build_load(stack_addr, "load_piet_stack")
+            .build_load(stack_addr.get_type(), stack_addr, "load_piet_stack")
+            .unwrap()
             .into_pointer_value();
 
-        let index = self.builder.build_alloca(self.context.i64_type(), "index");
+        let index = self.builder.build_alloca(self.context.i64_type(), "index").unwrap();
 
         self.builder.position_at_end(basic_block);
 
@@ -44,7 +45,8 @@ impl<'a, 'b> CodeGen<'a, 'b> {
 
         let stack_size_val = self
             .builder
-            .build_load(stack_size_addr, "stack_size")
+            .build_load(self.context.i64_type(), stack_size_addr, "stack_size")
+            .unwrap()
             .into_int_value();
 
         let stack_fmt = self
@@ -72,72 +74,75 @@ impl<'a, 'b> CodeGen<'a, 'b> {
             .as_pointer_value();
 
         let const_fmt_stack_id_gep =
-            unsafe { self.builder.build_gep(stack_id, &[const_0, const_0], "") };
+            unsafe { self.builder.build_gep(stack_id.get_type(), stack_id, &[const_0, const_0], "").unwrap() };
 
         let const_fmt_stack_id_empty_gep = unsafe {
             self.builder
-                .build_gep(stack_id_empty, &[const_0, const_0], "")
+                .build_gep(stack_id_empty.get_type(), stack_id_empty, &[const_0, const_0], "").unwrap()
         };
 
         let size_eq_0 =
             self.builder
-                .build_int_compare(IntPredicate::EQ, stack_size_val, const_0, "");
-        self.builder
+                .build_int_compare(IntPredicate::EQ, stack_size_val, const_0, "")
+                .unwrap();
+        let _ = self.builder
             .build_conditional_branch(size_eq_0, size_zero_block, size_gt_zero_block);
 
         self.builder.position_at_end(size_zero_block);
 
-        self.builder.build_call(
+        let _ = self.builder.build_call(
             printf_fn,
             &[const_fmt_stack_id_empty_gep.into()],
             "call_printf_stack_const_empty",
         );
-        self.builder.build_unconditional_branch(ret_block);
+        let _ = self.builder.build_unconditional_branch(ret_block);
 
         self.builder.position_at_end(size_gt_zero_block);
 
-        self.builder.build_call(
+        let _ = self.builder.build_call(
             printf_fn,
             &[const_fmt_stack_id_gep.into(), stack_size_val.into()],
             "call_printf_stack_const",
         );
 
-        let const_fmt_gep = unsafe { self.builder.build_gep(stack_fmt, &[const_0, const_0], "") };
+        let const_fmt_gep = unsafe { self.builder.build_gep(stack_fmt.get_type(), stack_fmt, &[const_0, const_0], "").unwrap() };
         // Store index
-        self.builder.build_store(index, stack_size_val);
-        self.builder.build_unconditional_branch(loop_block);
+        let _ = self.builder.build_store(index, stack_size_val);
+        let _ = self.builder.build_unconditional_branch(loop_block);
         self.builder.position_at_end(loop_block);
 
-        let curr_index = self.builder.build_load(index, "load_idx").into_int_value();
+        let curr_index = self.builder.build_load(self.context.i64_type(), index, "load_idx").unwrap()
+            .into_int_value();
         let updated_idx = self
             .builder
-            .build_int_sub(curr_index, const_1, "decrement_stack_size");
+            .build_int_sub(curr_index, const_1, "decrement_stack_size").unwrap();
 
         let top_elem = unsafe {
             self.builder
-                .build_gep(load_piet_stack, &[updated_idx], "fetch_curr_elem_ptr")
+                .build_gep(load_piet_stack.get_type(), load_piet_stack, &[updated_idx], "fetch_curr_elem_ptr")
+                .unwrap()
         };
 
-        let top_elem_val = self.builder.build_load(top_elem, "load_elem");
+        let top_elem_val = self.builder.build_load(self.context.i64_type(), top_elem, "load_elem").unwrap();
 
-        self.builder.build_call(
+        let _ = self.builder.build_call(
             printf_fn,
             &[const_fmt_gep.into(), top_elem_val.into()],
             "call_printf",
         );
 
-        self.builder.build_store(index, updated_idx);
+        let _ = self.builder.build_store(index, updated_idx);
 
         let cmp = self
             .builder
-            .build_int_compare(IntPredicate::SGT, updated_idx, const_0, "cmp_gz");
-        self.builder
+            .build_int_compare(IntPredicate::SGT, updated_idx, const_0, "cmp_gz").unwrap();
+        let _ = self.builder
             .build_conditional_branch(cmp, loop_block, ret_block);
 
         self.builder.position_at_end(ret_block);
-        let newline_fmt = unsafe { self.builder.build_gep(newline_fmt, &[const_0, const_0], "") };
-        self.builder
+        let newline_fmt = unsafe { self.builder.build_gep(newline_fmt.get_type(), newline_fmt, &[const_0, const_0], "").unwrap() };
+        let _ = self.builder
             .build_call(printf_fn, &[newline_fmt.into()], "");
-        self.builder.build_return(None);
+        let _ = self.builder.build_return(None);
     }
 }

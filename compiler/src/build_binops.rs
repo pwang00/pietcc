@@ -40,7 +40,8 @@ impl<'a, 'b> CodeGen<'a, 'b> {
 
         let load_piet_stack = self
             .builder
-            .build_load(stack_addr, "load_piet_stack")
+            .build_load(stack_addr.get_type(), stack_addr, "load_piet_stack")
+            .unwrap()
             .into_pointer_value();
 
         let const_0 = self.context.i64_type().const_zero();
@@ -55,7 +56,8 @@ impl<'a, 'b> CodeGen<'a, 'b> {
 
         let stack_size_val = self
             .builder
-            .build_load(stack_size_addr, "stack_size")
+            .build_load(self.context.i64_type(),stack_size_addr, "stack_size")
+            .unwrap()
             .into_int_value();
 
         let cmp = self.builder.build_int_compare(
@@ -63,9 +65,9 @@ impl<'a, 'b> CodeGen<'a, 'b> {
             stack_size_val,
             const_2,
             "check_stack_size",
-        );
+        ).unwrap();
 
-        self.builder
+        let _ = self.builder
             .build_conditional_branch(cmp, cont_block, ret_block);
 
         // Enough elems on stack
@@ -75,21 +77,25 @@ impl<'a, 'b> CodeGen<'a, 'b> {
             .builder
             .build_int_sub(stack_size_val, const_1, "top_elem_idx");
 
-        let top_ptr_gep = unsafe { self.builder.build_gep(load_piet_stack, &[top_idx], "") };
+        let top_ptr_gep = unsafe { self.builder.build_gep(self.context.i64_type(), load_piet_stack, &[top_idx.unwrap()], "").unwrap() };
 
         let next_idx = self
             .builder
-            .build_int_sub(stack_size_val, const_2, "next_elem_idx");
+            .build_int_sub(stack_size_val, const_2, "next_elem_idx")
+            .unwrap();
 
-        let next_ptr = unsafe { self.builder.build_gep(load_piet_stack, &[next_idx], "") };
+        let next_ptr = unsafe { self.builder.build_gep(self.context.i64_type(), load_piet_stack, &[next_idx], "").unwrap() };
 
         let top_ptr_val = self
             .builder
-            .build_load(top_ptr_gep, "top_elem_val")
+            .build_load(self.context.i64_type(), top_ptr_gep, "top_elem_val")
+            .unwrap()
             .into_int_value();
+
         let next_ptr_val = self
             .builder
-            .build_load(next_ptr, "next_elem_val")
+            .build_load(self.context.i64_type(), next_ptr, "next_elem_val")
+            .unwrap()
             .into_int_value();
 
         let result = match instr {
@@ -97,19 +103,19 @@ impl<'a, 'b> CodeGen<'a, 'b> {
                 unsafe { then_block.delete().ok() };
                 unsafe { else_block.delete().ok() };
                 unsafe { dividend_nonzero.delete().ok() };
-                self.builder.build_int_add(next_ptr_val, top_ptr_val, "add")
+                self.builder.build_int_add(next_ptr_val, top_ptr_val, "add").unwrap()
             }
             Instruction::Sub => {
                 unsafe { then_block.delete().ok() };
                 unsafe { else_block.delete().ok() };
                 unsafe { dividend_nonzero.delete().ok() };
-                self.builder.build_int_sub(next_ptr_val, top_ptr_val, "sub")
+                self.builder.build_int_sub(next_ptr_val, top_ptr_val, "sub").unwrap()
             }
             Instruction::Mul => {
                 unsafe { then_block.delete().ok() };
                 unsafe { else_block.delete().ok() };
                 unsafe { dividend_nonzero.delete().ok() };
-                self.builder.build_int_mul(next_ptr_val, top_ptr_val, "mul")
+                self.builder.build_int_mul(next_ptr_val, top_ptr_val, "mul").unwrap()
             }
             Instruction::Div => {
                 let cmp = self.builder.build_int_compare(
@@ -118,8 +124,8 @@ impl<'a, 'b> CodeGen<'a, 'b> {
                     const_0,
                     "check_dividend_nonzero",
                 );
-                self.builder
-                    .build_conditional_branch(cmp, dividend_nonzero, ret_block);
+                let _ = self.builder
+                    .build_conditional_branch(cmp.unwrap(), dividend_nonzero, ret_block);
 
                 // Set names for blocks and delete unused
                 unsafe { then_block.delete().ok() };
@@ -127,7 +133,7 @@ impl<'a, 'b> CodeGen<'a, 'b> {
 
                 self.builder.position_at_end(dividend_nonzero);
                 self.builder
-                    .build_int_signed_div(next_ptr_val, top_ptr_val, "div")
+                    .build_int_signed_div(next_ptr_val, top_ptr_val, "div").unwrap()
             }
             Instruction::Mod => {
                 let i64_type = self.context.i64_type();
@@ -139,9 +145,9 @@ impl<'a, 'b> CodeGen<'a, 'b> {
                     shift_amount,
                     true,
                     "arithmetic_right_shift",
-                );
+                ).unwrap();
                 let a_xor = self.builder.build_xor(top_ptr_val, a_asr, "a_xor");
-                let top_ptr_val = self.builder.build_int_sub(a_xor, a_asr, "abs_a");
+                let top_ptr_val = self.builder.build_int_sub(a_xor.unwrap(), a_asr, "abs_a").unwrap();
 
                 let cmp = self.builder.build_int_compare(
                     IntPredicate::NE,
@@ -150,18 +156,20 @@ impl<'a, 'b> CodeGen<'a, 'b> {
                     "check_dividend_nonzero",
                 );
 
-                self.builder
-                    .build_conditional_branch(cmp, dividend_nonzero, ret_block);
+                let _ = self.builder
+                    .build_conditional_branch(cmp.unwrap(), dividend_nonzero, ret_block);
 
                 self.builder.position_at_end(dividend_nonzero);
                 let rem = self
                     .builder
-                    .build_int_signed_rem(next_ptr_val, top_ptr_val, "mod");
+                    .build_int_signed_rem(next_ptr_val, top_ptr_val, "mod")
+                    .unwrap();
 
                 let store_rem_result = self
                     .builder
-                    .build_alloca(self.context.i64_type(), "rem_result");
-                self.builder.build_store(store_rem_result, rem);
+                    .build_alloca(self.context.i64_type(), "rem_result")
+                    .unwrap();
+                let _ = self.builder.build_store(store_rem_result, rem);
 
                 let cmp = self.builder.build_int_compare(
                     IntPredicate::SGE,
@@ -173,16 +181,17 @@ impl<'a, 'b> CodeGen<'a, 'b> {
                 then_block.set_name("lz");
                 else_block.set_name("gez");
 
-                self.builder
-                    .build_conditional_branch(cmp, else_block, then_block);
+                let _ = self.builder
+                    .build_conditional_branch(cmp.unwrap(), else_block, then_block);
 
                 self.builder.position_at_end(then_block);
                 let rem_lz = self.builder.build_int_add(top_ptr_val, rem, "rem_lz");
-                self.builder.build_store(store_rem_result, rem_lz);
-                self.builder.build_unconditional_branch(else_block);
+                let _ = self.builder.build_store(store_rem_result, rem_lz.unwrap());
+                let _ = self.builder.build_unconditional_branch(else_block);
                 self.builder.position_at_end(else_block);
                 self.builder
-                    .build_load(store_rem_result, "load_result")
+                    .build_load(self.context.i64_type(), store_rem_result, "load_result")
+                    .unwrap()
                     .into_int_value()
             }
             Instruction::Gt => {
@@ -194,17 +203,17 @@ impl<'a, 'b> CodeGen<'a, 'b> {
                 let diff = self.builder.build_int_sub(next_ptr_val, top_ptr_val, "sub");
                 let value_cmp = self.builder.build_int_compare(
                     IntPredicate::SGT,
-                    diff,
+                    diff.unwrap(),
                     const_0,
                     "check_next_gt_top",
                 );
                 let res = self.builder.build_int_z_extend(
-                    value_cmp,
+                    value_cmp.unwrap(),
                     self.context.i64_type(),
                     "zero_extend_cmp",
                 );
 
-                res
+                res.unwrap()
             }
             _ => panic!("Not a binary operation!"),
         };
@@ -213,14 +222,14 @@ impl<'a, 'b> CodeGen<'a, 'b> {
             self.builder
                 .build_int_sub(stack_size_val, const_1, "decrement_stack_size");
 
-        self.builder
-            .build_store(stack_size_addr, updated_stack_size);
+        let _ = self.builder
+            .build_store(stack_size_addr, updated_stack_size.unwrap());
 
-        self.builder.build_store(next_ptr, result);
+        let _ = self.builder.build_store(next_ptr, result);
 
-        self.builder.build_unconditional_branch(ret_block);
+        let _ = self.builder.build_unconditional_branch(ret_block);
         // Not enough elems on stack
         self.builder.position_at_end(ret_block);
-        self.builder.build_return(None);
+        let _ = self.builder.build_return(None);
     }
 }
