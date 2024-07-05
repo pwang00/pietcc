@@ -45,34 +45,34 @@ impl<'a, 'b> CodeGen<'a, 'b> {
         self.builder.position_at_end(init_block);
 
         unsafe {
-            self.builder
+            let _ = self.builder
                 .build_global_string("Enter number: ", "input_message_int");
-            self.builder
+            let _ = self.builder
                 .build_global_string("Enter char: ", "input_message_char");
-            self.builder.build_global_string("%ld\0", "dec_fmt");
-            self.builder.build_global_string("%c\0", "char_fmt");
-            self.builder.build_global_string("%ld \0", "stack_fmt");
-            self.builder
+            let _ = self.builder.build_global_string("%ld\0", "dec_fmt");
+            let _ = self.builder.build_global_string("%c\0", "char_fmt");
+            let _ = self.builder.build_global_string("%ld \0", "stack_fmt");
+            let _ = self.builder
                 .build_global_string("\nStack (size %d): ", "stack_id");
-            self.builder
+            let _ = self.builder
                 .build_global_string("\nStack empty", "stack_id_empty");
 
-            self.builder.build_global_string("w", "fdopen_mode");
+            let _ = self.builder.build_global_string("w", "fdopen_mode");
 
             for instr in Instruction::iter() {
-                self.builder.build_global_string(
+                let _ = self.builder.build_global_string(
                     &(instr.to_llvm_name().to_owned() + "\n"),
                     &(instr.to_llvm_name().to_owned() + "_fmt"),
                 );
             }
 
-            self.builder.build_global_string(
+            let _ = self.builder.build_global_string(
                 "\nStack memory exhausted, terminating program.",
                 "exhausted_fmt",
             );
-            self.builder
+            let _ = self.builder
                 .build_global_string("Calling retry", "retry_fmt");
-            self.builder.build_global_string("\n", "newline");
+            let _ = self.builder.build_global_string("\n", "newline");
         }
 
         /* External functions and LLVM intrinsics */
@@ -105,8 +105,8 @@ impl<'a, 'b> CodeGen<'a, 'b> {
             .builder
             .build_call(malloc_fn, &[size_value.into()], "malloc");
 
-        let value = malloc_call.try_as_basic_value().left().unwrap();
-        self.builder
+        let value = malloc_call.unwrap().try_as_basic_value().left().unwrap();
+        let _ = self.builder
             .build_store(piet_stack.as_pointer_value(), value.into_pointer_value());
 
         let llvm_stackrestore_type = void_type.fn_type(&[i8_ptr_type.into()], false);
@@ -148,6 +148,6 @@ impl<'a, 'b> CodeGen<'a, 'b> {
         let fdopen_type = i8_ptr_type.fn_type(&[i32_type.into(), c_string_type.into()], false);
         let _fdopen_fn = self.module.add_function("fdopen", fdopen_type, None);
 
-        self.builder.build_return(None);
+        let _ = self.builder.build_return(None);
     }
 }

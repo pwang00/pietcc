@@ -24,7 +24,8 @@ impl<'a, 'b> CodeGen<'a, 'b> {
 
         let stack_size_val = self
             .builder
-            .build_load(stack_size_addr, "stack_size")
+            .build_load(self.context.i64_type(), stack_size_addr, "stack_size")
+            .unwrap()
             .into_int_value();
 
         let max_stack_size_value = self.context.i64_type().const_int(STACK_SIZE as u64, false);
@@ -34,17 +35,17 @@ impl<'a, 'b> CodeGen<'a, 'b> {
             stack_size_val,
             max_stack_size_value,
             "check_overflow",
-        );
+        ).unwrap();
 
-        self.builder
+        let _ = self.builder
             .build_conditional_branch(cmp, stack_exhausted_block, ret_block);
 
         self.builder.position_at_end(stack_exhausted_block);
-        self.builder.build_call(terminate_fn, &[], "call_terminate");
-        self.builder.build_unreachable();
+        let _ = self.builder.build_call(terminate_fn, &[], "call_terminate");
+        let _ = self.builder.build_unreachable();
 
         self.builder.position_at_end(ret_block);
-        self.builder.build_return(None);
+        let _ = self.builder.build_return(None);
     }
 
     pub(crate) fn build_terminate(&self) {
@@ -65,20 +66,21 @@ impl<'a, 'b> CodeGen<'a, 'b> {
         let exhausted_fmt = self.module.get_global("exhausted_fmt").unwrap();
         let _exhausted_fmt_load = self
             .builder
-            .build_load(exhausted_fmt.as_pointer_value(), "load_exhausted_fmt");
+            .build_load(exhausted_fmt.as_pointer_value().get_type(), exhausted_fmt.as_pointer_value(), "load_exhausted_fmt");
         let exhausted_fmt_gep = unsafe {
             self.builder.build_gep(
+                exhausted_fmt.as_pointer_value().get_type(),
                 exhausted_fmt.as_pointer_value(),
                 &[const_0, const_0],
                 "load_gep",
-            )
+            ).unwrap()
         };
 
-        self.builder
+        let _ = self.builder
             .build_call(printf_fn, &[exhausted_fmt_gep.into()], "");
-        self.builder.build_call(print_stack_fn, &[], "");
-        self.builder
+        let _ = self.builder.build_call(print_stack_fn, &[], "");
+        let _ = self.builder
             .build_call(exit_fn, &[const_1.into()], "call_exit");
-        self.builder.build_return(Some(&const_1));
+        let _ = self.builder.build_return(Some(&const_1));
     }
 }

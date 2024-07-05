@@ -135,7 +135,7 @@ fn main() -> Result<(), Error> {
                 .short('w')
                 .long("warn-nt")
                 .takes_value(false)
-                .requires("output")
+                .requires("out")
                 .conflicts_with("interpret")
                 .help("Attempts to detect nontermination behavior in a Piet program during compilation"),
         )

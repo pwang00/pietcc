@@ -2,6 +2,7 @@
 name = "pietcc"
 version = "0.1.0"
 edition = "2021"
+build = "build.rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -10,7 +11,11 @@ piet-parser = { version = "0.1", path = "parser" }
 piet-compiler = { version = "0.1", path = "compiler" }
 piet-interpreter = { version = "0.1", path = "interpreter" }
 piet-types = { version = "0.1", path = "types" }
-inkwell = { git = "https://github.com/TheDan64/inkwell", branch = "master", features = ["llvm14-0"] }
+inkwell = { version = "0.4.0", features = ["llvm16-0"] }
 image = "0.24.5"
 clap = "3.0.0-beta.5"
+
+[build-dependencies]
+toml = "0.8.14"
+
 
