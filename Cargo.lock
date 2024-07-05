@@ -75,7 +75,7 @@ name = "cfg_to_ir"
 version = "0.1.0"
 dependencies = [
  "image",
- "inkwell 0.4.0 (git+https://github.com/TheDan64/inkwell?branch=master)",
+ "inkwell",
  "piet-parser",
  "piet-types",
  "strum",
@@ -317,22 +317,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b597a7b2cdf279aeef6d7149071e35e4bc87c2cf05a5b7f2d731300bffe587ea"
 dependencies = [
  "either",
- "inkwell_internals 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "inkwell_internals",
  "libc",
- "llvm-sys 160.2.0",
- "once_cell",
- "thiserror",
-]
-
-[[package]]
-name = "inkwell"
-version = "0.4.0"
-source = "git+https://github.com/TheDan64/inkwell?branch=master#5c9f7fcbb0a667f7391b94beb65f1a670ad13221"
-dependencies = [
- "either",
- "inkwell_internals 0.9.0 (git+https://github.com/TheDan64/inkwell?branch=master)",
- "libc",
- "llvm-sys 140.1.3",
+ "llvm-sys",
  "once_cell",
  "thiserror",
 ]
@@ -342,16 +329,6 @@ name = "inkwell_internals"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4fa4d8d74483041a882adaa9a29f633253a66dde85055f0495c121620ac484b2"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.68",
-]
-
-[[package]]
-name = "inkwell_internals"
-version = "0.9.0"
-source = "git+https://github.com/TheDan64/inkwell?branch=master#5c9f7fcbb0a667f7391b94beb65f1a670ad13221"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -384,19 +361,6 @@ name = "libc"
 version = "0.2.155"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "97b3888a4aecf77e811145cadf6eef5901f4782c53886191b2f693f24761847c"
-
-[[package]]
-name = "llvm-sys"
-version = "140.1.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e3dc78e9857c0231ec11e3bdccf63870493fdc7d0570b0ea7d50bf5df0cb1a0c"
-dependencies = [
- "cc",
- "lazy_static",
- "libc",
- "regex",
- "semver",
-]
 
 [[package]]
 name = "llvm-sys"
@@ -464,7 +428,7 @@ version = "0.1.0"
 dependencies = [
  "cfg_to_ir",
  "image",
- "inkwell 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "inkwell",
  "piet-interpreter",
  "piet-parser",
  "piet-types",
@@ -507,7 +471,7 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "image",
- "inkwell 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "inkwell",
  "piet-compiler",
  "piet-interpreter",
  "piet-parser",
