@@ -6,7 +6,7 @@ edition = "2021"
 
 [lib]
 name = "compiler"
-path = "src/lib.rs"
+path = "cfg_to_ir/src/lib.rs"
 
 [dependencies]
 image = "0.24.5"
@@ -16,4 +16,3 @@ piet-parser = { version = "0.1", path = "../parser" }
 piet-interpreter = { version = "0.1", path = "../interpreter" }
 strum = "0.24.1"
 strum_macros = "0.24"
-cfg_to_ir = { version = "0.1", path = "cfg_to_ir" }

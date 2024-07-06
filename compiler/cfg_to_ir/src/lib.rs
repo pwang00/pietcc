@@ -1,6 +1,5 @@
 mod build_binops;
 mod build_cfg_to_ir;
-mod build_partial_evaluation;
 mod build_dup;
 mod build_globals;
 mod build_io;

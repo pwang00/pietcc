@@ -10,5 +10,6 @@ image = "0.24.5"
 inkwell = { version = "0.4.0", features = ["llvm16-0"] }
 piet-types = { version = "0.1", path = "../../types" }
 piet-parser = { version = "0.1", path = "../../parser" }
+piet-interpreter = { version = "0.1", path = "../../interpreter" }
 strum = "0.24.1"
 strum_macros = "0.24"

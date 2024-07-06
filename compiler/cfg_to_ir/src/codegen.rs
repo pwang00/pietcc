@@ -1,18 +1,16 @@
-use crate::piet_to_cfg::CFGBuilder;
+use parser::cfg::CFGBuilder;
 use crate::settings::{CompilerSettings, SaveOptions};
 use inkwell::targets::{InitializationConfig, Target};
 use inkwell::{builder::Builder, context::Context, module::Module};
 
 use inkwell::passes::{PassManager, PassManagerBuilder};
 use inkwell::OptimizationLevel;
-use interpreter::settings::InterpSettings;
 use parser::decode::DecodeInstruction;
 use std::env;
 use std::fs::{remove_file, OpenOptions};
 use std::io::{Error, Write};
 use std::process::Command;
 use types::instruction::Instruction;
-use interpreter::interpreter::Interpreter;
 
 #[allow(unused)]
 pub struct CodeGen<'a, 'b> {
@@ -128,18 +126,6 @@ impl<'a, 'b> CodeGen<'a, 'b> {
         options: SaveOptions,
     ) -> Result<(), Error> {
 
-        if let Some(partial_eval_settings) = self.settings.partial_eval_settings {
-            
-            let interp_settings = InterpSettings::partial_evaluation(
-                partial_eval_settings.max_steps, 
-                self.settings.codel_settings
-            );
-
-            let interpreter = Interpreter::new(
-                self.cfg_builder.get_program(),
-                interp_settings
-            );
-        }
 
         self.generate_cfg();
         let cfg = self.cfg_builder.get_cfg();

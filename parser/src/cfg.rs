@@ -269,18 +269,18 @@ impl<'a> CFGBuilder<'a> {
         }
     }
 
-    pub(crate) fn get_state(&self) -> &Self {
+    pub fn get_state(&self) -> &Self {
         &self
     }
 
-    pub(crate) fn get_cfg(self) -> CFG {
-        self.cfg
+    pub fn get_cfg(&self) -> CFG {
+        self.cfg.clone()
     }
 
     // We can't determine whether an arbitrary Piet program halts since Piet is Turing-complete, which makes this equivalent to solving the halting problem.
     // However, one condition in which a Piet program is guaranteed to run forever is if there are no nodes with outdegree zero.
     // This is because our compilation procedure inserts a return for any such node, which is the only way for termination to occur.
-    pub(crate) fn determine_runs_forever(&self) -> bool {
+    pub fn determine_runs_forever(&self) -> bool {
         self.cfg.iter().all(|(_, y)| y.len() > 0)
     }
 }

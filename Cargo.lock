@@ -71,18 +71,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
-name = "cfg_to_ir"
-version = "0.1.0"
-dependencies = [
- "image",
- "inkwell",
- "piet-parser",
- "piet-types",
- "strum",
- "strum_macros",
-]
-
-[[package]]
 name = "clap"
 version = "3.2.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -426,7 +414,6 @@ checksum = "e2355d85b9a3786f481747ced0e0ff2ba35213a1f9bd406ed906554d7af805a1"
 name = "piet-compiler"
 version = "0.1.0"
 dependencies = [
- "cfg_to_ir",
  "image",
  "inkwell",
  "piet-interpreter",

@@ -4,7 +4,8 @@ use crate::Verbosity;
 use clap::{App, Arg};
 use compiler::codegen::CodeGen;
 use compiler::settings::CompilerSettings;
-use compiler::{piet_to_cfg::CFGBuilder, settings::SaveOptions};
+use parser::cfg::CFGBuilder;
+use compiler::settings::SaveOptions;
 use inkwell::context::Context;
 use inkwell::OptimizationLevel;
 use interpreter::{interpreter::Interpreter, settings::*};
@@ -205,9 +206,12 @@ fn main() -> Result<(), Error> {
             interp_settings.verbosity = verbosity;
         }
 
+        let mut builder = CFGBuilder::new(&program, codel_settings, false);
+        builder.build();
+
         if matches.is_present("interpret") {
             interp_settings.codel_settings = codel_settings;
-            interpreter = Interpreter::new(&program, interp_settings);
+            interpreter = Interpreter::new(builder.get_cfg(), interp_settings);
             println!("\n{}", interpreter.run());
             exit(0);
         }
@@ -255,8 +259,7 @@ fn main() -> Result<(), Error> {
                 output_fname,
                 warn_nt,
                 show_cfg_size,
-                show_codel_size,
-                partial_eval_settings: todo!(),
+                show_codel_size
             };
 
             let cfg_gen = CFGBuilder::new(&program, codel_settings, show_codel_size);

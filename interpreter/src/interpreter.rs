@@ -5,7 +5,8 @@ use parser::{convert::ConvertToLightness, decode::DecodeInstruction, consts::DIR
 use std::collections::{HashSet, VecDeque};
 use std::env;
 use std::io::{Stdout, Write};
-use std::ops::Index;
+use std::ops::{Index, Rem};
+use std::process::exit;
 use std::{io, io::Read};
 use types::color::Lightness::{Black, White};
 use types::error::ExecutionError;
@@ -40,8 +41,8 @@ impl Interpreter {
         }
     }
 
-    pub fn next_block(&mut self, block: Node) -> (i8, Node, Option<Instruction>) {
-        let bordering = &mut self.cfg.get(&block).clone().unwrap();
+    pub fn next_block(&mut self, block: Node) -> (u8, Node, Option<Instruction>) {
+        let bordering = &mut self.cfg.get(&block).unwrap();
         let mut directions = vec![];
         
         for adj in bordering.keys() {
@@ -49,18 +50,21 @@ impl Interpreter {
                 bordering.get(&*adj)
                 .unwrap()
                 .iter()
-                .map(|(_, exit, instr)| {
-                    let &(dp, cc) = exit;
-                    return (2 * (self.state.dp - dp) + (self.state.cc - cc), adj, instr)
+                .map(|(entry, _, instr)| {
+                    let &(dp, cc) = entry;
+                    return ((2 * (dp - self.state.dp) + (self.state.cc - cc)).rem_euclid(8), adj, instr)
                 }));
         }        
         
         // Calculates the block who is the minimum amount of rotations away from the current entry direction
-        match directions.into_iter().min_by_key(|&(a, _, _)| a) {
+        println!("Directions: {:?}", directions);
+        match directions.into_iter().min_by_key(|&(offset, _, _)| offset) {
             Some((rotate, adj, instr)) => {
-                (rotate, adj.clone(), *instr)
+                (rotate as u8, adj.clone(), *instr)
             },
-            None => (0, block, None)
+            None => {
+                (0, block, None)
+            }
         }
     }
 
@@ -361,7 +365,6 @@ impl Interpreter {
     }
 
     pub fn run(&mut self) -> ExecutionResult {
-        
         /* match self.settings.verbosity {
             Verbosity::Verbose => match env::consts::OS {
                 "linux" => {
@@ -379,20 +382,41 @@ impl Interpreter {
             _ => (),
         } */
 
-        let block = self.get_entry();
-        
+        let mut block = self.get_entry();
+        println!("Block: {:?}", block);
         // A Piet program terminates when the retries counter reaches 8
-        while self.state.rctr < 8 {
+        loop {
             io::stdout().flush().unwrap();
+            println!("Block: {:?}", block);
+            let (rotate, next, maybe_instr) = self.next_block(block.clone());
             
-            let (rotate, block, next) = self.next_block(block.clone());
-            
-            if let Some(instr) = next {
-
+            if block == next {
+                break;
             }
 
-            self.state.steps += 1;
+            block = next;
 
+            for _ in 0..rotate {
+                self.state.rctr += 1;
+                self.rotate_pointers();
+            }
+            
+            self.state.rctr = 0;
+
+            //println!("Instruction: {:?}", maybe_instr);
+
+            if let Some(instr) = maybe_instr
+            {
+                let res = self.exec_instr(instr);
+                if let Err(res) = res {
+                    if self.settings.verbosity == Verbosity::Verbose {
+                        eprintln!("{:?}", res);
+                    }
+                }
+            }
+            
+            self.state.steps += 1;
+            
             if let Some(max_steps) = self.settings.max_steps {
                 if self.state.steps == max_steps {
                     break
