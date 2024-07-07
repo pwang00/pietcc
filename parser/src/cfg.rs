@@ -285,6 +285,7 @@ impl<'a> CFGBuilder<'a> {
     }
 }
 
+#[cfg(Test)]
 mod test {
     use super::*;
     use crate::{convert::UnknownPixelSettings, loader::Loader};
@@ -293,14 +294,7 @@ mod test {
         fs,
         hash::Hasher,
     };
-    use types::color::{Hue::*, Lightness, Lightness::*};
-    const SETTINGS: UnknownPixelSettings = UnknownPixelSettings::TreatAsError;
 
-    fn get_hash<T: Hash>(obj: &T) -> u64 {
-        let mut hasher = DefaultHasher::new();
-        obj.hash(&mut hasher);
-        hasher.finish()
-    }
     #[test]
     fn test_colorblock_eq_hash() {
         let cb1 = ColorBlock {

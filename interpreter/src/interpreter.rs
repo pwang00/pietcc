@@ -1,15 +1,13 @@
 use crate::settings::{InterpSettings, Verbosity};
-use parser::cfg::{self, CFGBuilder, Node, CFG};
-use parser::infer::{CodelSettings, InferCodelWidth};
-use std::collections::{HashSet, VecDeque};
+use parser::cfg::{Node, CFG};
+use std::collections::VecDeque;
 use std::env;
 use std::io::Write;
 use std::{io, io::Read};
-use types::color::Lightness::{Black, White};
 use types::error::ExecutionError;
-use types::flow::{find_offset, DirVec, Direction, DIRECTIONS};
+use types::flow::find_offset;
 use types::instruction::Instruction;
-use types::state::{ExecutionResult, ExecutionState, Position};
+use types::state::{ExecutionResult, ExecutionState};
 
 pub struct Interpreter {
     cfg: CFG,

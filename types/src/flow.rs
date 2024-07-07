@@ -1,4 +1,4 @@
-use std::{collections::HashSet, ops::Rem};
+use std::collections::HashSet;
 
 use crate::{program::PietSource, state::Position};
 
