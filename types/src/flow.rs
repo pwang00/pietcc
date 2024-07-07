@@ -54,19 +54,27 @@ impl Codel {
 }
 
 impl std::ops::Sub for Direction {
-    type Output = i8;
+    type Output = u8;
 
     fn sub(self, rhs: Self) -> Self::Output {
-        self as i8 - rhs as i8
+        (self as u8 - rhs as u8).rem_euclid(4)
     }
 }
 
 impl std::ops::Sub for Codel {
-    type Output = i8;
+    type Output = u8;
 
     fn sub(self, rhs: Self) -> Self::Output {
-        self as i8 - rhs as i8
+        (self as u8 - rhs as u8).rem_euclid(2)
     }
+}
+
+// (Up, Right) => (Right, Left)
+pub fn find_offset(curr: DirVec, target: DirVec) -> u8 {
+    let curr_idx = 2 * curr.0 as u8 + curr.1 as u8;
+    let target_idx = 2 * target.0 as u8 + target.1 as u8;
+
+    std::cmp::min((curr_idx - target_idx).rem_euclid(8), (target_idx - curr_idx).rem_euclid(8))
 }
 
 pub type DirVec = (Direction, Codel);
@@ -83,11 +91,6 @@ pub const DIRECTIONS: [DirVec; 8] = [
     (Direction::Up, Codel::Left),
     (Direction::Up, Codel::Right),
 ];
-
-pub fn find_offset(curr: DirVec, desired: DirVec) -> u8 {
-    (DIRECTIONS.iter().position(|&r| r == curr).unwrap() - 
-    DIRECTIONS.iter().position(|&r| r == desired).unwrap()).rem_euclid(8) as u8
-}
 
 pub trait DirectionOps {
     fn from_idx(i: i64) -> Self;
@@ -110,7 +113,7 @@ impl DirectionOps for Codel {
         match i {
             0 => Codel::Left,
             1 => Codel::Right,
-            i => <Codel as DirectionOps>::from_idx(i % 2),
+            i => <Codel as DirectionOps>::from_idx(i.rem_euclid(2)),
         }
     }
 }

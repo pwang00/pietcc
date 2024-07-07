@@ -11,7 +11,6 @@ pub struct ExecutionState {
     pub dp: Direction,
     pub cc: Codel,
     pub cb: u64,
-    pub rctr: u8,
     pub stdin: String,
     pub steps: u64,
 }
@@ -29,7 +28,6 @@ impl std::fmt::Display for ExecutionResult<'_> {
         writeln!(f, "    dp: {:?}", self.state.dp);
         writeln!(f, "    cc: {:?}", self.state.cc);
         writeln!(f, "    cb: {:?}", self.state.cb);
-        writeln!(f, "    rctr: {:?}", self.state.rctr);
         writeln!(f, "    stdin: {:?}", self.state.stdin);
         writeln!(f, "    steps: {:?}", self.state.steps);
         writeln!(f, "    stack: {:?}", self.stack);

@@ -2,9 +2,8 @@ use crate::settings::{InterpSettings, Verbosity};
 use parser::cfg::{self, CFGBuilder, Node, CFG};
 use parser::infer::{CodelSettings, InferCodelWidth};
 use std::collections::{HashSet, VecDeque};
+use std::env;
 use std::io::Write;
-use std::ops::{Index, Rem};
-use std::process::exit;
 use std::{io, io::Read};
 use types::color::Lightness::{Black, White};
 use types::error::ExecutionError;
@@ -31,7 +30,6 @@ impl Interpreter {
         }
     }
 
-
     pub fn next_block(&mut self, block: Node) -> (Option<Node>, Option<Instruction>) {
         let bordering = &mut self.cfg.get(&block).unwrap();
         let mut directions = vec![];
@@ -44,27 +42,22 @@ impl Interpreter {
                     .iter()
                     .map(|(entry, exit, instr)| {
                         return (entry, exit, adj, instr);
-                    })
+                    }),
             );
         }
 
         // Calculates the block who is the minimum amount of rotations away from the current entry direction
-        // println!("Directions: {:?}\n", directions);
-        // let d2 = directions.clone();
         // Want min exit conditioned on min entry
         let curr = (self.state.dp, self.state.cc);
-        match directions
-            .into_iter()
-            .min_by_key(|&(&entry, &exit, _, _)| {
-                let entry_offset = find_offset(curr, entry);
-                let exit_offset = find_offset(entry, exit);
-                (entry_offset, exit_offset)
-            })
-        {
-            Some((&entry, &exit, adj, instr)) => {
+        match directions.into_iter().min_by_key(|&(&entry, &exit, _, _)| {
+            let entry_offset = find_offset(curr, entry);
+            let exit_offset = find_offset(entry, exit);
+            (entry_offset, exit_offset)
+        }) {
+            Some((_, &exit, adj, &instr)) => {
                 (self.state.dp, self.state.cc) = exit;
-                (Some(adj.clone()), *instr)
-            },
+                (Some(adj.clone()), instr)
+            }
             None => (None, None),
         }
     }
@@ -370,25 +363,24 @@ impl Interpreter {
     }
 
     pub fn run(&mut self) -> ExecutionResult {
-        /* match self.settings.verbosity {
+        match self.settings.verbosity {
             Verbosity::Verbose => match env::consts::OS {
                 "linux" => {
-                    println!("\x1B[1;37mpietcc:\x1B[0m \x1B[1;96minfo: \x1B[0mrunning with codel width {} (size of {})",
-                        self.codel_width, self.codel_width.pow(2))
+                    println!("\x1B[1;37mpietcc:\x1B[0m \x1B[1;96minfo: \x1B[0mrunning with {:?}",
+                        self.settings.codel_settings)
                 }
                 _ => {
                     println!(
-                        "pietcc: info: running with codel width {} (size of {})",
-                        self.codel_width,
-                        self.codel_width.pow(2)
+                        "pietcc: info: running with {:?}",
+                        self.settings.codel_settings
                     )
                 }
             },
             _ => (),
-        } */
+        }
 
         let mut block = self.get_entry();
-        // A Piet program terminates when the retries counter reaches 8
+
         loop {
             io::stdout().flush().unwrap();
             self.state.cb = block.get_region().len() as u64;
@@ -400,7 +392,6 @@ impl Interpreter {
 
             block = next.unwrap();
 
-            // println!("Block: {:?} | Instruction: {:?} | Ptrs: {:?} | Ctr: {}", block.get_label(), maybe_instr, (self.state.dp, self.state.cc), self.state.steps);
             if let Some(instr) = maybe_instr {
                 let res = self.exec_instr(instr);
                 if let Err(res) = res {
