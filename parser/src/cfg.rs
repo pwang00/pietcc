@@ -9,7 +9,7 @@ use types::flow::{EntryDir, ExitDir, FindAdj, FURTHEST, MOVE_IN};
 use types::instruction::Instruction;
 use types::program::PietSource;
 use types::state::{Position, ENTRY};
-use crate::consts::DIRECTIONS;
+use types::flow::DIRECTIONS;
 
 pub type Node = Rc<ColorBlock>;
 pub type Info = Vec<(EntryDir, ExitDir, Option<Instruction>)>;

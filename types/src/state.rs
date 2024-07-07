@@ -10,7 +10,6 @@ pub const ENTRY: Position = (0, 0);
 pub struct ExecutionState {
     pub dp: Direction,
     pub cc: Codel,
-    pub pos: Position,
     pub cb: u64,
     pub rctr: u8,
     pub stdin: String,
@@ -29,7 +28,6 @@ impl std::fmt::Display for ExecutionResult<'_> {
         writeln!(f, "ExecutionResult {{");
         writeln!(f, "    dp: {:?}", self.state.dp);
         writeln!(f, "    cc: {:?}", self.state.cc);
-        writeln!(f, "    pos: {:?}", self.state.pos);
         writeln!(f, "    cb: {:?}", self.state.cb);
         writeln!(f, "    rctr: {:?}", self.state.rctr);
         writeln!(f, "    stdin: {:?}", self.state.stdin);

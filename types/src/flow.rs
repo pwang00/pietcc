@@ -65,13 +65,29 @@ impl std::ops::Sub for Codel {
     type Output = i8;
 
     fn sub(self, rhs: Self) -> Self::Output {
-        (self as i8 - rhs as i8).rem(4)
+        self as i8 - rhs as i8
     }
 }
 
 pub type DirVec = (Direction, Codel);
 pub type EntryDir = (Direction, Codel);
 pub type ExitDir = (Direction, Codel);
+
+pub const DIRECTIONS: [DirVec; 8] = [
+    (Direction::Right, Codel::Left),
+    (Direction::Right, Codel::Right),
+    (Direction::Down, Codel::Left),
+    (Direction::Down, Codel::Right),
+    (Direction::Left, Codel::Left),
+    (Direction::Left, Codel::Right),
+    (Direction::Up, Codel::Left),
+    (Direction::Up, Codel::Right),
+];
+
+pub fn find_offset(curr: DirVec, desired: DirVec) -> u8 {
+    (DIRECTIONS.iter().position(|&r| r == curr).unwrap() - 
+    DIRECTIONS.iter().position(|&r| r == desired).unwrap()).rem_euclid(8) as u8
+}
 
 pub trait DirectionOps {
     fn from_idx(i: i64) -> Self;

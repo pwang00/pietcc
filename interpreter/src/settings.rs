@@ -5,7 +5,7 @@ pub struct InterpSettings {
     pub verbosity: Verbosity,
     pub codel_settings: CodelSettings,
     pub max_steps: Option<u64>,
-    pub partial_eval: bool
+    pub partial_eval: bool,
 }
 
 impl InterpSettings {
@@ -14,14 +14,14 @@ impl InterpSettings {
             verbosity: Verbosity::Low,
             codel_settings,
             max_steps: Some(max_steps),
-            partial_eval: true
+            partial_eval: true,
         }
     }
 }
 
 #[derive(Copy, Clone, Debug)]
 pub struct PartialEvalSettings {
-    pub max_steps: u64
+    pub max_steps: u64,
 }
 
 #[derive(Copy, Clone, PartialEq, Debug, Default)]

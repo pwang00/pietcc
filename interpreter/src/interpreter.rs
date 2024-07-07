@@ -1,16 +1,14 @@
 use crate::settings::{InterpSettings, Verbosity};
-use parser::infer::{CodelSettings, InferCodelWidth};
 use parser::cfg::{self, CFGBuilder, Node, CFG};
-use parser::{convert::ConvertToLightness, decode::DecodeInstruction, consts::DIRECTIONS};
+use parser::infer::{CodelSettings, InferCodelWidth};
 use std::collections::{HashSet, VecDeque};
-use std::env;
-use std::io::{Stdout, Write};
+use std::io::Write;
 use std::ops::{Index, Rem};
 use std::process::exit;
 use std::{io, io::Read};
 use types::color::Lightness::{Black, White};
 use types::error::ExecutionError;
-use types::flow::Direction;
+use types::flow::{find_offset, DirVec, Direction, DIRECTIONS};
 use types::instruction::Instruction;
 use types::state::{ExecutionResult, ExecutionState, Position};
 
@@ -19,7 +17,7 @@ pub struct Interpreter {
     state: ExecutionState,
     stack: VecDeque<i64>,
     stdout_instrs: Vec<(Instruction, i64)>,
-    settings: InterpSettings
+    settings: InterpSettings,
 }
 
 impl Interpreter {
@@ -29,42 +27,45 @@ impl Interpreter {
             state: ExecutionState::default(),
             stack: VecDeque::new(),
             stdout_instrs: Vec::new(),
-            settings
+            settings,
         }
     }
 
-    pub(crate) fn rotate_pointers(&mut self) {
-        if self.state.rctr % 2 == 1 {
-            self.state.dp = self.state.dp.rotate(1);
-        } else {
-            self.state.cc = self.state.cc.switch(1);
-        }
-    }
 
-    pub fn next_block(&mut self, block: Node) -> (u8, Node, Option<Instruction>) {
+    pub fn next_block(&mut self, block: Node) -> (Option<Node>, Option<Instruction>) {
         let bordering = &mut self.cfg.get(&block).unwrap();
         let mut directions = vec![];
-        
+
         for adj in bordering.keys() {
             directions.extend(
-                bordering.get(&*adj)
-                .unwrap()
-                .iter()
-                .map(|(entry, _, instr)| {
-                    let &(dp, cc) = entry;
-                    return ((2 * (dp - self.state.dp) + (self.state.cc - cc)).rem_euclid(8), adj, instr)
-                }));
-        }        
-        
+                bordering
+                    .get(&*adj)
+                    .unwrap()
+                    .iter()
+                    .map(|(entry, exit, instr)| {
+                        return (entry, exit, adj, instr);
+                    })
+            );
+        }
+
         // Calculates the block who is the minimum amount of rotations away from the current entry direction
-        println!("Directions: {:?}", directions);
-        match directions.into_iter().min_by_key(|&(offset, _, _)| offset) {
-            Some((rotate, adj, instr)) => {
-                (rotate as u8, adj.clone(), *instr)
+        // println!("Directions: {:?}\n", directions);
+        // let d2 = directions.clone();
+        // Want min exit conditioned on min entry
+        let curr = (self.state.dp, self.state.cc);
+        match directions
+            .into_iter()
+            .min_by_key(|&(&entry, &exit, _, _)| {
+                let entry_offset = find_offset(curr, entry);
+                let exit_offset = find_offset(entry, exit);
+                (entry_offset, exit_offset)
+            })
+        {
+            Some((&entry, &exit, adj, instr)) => {
+                (self.state.dp, self.state.cc) = exit;
+                (Some(adj.clone()), *instr)
             },
-            None => {
-                (0, block, None)
-            }
+            None => (None, None),
         }
     }
 
@@ -361,14 +362,18 @@ impl Interpreter {
     }
 
     pub fn get_entry(&self) -> Node {
-        self.cfg.keys().find(|node| *node.get_label() == "Entry").unwrap().clone()
+        self.cfg
+            .keys()
+            .find(|node| *node.get_label() == "Entry")
+            .unwrap()
+            .clone()
     }
 
     pub fn run(&mut self) -> ExecutionResult {
         /* match self.settings.verbosity {
             Verbosity::Verbose => match env::consts::OS {
                 "linux" => {
-                    println!("\x1B[1;37mpietcc:\x1B[0m \x1B[1;96minfo: \x1B[0mrunning with codel width {} (size of {})", 
+                    println!("\x1B[1;37mpietcc:\x1B[0m \x1B[1;96minfo: \x1B[0mrunning with codel width {} (size of {})",
                         self.codel_width, self.codel_width.pow(2))
                 }
                 _ => {
@@ -383,43 +388,32 @@ impl Interpreter {
         } */
 
         let mut block = self.get_entry();
-        println!("Block: {:?}", block);
         // A Piet program terminates when the retries counter reaches 8
         loop {
             io::stdout().flush().unwrap();
-            println!("Block: {:?}", block);
-            let (rotate, next, maybe_instr) = self.next_block(block.clone());
-            
-            if block == next {
+            self.state.cb = block.get_region().len() as u64;
+            let (next, maybe_instr) = self.next_block(block.clone());
+
+            if next.is_none() {
                 break;
             }
 
-            block = next;
+            block = next.unwrap();
 
-            for _ in 0..rotate {
-                self.state.rctr += 1;
-                self.rotate_pointers();
-            }
-            
-            self.state.rctr = 0;
-
-            //println!("Instruction: {:?}", maybe_instr);
-
-            if let Some(instr) = maybe_instr
-            {
+            // println!("Block: {:?} | Instruction: {:?} | Ptrs: {:?} | Ctr: {}", block.get_label(), maybe_instr, (self.state.dp, self.state.cc), self.state.steps);
+            if let Some(instr) = maybe_instr {
                 let res = self.exec_instr(instr);
                 if let Err(res) = res {
                     if self.settings.verbosity == Verbosity::Verbose {
                         eprintln!("{:?}", res);
                     }
                 }
+                self.state.steps += 1;
             }
-            
-            self.state.steps += 1;
-            
+
             if let Some(max_steps) = self.settings.max_steps {
                 if self.state.steps == max_steps {
-                    break
+                    break;
                 }
             }
         }

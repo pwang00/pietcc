@@ -4,11 +4,11 @@ use crate::Verbosity;
 use clap::{App, Arg};
 use compiler::codegen::CodeGen;
 use compiler::settings::CompilerSettings;
-use parser::cfg::CFGBuilder;
 use compiler::settings::SaveOptions;
 use inkwell::context::Context;
 use inkwell::OptimizationLevel;
 use interpreter::{interpreter::Interpreter, settings::*};
+use parser::cfg::CFGBuilder;
 use parser::convert::UnknownPixelSettings;
 use parser::{infer::CodelSettings, loader::Loader};
 use std::env;
@@ -224,7 +224,6 @@ fn main() -> Result<(), Error> {
 
             let mut save_options = SaveOptions::EmitExecutable;
             let mut opt_level = OptimizationLevel::None;
-            
 
             if matches.is_present("emit-llvm") {
                 save_options = SaveOptions::EmitLLVMIR
@@ -259,7 +258,7 @@ fn main() -> Result<(), Error> {
                 output_fname,
                 warn_nt,
                 show_cfg_size,
-                show_codel_size
+                show_codel_size,
             };
 
             let cfg_gen = CFGBuilder::new(&program, codel_settings, show_codel_size);
