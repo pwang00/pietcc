@@ -1,5 +1,5 @@
 use crate::settings::{InterpSettings, Verbosity};
-use parser::cfg::{Node, CFG};
+use types::cfg::{Node, CFG};
 use std::collections::VecDeque;
 use std::env;
 use std::io::Write;

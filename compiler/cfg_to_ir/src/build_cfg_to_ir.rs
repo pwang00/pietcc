@@ -1,4 +1,4 @@
-use parser::cfg::CFG;
+use types::cfg::CFG;
 use crate::codegen::CodeGen;
 use inkwell::{basic_block::BasicBlock, values::AnyValue};
 use std::collections::HashMap;

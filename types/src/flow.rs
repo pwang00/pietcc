@@ -25,7 +25,7 @@ pub const MOVE_IN: [C2; 4] = [
 
 #[derive(Debug, PartialEq, Default, Eq, Hash, Copy, Clone, PartialOrd, Ord)]
 #[repr(u8)]
-pub enum Direction {
+pub enum DirPointer {
     #[default]
     Right = 0,
     Down = 1,
@@ -35,25 +35,25 @@ pub enum Direction {
 
 #[derive(Debug, PartialEq, Default, Eq, Hash, Copy, Clone, PartialOrd, Ord)]
 #[repr(u8)]
-pub enum Codel {
+pub enum CodelChooser {
     #[default]
     Left = 0,
     Right = 1,
 }
 
-impl Direction {
+impl DirPointer {
     pub fn rotate(self, n: i64) -> Self {
         <Self as DirectionOps>::from_idx(self as i64 + n)
     }
 }
 
-impl Codel {
+impl CodelChooser {
     pub fn switch(self, n: i64) -> Self {
-        <Codel as DirectionOps>::from_idx(self as i64 + n)
+        <CodelChooser as DirectionOps>::from_idx(self as i64 + n)
     }
 }
 
-impl std::ops::Sub for Direction {
+impl std::ops::Sub for DirPointer {
     type Output = u8;
 
     fn sub(self, rhs: Self) -> Self::Output {
@@ -61,7 +61,7 @@ impl std::ops::Sub for Direction {
     }
 }
 
-impl std::ops::Sub for Codel {
+impl std::ops::Sub for CodelChooser {
     type Output = u8;
 
     fn sub(self, rhs: Self) -> Self::Output {
@@ -70,50 +70,61 @@ impl std::ops::Sub for Codel {
 }
 
 // (Up, Right) => (Right, Left)
-pub fn find_offset(curr: DirVec, target: DirVec) -> u8 {
-    let curr_idx = 2 * curr.0 as u8 + curr.1 as u8;
-    let target_idx = 2 * target.0 as u8 + target.1 as u8;
+pub fn find_offset(curr: PointerState, target: PointerState) -> u8 {
+    let curr_idx = 2 * curr.dp as u8 + curr.cc as u8;
+    let target_idx = 2 * target.dp as u8 + target.cc as u8;
 
-    std::cmp::min((curr_idx - target_idx).rem_euclid(8), (target_idx - curr_idx).rem_euclid(8))
+    std::cmp::min(
+        (curr_idx - target_idx).rem_euclid(8),
+        (target_idx - curr_idx).rem_euclid(8),
+    )
 }
 
-pub type DirVec = (Direction, Codel);
-pub type EntryDir = (Direction, Codel);
-pub type ExitDir = (Direction, Codel);
+pub struct PointerState {
+    dp: DirPointer,
+    cc: CodelChooser,
+}
 
-pub const DIRECTIONS: [DirVec; 8] = [
-    (Direction::Right, Codel::Left),
-    (Direction::Right, Codel::Right),
-    (Direction::Down, Codel::Left),
-    (Direction::Down, Codel::Right),
-    (Direction::Left, Codel::Left),
-    (Direction::Left, Codel::Right),
-    (Direction::Up, Codel::Left),
-    (Direction::Up, Codel::Right),
+impl PointerState {
+    pub fn from_idx_mod(idx: usize) -> Self {
+        let (dp, cc) = DIRECTIONS[idx];
+        Self { dp, cc }
+    }
+}
+
+const DIRECTIONS: [(DirPointer, CodelChooser); 8] = [
+    (DirPointer::Right, CodelChooser::Left),
+    (DirPointer::Right, CodelChooser::Right),
+    (DirPointer::Down, CodelChooser::Left),
+    (DirPointer::Down, CodelChooser::Right),
+    (DirPointer::Left, CodelChooser::Left),
+    (DirPointer::Left, CodelChooser::Right),
+    (DirPointer::Up, CodelChooser::Left),
+    (DirPointer::Up, CodelChooser::Right),
 ];
 
 pub trait DirectionOps {
     fn from_idx(i: i64) -> Self;
 }
 
-impl DirectionOps for Direction {
+impl DirectionOps for DirPointer {
     fn from_idx(i: i64) -> Self {
         match i {
-            0 => Direction::Right,
-            1 => Direction::Down,
-            2 => Direction::Left,
-            3 => Direction::Up,
-            i => <Direction as DirectionOps>::from_idx(i.rem_euclid(4)),
+            0 => DirPointer::Right,
+            1 => DirPointer::Down,
+            2 => DirPointer::Left,
+            3 => DirPointer::Up,
+            i => <DirPointer as DirectionOps>::from_idx(i.rem_euclid(4)),
         }
     }
 }
 
-impl DirectionOps for Codel {
+impl DirectionOps for CodelChooser {
     fn from_idx(i: i64) -> Self {
         match i {
-            0 => Codel::Left,
-            1 => Codel::Right,
-            i => <Codel as DirectionOps>::from_idx(i.rem_euclid(2)),
+            0 => CodelChooser::Left,
+            1 => CodelChooser::Right,
+            i => <CodelChooser as DirectionOps>::from_idx(i.rem_euclid(2)),
         }
     }
 }

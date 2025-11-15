@@ -8,8 +8,8 @@ pub const ENTRY: Position = (0, 0);
 /// Immmediate state information excluding stack
 #[derive(Debug, Default, Clone)]
 pub struct ExecutionState {
-    pub dp: Direction,
-    pub cc: Codel,
+    pub dp: DirPointer,
+    pub cc: CodelChooser,
     pub cb: u64,
     pub stdin: String,
     pub steps: u64,
@@ -18,7 +18,7 @@ pub struct ExecutionState {
 pub struct ExecutionResult<'a> {
     pub state: &'a ExecutionState,
     pub stack: &'a VecDeque<i64>,
-    pub stdout: &'a Vec<(Instruction, i64)>
+    pub stdout: &'a Vec<(Instruction, i64)>,
 }
 
 #[allow(unused_must_use)]

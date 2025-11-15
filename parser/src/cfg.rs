@@ -5,16 +5,16 @@ use std::hash::Hash;
 use std::rc::Rc;
 use std::{env, fmt};
 use types::color::{Lightness, Lightness::*};
-use types::flow::{EntryDir, ExitDir, FindAdj, FURTHEST, MOVE_IN};
+use types::flow::PointerState;
+use types::flow::{FindAdj, FURTHEST, MOVE_IN};
 use types::instruction::Instruction;
 use types::program::PietSource;
 use types::state::{Position, ENTRY};
-use types::flow::DIRECTIONS;
+use types::transition::PietTransition;
 
 pub type Node = Rc<ColorBlock>;
-pub type Info = Vec<(EntryDir, ExitDir, Option<Instruction>)>;
+pub type Info = Vec<PietTransition>;
 pub type NodeAdj = HashMap<Node, Info>;
-pub type CFG = HashMap<Node, NodeAdj>;
 
 #[allow(unused)]
 #[derive(Eq)]
@@ -82,7 +82,6 @@ impl PartialEq for ColorBlock {
     }
 }
 
-
 #[allow(unused)]
 pub struct CFGBuilder<'a> {
     source: &'a PietSource<'a>,
@@ -97,7 +96,11 @@ impl<'a> InferCodelWidth for CFGBuilder<'a> {}
 #[allow(unused)]
 impl<'a> CFGBuilder<'a> {
     // Returns the list of adjacencies for a given position and whether or not it is a boundary
-    pub fn new(source: &'a PietSource, codel_settings: CodelSettings, show_codel_size: bool) -> Self {
+    pub fn new(
+        source: &'a PietSource,
+        codel_settings: CodelSettings,
+        show_codel_size: bool,
+    ) -> Self {
         let codel_width = match codel_settings {
             CodelSettings::Default => 1,
             CodelSettings::Infer => Self::infer_codel_width(source),
@@ -236,20 +239,20 @@ impl<'a> CFGBuilder<'a> {
                         if let Some((next_pos, next_dir)) = exit_state {
                             let white_adj_lightness =
                                 self.source.get(next_pos).map(|lightness| *lightness);
-    
+
                             let new_adj_block = self.explore_region(next_pos);
-    
+
                             bordering
                                 .entry(new_adj_block.clone())
                                 .and_modify(|vec| vec.push((dir, next_dir, None)))
                                 .or_insert(Vec::from([(dir, next_dir, None)]));
-    
+
                             if !discovered_regions.contains(&new_adj_block) {
                                 discovered_regions.insert(new_adj_block.clone());
                                 queue.push_back(new_adj_block)
                             }
                         }
-                    },
+                    }
                     _ => {
                         bordering
                             .entry(adj_block.clone())
