@@ -1,4 +1,4 @@
-use std::collections::VecDeque;
+use std::{collections::VecDeque, fmt::Pointer};
 
 use crate::{flow::*, instruction::*};
 pub type Position = (u32, u32);
@@ -8,8 +8,7 @@ pub const ENTRY: Position = (0, 0);
 /// Immmediate state information excluding stack
 #[derive(Debug, Default, Clone)]
 pub struct ExecutionState {
-    pub dp: DirPointer,
-    pub cc: CodelChooser,
+    pub pointers: PointerState,
     pub cb: u64,
     pub stdin: String,
     pub steps: u64,
@@ -25,8 +24,8 @@ pub struct ExecutionResult<'a> {
 impl std::fmt::Display for ExecutionResult<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "ExecutionResult {{");
-        writeln!(f, "    dp: {:?}", self.state.dp);
-        writeln!(f, "    cc: {:?}", self.state.cc);
+        writeln!(f, "    dp: {:?}", self.state.pointers.dp);
+        writeln!(f, "    cc: {:?}", self.state.pointers.cc);
         writeln!(f, "    cb: {:?}", self.state.cb);
         writeln!(f, "    stdin: {:?}", self.state.stdin);
         writeln!(f, "    steps: {:?}", self.state.steps);

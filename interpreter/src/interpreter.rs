@@ -1,11 +1,11 @@
 use crate::settings::{InterpSettings, Verbosity};
-use types::cfg::{Node, CFG};
 use std::collections::VecDeque;
 use std::env;
 use std::io::Write;
 use std::{io, io::Read};
+use types::cfg::{Node, CFG};
 use types::error::ExecutionError;
-use types::flow::find_offset;
+use types::flow::{find_offset, PointerState};
 use types::instruction::Instruction;
 use types::state::{ExecutionResult, ExecutionState};
 
@@ -33,27 +33,26 @@ impl Interpreter {
         let mut directions = vec![];
 
         for adj in bordering.keys() {
-            directions.extend(
-                bordering
-                    .get(&*adj)
-                    .unwrap()
-                    .iter()
-                    .map(|(entry, exit, instr)| {
-                        return (entry, exit, adj, instr);
-                    }),
-            );
+            directions.extend(bordering.get(&*adj).unwrap().iter().map(|transition| {
+                return (
+                    transition.entry_state,
+                    transition.exit_state,
+                    adj,
+                    transition.instruction,
+                );
+            }));
         }
 
         // Calculates the block who is the minimum amount of rotations away from the current entry direction
         // Want min exit conditioned on min entry
-        let curr = (self.state.dp, self.state.cc);
-        match directions.into_iter().min_by_key(|&(&entry, &exit, _, _)| {
+        let curr = self.state.pointers;
+        match directions.into_iter().min_by_key(|&(entry, exit, _, _)| {
             let entry_offset = find_offset(curr, entry);
             let exit_offset = find_offset(entry, exit);
             (entry_offset, exit_offset)
         }) {
-            Some((_, &exit, adj, &instr)) => {
-                (self.state.dp, self.state.cc) = exit;
+            Some((_, exit, adj, instr)) => {
+                self.state.pointers = exit;
                 (Some(adj.clone()), instr)
             }
             None => (None, None),
@@ -235,7 +234,7 @@ impl Interpreter {
 
     pub(crate) fn ptr(&mut self) -> Result<(), ExecutionError> {
         if let Some(n) = self.stack.pop_front() {
-            Ok(self.state.dp = self.state.dp.rotate(n))
+            Ok(self.state.pointers.dp = self.state.pointers.dp.rotate(n))
         } else {
             Err(ExecutionError::StackOutOfBoundsError(
                 Instruction::Ptr,
@@ -246,7 +245,7 @@ impl Interpreter {
 
     pub(crate) fn swi(&mut self) -> Result<(), ExecutionError> {
         if let Some(n) = self.stack.pop_front() {
-            Ok(self.state.cc = self.state.cc.switch(n))
+            Ok(self.state.pointers.cc = self.state.pointers.cc.switch(n))
         } else {
             Err(ExecutionError::StackOutOfBoundsError(
                 Instruction::Swi,
@@ -364,8 +363,10 @@ impl Interpreter {
         match self.settings.verbosity {
             Verbosity::Verbose => match env::consts::OS {
                 "linux" => {
-                    println!("\x1B[1;37mpietcc:\x1B[0m \x1B[1;96minfo: \x1B[0mrunning with {:?}",
-                        self.settings.codel_settings)
+                    println!(
+                        "\x1B[1;37mpietcc:\x1B[0m \x1B[1;96minfo: \x1B[0mrunning with {:?}",
+                        self.settings.codel_settings
+                    )
                 }
                 _ => {
                     println!(

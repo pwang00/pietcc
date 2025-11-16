@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, fmt::Pointer};
 
 use crate::{program::PietSource, state::Position};
 
@@ -80,27 +80,27 @@ pub fn find_offset(curr: PointerState, target: PointerState) -> u8 {
     )
 }
 
+#[derive(Copy, Clone, Debug, Default)]
 pub struct PointerState {
-    dp: DirPointer,
-    cc: CodelChooser,
+    pub dp: DirPointer,
+    pub cc: CodelChooser,
 }
 
 impl PointerState {
-    pub fn from_idx_mod(idx: usize) -> Self {
-        let (dp, cc) = DIRECTIONS[idx];
+    pub const fn new(dp: DirPointer, cc: CodelChooser) -> Self {
         Self { dp, cc }
     }
 }
 
-const DIRECTIONS: [(DirPointer, CodelChooser); 8] = [
-    (DirPointer::Right, CodelChooser::Left),
-    (DirPointer::Right, CodelChooser::Right),
-    (DirPointer::Down, CodelChooser::Left),
-    (DirPointer::Down, CodelChooser::Right),
-    (DirPointer::Left, CodelChooser::Left),
-    (DirPointer::Left, CodelChooser::Right),
-    (DirPointer::Up, CodelChooser::Left),
-    (DirPointer::Up, CodelChooser::Right),
+pub const DIRECTIONS: [PointerState; 8] = [
+    PointerState::new(DirPointer::Right, CodelChooser::Left),
+    PointerState::new(DirPointer::Right, CodelChooser::Right),
+    PointerState::new(DirPointer::Down, CodelChooser::Left),
+    PointerState::new(DirPointer::Down, CodelChooser::Right),
+    PointerState::new(DirPointer::Left, CodelChooser::Left),
+    PointerState::new(DirPointer::Left, CodelChooser::Right),
+    PointerState::new(DirPointer::Up, CodelChooser::Left),
+    PointerState::new(DirPointer::Up, CodelChooser::Right),
 ];
 
 pub trait DirectionOps {

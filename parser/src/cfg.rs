@@ -4,83 +4,17 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use std::hash::Hash;
 use std::rc::Rc;
 use std::{env, fmt};
+use types::cfg::{ColorBlock, CFG};
 use types::color::{Lightness, Lightness::*};
-use types::flow::PointerState;
 use types::flow::{FindAdj, FURTHEST, MOVE_IN};
-use types::instruction::Instruction;
+use types::flow::{PointerState, DIRECTIONS};
 use types::program::PietSource;
 use types::state::{Position, ENTRY};
 use types::transition::PietTransition;
 
 pub type Node = Rc<ColorBlock>;
-pub type Info = Vec<PietTransition>;
-pub type NodeAdj = HashMap<Node, Info>;
-
-#[allow(unused)]
-#[derive(Eq)]
-pub struct ColorBlock {
-    label: String,
-    lightness: Lightness,
-    region: HashSet<Position>,
-}
-
-#[allow(unused)]
-impl ColorBlock {
-    pub(crate) fn new(label: String, lightness: Lightness, region: HashSet<Position>) -> Self {
-        Self {
-            label,
-            lightness,
-            region,
-        }
-    }
-
-    pub fn contains(&self, pos: Position) -> bool {
-        self.region.contains(&pos)
-    }
-
-    pub fn get_region(&self) -> &HashSet<Position> {
-        &self.region
-    }
-
-    pub fn get_label(&self) -> &String {
-        &self.label
-    }
-
-    pub fn get_region_size(&self) -> u64 {
-        self.region.len() as u64
-    }
-
-    pub fn get_lightness(&self) -> Lightness {
-        self.lightness
-    }
-}
-
-impl fmt::Debug for ColorBlock {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("ColorBlock")
-            .field("label", &self.label)
-            .field("size", &self.region.len())
-            .finish()
-    }
-}
-
-impl Hash for ColorBlock {
-    // Can just use the label as hash and this is distinct for each distinct color block
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.label.hash(state)
-    }
-}
-
-impl PartialEq for ColorBlock {
-    fn ne(&self, other: &Self) -> bool {
-        !self.eq(other)
-    }
-
-    // Can simply compare labels
-    fn eq(&self, other: &Self) -> bool {
-        self.label == other.label
-    }
-}
+pub type Transitions = Vec<PietTransition>;
+pub type NodeAdj = HashMap<Node, Transitions>;
 
 #[allow(unused)]
 pub struct CFGBuilder<'a> {
@@ -129,7 +63,7 @@ impl<'a> CFGBuilder<'a> {
         self.source
     }
 
-    fn possible_exits(&self, cb: &HashSet<Position>) -> Vec<(Position, ExitDir)> {
+    fn possible_exits(&self, cb: &HashSet<Position>) -> Vec<(Position, PointerState)> {
         // first char is dp orientation, second char is cc orientation
         (0..8)
             .map(|x| {
@@ -150,15 +84,16 @@ impl<'a> CFGBuilder<'a> {
     pub(crate) fn trace_white(
         &self,
         entry: Position,
-        dir: EntryDir,
-    ) -> Option<(Position, ExitDir)> {
+        dir: PointerState,
+    ) -> Option<(Position, PointerState)> {
         let (mut x, mut y) = entry;
-        let (mut dp, mut cc) = dir;
         let mut retries = 0;
 
+        let mut dp = dir.dp;
+        let mut cc = dir.cc;
         while retries < 8 {
             let next_pos = Some((x, y, self.codel_width))
-                .map(MOVE_IN[dp as usize])
+                .map(MOVE_IN[dir.dp as usize])
                 .unwrap();
 
             let lightness = self.source.get(next_pos);
@@ -171,7 +106,7 @@ impl<'a> CFGBuilder<'a> {
             }
 
             if lightness != Some(&White) {
-                return Some((next_pos, (dp, cc)));
+                return Some((next_pos, PointerState::new(dp, cc)));
             }
 
             (x, y) = next_pos
@@ -244,8 +179,10 @@ impl<'a> CFGBuilder<'a> {
 
                             bordering
                                 .entry(new_adj_block.clone())
-                                .and_modify(|vec| vec.push((dir, next_dir, None)))
-                                .or_insert(Vec::from([(dir, next_dir, None)]));
+                                .and_modify(|vec| {
+                                    vec.push(PietTransition::new(dir, next_dir, None))
+                                })
+                                .or_insert(Vec::from([PietTransition::new(dir, next_dir, None)]));
 
                             if !discovered_regions.contains(&new_adj_block) {
                                 discovered_regions.insert(new_adj_block.clone());
@@ -256,8 +193,8 @@ impl<'a> CFGBuilder<'a> {
                     _ => {
                         bordering
                             .entry(adj_block.clone())
-                            .and_modify(|vec| vec.push((dir, dir, instr)))
-                            .or_insert(Vec::from([(dir, dir, instr)]));
+                            .and_modify(|vec| vec.push(PietTransition::new(dir, dir, instr)))
+                            .or_insert(Vec::from([PietTransition::new(dir, dir, instr)]));
                     }
                 }
 

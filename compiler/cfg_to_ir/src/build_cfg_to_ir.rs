@@ -1,7 +1,7 @@
-use types::cfg::CFG;
 use crate::codegen::CodeGen;
 use inkwell::{basic_block::BasicBlock, values::AnyValue};
 use std::collections::HashMap;
+use types::cfg::CFG;
 use types::instruction::Instruction;
 
 impl<'a, 'b> CodeGen<'a, 'b> {
@@ -66,8 +66,16 @@ impl<'a, 'b> CodeGen<'a, 'b> {
 
             self.builder.position_at_end(color_block_start);
 
-            let global_dp = self.builder.build_load(self.context.i64_type(), dp_addr, "load_dp").unwrap().into_int_value();
-            let global_cc = self.builder.build_load(self.context.i64_type(), cc_addr, "load_cc").unwrap().into_int_value();
+            let global_dp = self
+                .builder
+                .build_load(self.context.i64_type(), dp_addr, "load_dp")
+                .unwrap()
+                .into_int_value();
+            let global_cc = self
+                .builder
+                .build_load(self.context.i64_type(), cc_addr, "load_cc")
+                .unwrap()
+                .into_int_value();
 
             let adj_blocks = adjs
                 .keys()
@@ -83,7 +91,7 @@ impl<'a, 'b> CodeGen<'a, 'b> {
                 })
                 .collect::<Vec<_>>();
 
-            if adj_blocks.len() > 0 {
+            if !adj_blocks.is_empty() > 0 {
                 let _ = self.builder.build_unconditional_branch(adj_blocks[0]);
             }
 
@@ -100,7 +108,7 @@ impl<'a, 'b> CodeGen<'a, 'b> {
                 self.builder.position_at_end(adj_blocks[i]);
                 let _ = self.builder.build_unconditional_branch(dirvec_blocks[0]);
 
-                for (j, &((dp, cc), (new_dp, new_cc), instr)) in dirvec.iter().enumerate() {
+                for (j, transition) in dirvec.iter().enumerate() {
                     let call_instr = self.context.insert_basic_block_after(
                         dirvec_blocks[j],
                         &("call_instr_".to_owned() + node.get_label().as_str()),
@@ -108,21 +116,19 @@ impl<'a, 'b> CodeGen<'a, 'b> {
 
                     self.builder.position_at_end(dirvec_blocks[j]);
 
-                    let dp_as_const = i8_type.const_int(dp as i8 as u64, false);
-                    let cc_as_const = i8_type.const_int(cc as i8 as u64, false);
+                    let dp_as_const =
+                        i8_type.const_int(transition.entry_state.dp as i8 as u64, false);
+                    let cc_as_const =
+                        i8_type.const_int(transition.entry_state.cc as i8 as u64, false);
 
-                    let dp_cmp = self.builder.build_int_compare(
-                        inkwell::IntPredicate::EQ,
-                        global_dp,
-                        dp_as_const,
-                        "",
-                    ).unwrap();
-                    let cc_cmp = self.builder.build_int_compare(
-                        inkwell::IntPredicate::EQ,
-                        global_cc,
-                        cc_as_const,
-                        "",
-                    ).unwrap();
+                    let dp_cmp = self
+                        .builder
+                        .build_int_compare(inkwell::IntPredicate::EQ, global_dp, dp_as_const, "")
+                        .unwrap();
+                    let cc_cmp = self
+                        .builder
+                        .build_int_compare(inkwell::IntPredicate::EQ, global_cc, cc_as_const, "")
+                        .unwrap();
                     let and_dp_cc = self.builder.build_and(dp_cmp, cc_cmp, "").unwrap();
 
                     if j + 1 < dirvec.len() {
@@ -149,7 +155,7 @@ impl<'a, 'b> CodeGen<'a, 'b> {
 
                     // Calls the correct instruction
                     self.builder.position_at_end(call_instr);
-                    if let Some(instr) = instr {
+                    if let Some(instr) = transition.instruction {
                         // Rotate by n
                         let instr_fn = self.module.get_function(instr.to_llvm_name()).unwrap();
                         let instr_str_addr = self
@@ -160,8 +166,12 @@ impl<'a, 'b> CodeGen<'a, 'b> {
                             .into_pointer_value();
 
                         let _instr_str = unsafe {
-                            self.builder
-                                .build_gep(instr_fn.as_global_value().as_pointer_value().get_type(), instr_str_addr, &[const_0, const_0], "")
+                            self.builder.build_gep(
+                                instr_fn.as_global_value().as_pointer_value().get_type(),
+                                instr_str_addr,
+                                &[const_0, const_0],
+                                "",
+                            )
                         };
 
                         if instr == Instruction::Push {
@@ -170,13 +180,18 @@ impl<'a, 'b> CodeGen<'a, 'b> {
                             let _ = self.builder.build_call(instr_fn, &[], "");
                         }
                     } else {
-                        let new_dp_as_const = i8_type.const_int(new_dp as i8 as u64, false);
-                        let new_cc_as_const = i8_type.const_int(new_cc as i8 as u64, false);
+                        let new_dp_as_const =
+                            i8_type.const_int(transition.exit_state.dp as i8 as u64, false);
+                        let new_cc_as_const =
+                            i8_type.const_int(transition.exit_state.cc as i8 as u64, false);
                         let _ = self.builder.build_store(dp_addr, new_dp_as_const);
                         let _ = self.builder.build_store(cc_addr, new_cc_as_const);
                     }
 
-                    let const_0_i8 = self.builder.build_int_truncate(const_0, i8_type, "").unwrap();
+                    let const_0_i8 = self
+                        .builder
+                        .build_int_truncate(const_0, i8_type, "")
+                        .unwrap();
                     let _ = self.builder.build_store(rctr_addr, const_0_i8);
                     let next_block = block_lookup_table
                         .get(adj.get_label() as &str)
