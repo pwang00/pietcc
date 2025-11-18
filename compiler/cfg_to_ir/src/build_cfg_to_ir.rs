@@ -91,7 +91,7 @@ impl<'a, 'b> CodeGen<'a, 'b> {
                 })
                 .collect::<Vec<_>>();
 
-            if !adj_blocks.is_empty() > 0 {
+            if !adj_blocks.is_empty() {
                 let _ = self.builder.build_unconditional_branch(adj_blocks[0]);
             }
 

@@ -11,24 +11,21 @@ pub struct ExecutionState {
     pub pointers: PointerState,
     pub cb: u64,
     pub stdin: String,
+    pub stdout: Vec<StdOutWrapper>,
     pub steps: u64,
+    pub complete: bool, // If program ran to completion vs just hitting max steps
+    pub stack: VecDeque<i64>,
 }
-
-pub struct ExecutionResult<'a> {
-    pub state: &'a ExecutionState,
-    pub stack: &'a VecDeque<i64>,
-    pub stdout: &'a Vec<(Instruction, i64)>,
-}
-
 #[allow(unused_must_use)]
-impl std::fmt::Display for ExecutionResult<'_> {
+impl std::fmt::Display for ExecutionState {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "ExecutionResult {{");
-        writeln!(f, "    dp: {:?}", self.state.pointers.dp);
-        writeln!(f, "    cc: {:?}", self.state.pointers.cc);
-        writeln!(f, "    cb: {:?}", self.state.cb);
-        writeln!(f, "    stdin: {:?}", self.state.stdin);
-        writeln!(f, "    steps: {:?}", self.state.steps);
+        writeln!(f, "ExecutionState {{");
+        writeln!(f, "    dp: {:?}", self.pointers.dp);
+        writeln!(f, "    cc: {:?}", self.pointers.cc);
+        writeln!(f, "    cb: {:?}", self.cb);
+        writeln!(f, "    stdin: {:?}", self.stdin);
+        writeln!(f, "    stdout: {:?}", self.stdout);
+        writeln!(f, "    steps: {:?}", self.steps);
         writeln!(f, "    stack: {:?}", self.stack);
         writeln!(f, "}}")
     }

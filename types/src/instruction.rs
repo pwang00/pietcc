@@ -21,6 +21,12 @@ pub enum Instruction {
     IntOut,
 }
 
+#[derive(Copy, Clone, Debug)]
+pub enum StdOutWrapper {
+    Char(char),
+    Int(i64),
+}
+
 impl Instruction {
     pub fn to_llvm_name(&self) -> &'static str {
         match self {

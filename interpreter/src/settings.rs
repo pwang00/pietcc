@@ -6,15 +6,17 @@ pub struct InterpSettings {
     pub codel_settings: CodelSettings,
     pub max_steps: Option<u64>,
     pub partial_eval: bool,
+    pub print: bool,
 }
 
 impl InterpSettings {
-    pub fn partial_evaluation(max_steps: u64, codel_settings: CodelSettings) -> Self {
+    pub fn partial_evaluation(max_steps: u64, codel_settings: CodelSettings, print: bool) -> Self {
         InterpSettings {
             verbosity: Verbosity::Low,
             codel_settings,
             max_steps: Some(max_steps),
             partial_eval: true,
+            print,
         }
     }
 }
