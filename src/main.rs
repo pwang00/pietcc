@@ -1,10 +1,10 @@
 pub mod verbosity;
 
 use crate::Verbosity;
+use cfg_to_ir::codegen::CodeGen;
+use cfg_to_ir::settings::CompilerSettings;
+use cfg_to_ir::settings::SaveOptions;
 use clap::{App, Arg};
-use compiler::codegen::CodeGen;
-use compiler::settings::CompilerSettings;
-use compiler::settings::SaveOptions;
 use inkwell::context::Context;
 use inkwell::OptimizationLevel;
 use interpreter::{interpreter::Interpreter, settings::*};
@@ -14,7 +14,7 @@ use parser::{infer::CodelSettings, loader::Loader};
 use std::env;
 use std::io::Error;
 use std::process::exit;
-use types::program::PietSource;
+use piet_core::program::PietSource;
 
 fn main() -> Result<(), Error> {
     let matches = App::new("pietcc")

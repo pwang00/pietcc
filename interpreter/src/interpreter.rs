@@ -3,11 +3,11 @@ use std::collections::VecDeque;
 use std::env;
 use std::io::Write;
 use std::{io, io::Read};
-use types::cfg::{Node, CFG};
-use types::error::ExecutionError;
-use types::flow::{find_offset, PointerState};
-use types::instruction::*;
-use types::state::ExecutionState;
+use piet_core::cfg::{Node, CFG};
+use piet_core::error::ExecutionError;
+use piet_core::flow::{find_offset, PointerState};
+use piet_core::instruction::*;
+use piet_core::state::{ExecutionState, ExecutionStatus};
 
 pub struct Interpreter {
     cfg: CFG,
@@ -59,16 +59,8 @@ impl Interpreter {
         self.state.clone()
     }
 
-    pub fn get_stack(&self) -> VecDeque<i64> {
-        self.state.stack.clone()
-    }
-
-    pub fn get_stdout_instrs(&self) -> Vec<StdOutWrapper> {
-        self.state.stdout.clone()
-    }
-
-    pub fn is_complete(&self) -> bool {
-        return self.state.complete;
+    pub fn is_complete(&self) -> ExecutionStatus {
+        return self.state.status;
     }
 
     pub fn exec_instr(&mut self, instr: Instruction) -> Result<(), ExecutionError> {
@@ -393,7 +385,7 @@ impl Interpreter {
             let (next, maybe_instr) = self.next_block(block.clone());
 
             if next.is_none() {
-                self.state.complete = true;
+                self.state.status = ExecutionStatus::Completed;
                 break;
             }
 
@@ -411,6 +403,7 @@ impl Interpreter {
 
             if let Some(max_steps) = self.settings.max_steps {
                 if self.state.steps == max_steps {
+                    self.state.status = ExecutionStatus::MaxSteps;
                     break;
                 }
             }
@@ -423,7 +416,7 @@ impl Interpreter {
 #[allow(unused)]
 mod test {
     use super::*;
-    use types::color::Lightness;
+    use piet_core::color::Lightness;
 
     #[test]
     fn test_roll() {

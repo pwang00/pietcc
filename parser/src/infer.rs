@@ -1,9 +1,9 @@
 use gcd::Gcd;
 use std::cmp::min;
 use std::collections::{HashSet, VecDeque};
-use types::flow::FindAdj;
-use types::program::PietSource;
-use types::state::Position;
+use piet_core::flow::FindAdj;
+use piet_core::program::PietSource;
+use piet_core::state::Position;
 
 #[derive(Copy, Clone, Default, Debug)]
 pub enum CodelSettings {

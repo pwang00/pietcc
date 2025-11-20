@@ -1,10 +1,10 @@
 [package]
-name = "piet-types"
+name = "piet-core"
 version = "0.1.0"
 edition = "2021"
 
 [lib]
-name = "types"
+name = "piet_core"
 path = "src/lib.rs"
 
 [dependencies]

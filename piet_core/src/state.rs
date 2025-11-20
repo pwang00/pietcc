@@ -5,7 +5,16 @@ pub type Position = (u32, u32);
 
 pub const ENTRY: Position = (0, 0);
 
-/// Immmediate state information excluding stack
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum ExecutionStatus {
+    #[default]
+    Running,
+    Completed,
+    MaxSteps,
+    NeedsInput,
+}
+
+/// Immmediate state information
 #[derive(Debug, Default, Clone)]
 pub struct ExecutionState {
     pub pointers: PointerState,
@@ -13,9 +22,10 @@ pub struct ExecutionState {
     pub stdin: String,
     pub stdout: Vec<StdOutWrapper>,
     pub steps: u64,
-    pub complete: bool, // If program ran to completion vs just hitting max steps
+    pub status: ExecutionStatus, // If program ran to completion vs just hitting max steps
     pub stack: VecDeque<i64>,
 }
+
 #[allow(unused_must_use)]
 impl std::fmt::Display for ExecutionState {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -26,6 +36,7 @@ impl std::fmt::Display for ExecutionState {
         writeln!(f, "    stdin: {:?}", self.stdin);
         writeln!(f, "    stdout: {:?}", self.stdout);
         writeln!(f, "    steps: {:?}", self.steps);
+        writeln!(f, "    status: {:?}", self.status);
         writeln!(f, "    stack: {:?}", self.stack);
         writeln!(f, "}}")
     }

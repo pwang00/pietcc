@@ -1,6 +1,6 @@
 use image::Rgb;
+use piet_core::color::{Hue::*, Lightness, Lightness::*};
 use std::panic;
-use types::color::{Hue::*, Lightness, Lightness::*};
 use UnknownPixelSettings::*;
 
 #[derive(Copy, Clone)]

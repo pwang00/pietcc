@@ -1,6 +1,6 @@
 use crate::codegen::CodeGen;
 use inkwell::{values::{BasicValue, PointerValue}, IntPredicate};
-use types::instruction::Instruction;
+use piet_core::instruction::Instruction;
 
 #[allow(unused)]
 impl<'a, 'b> CodeGen<'a, 'b> {

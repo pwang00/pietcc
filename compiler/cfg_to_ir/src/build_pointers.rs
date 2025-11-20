@@ -1,6 +1,6 @@
 use crate::codegen::CodeGen;
 use inkwell::IntPredicate;
-use types::instruction::Instruction;
+use piet_core::instruction::Instruction;
 
 impl<'a, 'b> CodeGen<'a, 'b> {
     pub(crate) fn build_switch(&self) {

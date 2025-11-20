@@ -5,9 +5,8 @@ use std::hash::Hash;
 use std::rc::Rc;
 
 use crate::color::Lightness;
-use crate::instruction::Instruction;
+use crate::flow::PietTransition;
 use crate::state::Position;
-use crate::transition::PietTransition;
 
 pub type Node = Rc<ColorBlock>;
 pub type Info = Vec<PietTransition>;

@@ -1,7 +1,7 @@
 use inkwell::{
     values::{AnyValue, BasicValue, IntValue}, IntPredicate
 };
-use types::instruction::Instruction;
+use piet_core::instruction::Instruction;
 
 use crate::codegen::CodeGen;
 

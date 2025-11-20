@@ -1,6 +1,6 @@
 use std::{collections::HashSet, fmt::Pointer};
 
-use crate::{program::PietSource, state::Position};
+use crate::{instruction::Instruction, program::PietSource, state::Position};
 
 type C1 = fn(&&(u32, u32)) -> (i64, i64);
 type C2 = fn((u32, u32, u32)) -> (u32, u32);
@@ -140,5 +140,25 @@ pub trait FindAdj {
         .iter()
         .filter_map(|&pos| program.get(pos).map(|_| pos))
         .collect()
+    }
+}
+#[derive(Copy, Clone)]
+pub struct PietTransition {
+    pub entry_state: PointerState,
+    pub exit_state: PointerState,
+    pub instruction: Option<Instruction>,
+}
+
+impl PietTransition {
+    pub fn new(
+        entry_state: PointerState,
+        exit_state: PointerState,
+        instruction: Option<Instruction>,
+    ) -> Self {
+        Self {
+            entry_state,
+            exit_state,
+            instruction,
+        }
     }
 }

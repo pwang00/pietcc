@@ -1,5 +1,5 @@
-use types::color::Lightness;
-use types::instruction::Instruction;
+use piet_core::color::Lightness;
+use piet_core::instruction::Instruction;
 
 pub trait DecodeInstruction {
     fn decode_instr(left: Lightness, right: Lightness) -> Option<Instruction> {
@@ -34,7 +34,7 @@ mod test_parse {
     use super::DecodeInstruction;
     use crate::convert::ConvertToLightness;
     use image::Rgb;
-    use types::instruction::Instruction;
+    use piet_core::instruction::Instruction;
 
     struct Test;
     impl DecodeInstruction for Test {}

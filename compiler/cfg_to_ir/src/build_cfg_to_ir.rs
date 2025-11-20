@@ -1,8 +1,8 @@
 use crate::codegen::CodeGen;
 use inkwell::{basic_block::BasicBlock, values::AnyValue};
 use std::collections::HashMap;
-use types::cfg::CFG;
-use types::instruction::Instruction;
+use piet_core::cfg::CFG;
+use piet_core::instruction::Instruction;
 
 impl<'a, 'b> CodeGen<'a, 'b> {
     pub(crate) fn build_entry(&self, cfg: &CFG) {

@@ -1,16 +1,16 @@
-use parser::cfg::CFGBuilder;
 use crate::settings::{CompilerSettings, SaveOptions};
+use inkwell::llvm_sys::transforms::pass_builder;
+use inkwell::passes::PassManager;
 use inkwell::targets::{InitializationConfig, Target};
-use inkwell::{builder::Builder, context::Context, module::Module};
-
-use inkwell::passes::{PassManager, PassManagerBuilder};
 use inkwell::OptimizationLevel;
+use inkwell::{builder::Builder, context::Context, module::Module};
+use parser::cfg::CFGBuilder;
 use parser::decode::DecodeInstruction;
 use std::env;
 use std::fs::{remove_file, OpenOptions};
 use std::io::{Error, Write};
 use std::process::Command;
-use types::instruction::Instruction;
+use piet_core::instruction::Instruction;
 
 #[allow(unused)]
 pub struct CodeGen<'a, 'b> {
@@ -125,8 +125,6 @@ impl<'a, 'b> CodeGen<'a, 'b> {
         show_cfg_size: bool,
         options: SaveOptions,
     ) -> Result<(), Error> {
-
-
         self.generate_cfg();
         let cfg = self.cfg_builder.get_cfg();
 
@@ -212,7 +210,7 @@ mod test {
     use inkwell::{builder::Builder, context::Context, module::Module};
     use parser::{convert::UnknownPixelSettings, loader::Loader};
     use std::fs;
-    use types::program::Program;
+    use piet_core::program::Program;
 
     const SETTINGS: UnknownPixelSettings = UnknownPixelSettings::TreatAsError;
     #[test]

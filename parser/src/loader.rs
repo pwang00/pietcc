@@ -1,6 +1,6 @@
 use crate::convert::{ConvertToLightness, UnknownPixelSettings};
 use image::ImageError;
-use types::program::PietSource;
+use piet_core::program::PietSource;
 pub struct Loader;
 
 impl ConvertToLightness for Loader {}

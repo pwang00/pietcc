@@ -2,7 +2,7 @@ use inkwell::{
     values::{AnyValue, BasicValue, IntValue, PointerValue},
     IntPredicate,
 };
-use types::instruction::Instruction;
+use piet_core::instruction::Instruction;
 
 use crate::codegen::CodeGen;
 
