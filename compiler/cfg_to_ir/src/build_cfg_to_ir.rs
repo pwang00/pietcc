@@ -1,15 +1,15 @@
 use crate::codegen::CodeGen;
 use inkwell::{basic_block::BasicBlock, values::AnyValue};
-use std::collections::HashMap;
 use piet_core::cfg::CFG;
 use piet_core::instruction::Instruction;
+use std::collections::HashMap;
 
 impl<'a, 'b> CodeGen<'a, 'b> {
-    pub(crate) fn build_entry(&self, cfg: &CFG) {
+    pub(crate) fn build_transitions(&self, cfg: &CFG) {
         let i8_type = self.context.i8_type();
         let i64_type = self.context.i64_type();
-        let void_type = self.context.void_type().fn_type(&[], false);
-        let start_fn = self.module.add_function("start", void_type, None);
+        let void_fn_type = self.context.void_type().fn_type(&[], false);
+        let start_fn = self.module.add_function("start", void_fn_type, None);
         let basic_block = self.context.append_basic_block(start_fn, "");
 
         let mut block_lookup_table = HashMap::<&str, BasicBlock>::new();

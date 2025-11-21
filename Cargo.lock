@@ -427,6 +427,7 @@ name = "piet-core"
 version = "0.1.0"
 dependencies = [
  "image",
+ "inkwell",
  "strum",
  "strum_macros",
 ]

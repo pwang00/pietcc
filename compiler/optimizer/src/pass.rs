@@ -1,7 +1,8 @@
-use crate::context::OptimizationContext;
+use crate::analysis_cache::AnalysisCache;
 use piet_core::cfg::CFG;
+use std::fmt::Debug;
 
-pub trait Pass {
+pub trait Pass: Debug {
     fn name(&self) -> &'static str;
-    fn run(&mut self, cfg: CFG, ctx: &mut OptimizationContext);
+    fn run(&mut self, cfg: &mut CFG, manager: &mut AnalysisCache);
 }

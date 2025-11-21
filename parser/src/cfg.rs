@@ -1,5 +1,5 @@
 use crate::decode::DecodeInstruction;
-use crate::infer::{CodelSettings, InferCodelWidth};
+use crate::infer::InferCodelWidth;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::hash::Hash;
 use std::rc::Rc;
@@ -10,6 +10,7 @@ use piet_core::flow::PietTransition;
 use piet_core::flow::{FindAdj, FURTHEST, MOVE_IN};
 use piet_core::flow::{PointerState, DIRECTIONS};
 use piet_core::program::PietSource;
+use piet_core::settings::CodelSettings;
 use piet_core::state::{Position, ENTRY};
 
 pub type Node = Rc<ColorBlock>;

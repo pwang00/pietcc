@@ -14,15 +14,19 @@ impl<'a, 'b> CodeGen<'a, 'b> {
 
         self.builder.position_at_end(init_block);
 
-        let _ = self.builder
+        let _ = self
+            .builder
             .build_call(init_globals_fn, &[], "setup_globals");
-        let _ = self.builder
+        let _ = self
+            .builder
             .build_call(set_stdout_unbuffered_fn, &[], "set_stdout_unbuffered");
         let _ = self.builder.build_call(start_fn, &[], "start");
 
-        let _ = self.builder
+        let _ = self
+            .builder
             .build_call(print_stack_fn, &[], "print_stack_fn");
-        let _ = self.builder
+        let _ = self
+            .builder
             .build_return(Some(&self.context.i64_type().const_zero()));
     }
 }

@@ -1,4 +1,3 @@
-use crate::settings::{CompilerSettings, SaveOptions};
 use inkwell::llvm_sys::transforms::pass_builder;
 use inkwell::passes::PassManager;
 use inkwell::targets::{InitializationConfig, Target};
@@ -6,11 +5,15 @@ use inkwell::OptimizationLevel;
 use inkwell::{builder::Builder, context::Context, module::Module};
 use parser::cfg::CFGBuilder;
 use parser::decode::DecodeInstruction;
+use piet_core::instruction::Instruction;
+use piet_core::settings::{CompilerSettings, SaveOptions};
+use piet_optimizer::manager::OptimizationPassManager;
+use piet_optimizer::result::ExecutionResult;
+use piet_optimizer::static_eval::{StaticEvaluator, StaticEvaluatorPass};
 use std::env;
 use std::fs::{remove_file, OpenOptions};
 use std::io::{Error, Write};
 use std::process::Command;
-use piet_core::instruction::Instruction;
 
 #[allow(unused)]
 pub struct CodeGen<'a, 'b> {
@@ -18,7 +21,7 @@ pub struct CodeGen<'a, 'b> {
     pub(crate) module: Module<'b>,
     pub(crate) builder: Builder<'b>,
     pub(crate) cfg_builder: CFGBuilder<'a>,
-    pub(crate) settings: CompilerSettings<'a>,
+    pub(crate) settings: CompilerSettings,
 }
 
 impl<'a, 'b> DecodeInstruction for CodeGen<'a, 'b> {}
@@ -30,7 +33,7 @@ impl<'a, 'b> CodeGen<'a, 'b> {
         module: Module<'b>,
         builder: Builder<'b>,
         cfg_builder: CFGBuilder<'a>,
-        settings: CompilerSettings<'a>,
+        settings: CompilerSettings,
     ) -> Self {
         Self {
             context,
@@ -117,7 +120,7 @@ impl<'a, 'b> CodeGen<'a, 'b> {
         Ok(())
     }
 
-    fn generate(
+    fn build_all(
         &mut self,
         save_file: &str,
         opt_level: OptimizationLevel,
@@ -150,6 +153,13 @@ impl<'a, 'b> CodeGen<'a, 'b> {
             }
         }
 
+        let piet_opt_manager =
+            OptimizationPassManager::new(vec![Box::new(StaticEvaluatorPass)], self.settings);
+        piet_opt_manager.run_all(&mut cfg);
+
+        if let Some(&execution_result) = piet_opt_manager.get_analysis_cache().get_cached_result() {
+            self.build_from_state(execution_result);
+        }
         self.build_globals();
         self.build_stdout_unbuffered();
         self.build_print_stack();
@@ -173,7 +183,7 @@ impl<'a, 'b> CodeGen<'a, 'b> {
         self.build_switch();
         self.build_rotate();
         self.build_retry();
-        self.build_entry(&cfg);
+        self.build_transitions(&cfg);
         self.build_main();
         let config = InitializationConfig::default();
         Target::initialize_native(&config).unwrap();
@@ -194,8 +204,8 @@ impl<'a, 'b> CodeGen<'a, 'b> {
     }
 
     pub fn run(&mut self, settings: CompilerSettings) -> Result<(), Error> {
-        self.generate(
-            settings.output_fname,
+        self.build_all(
+            &settings.output_fname,
             settings.llvm_opt_level,
             settings.warn_nt,
             settings.show_cfg_size,
@@ -209,8 +219,8 @@ mod test {
     use super::*;
     use inkwell::{builder::Builder, context::Context, module::Module};
     use parser::{convert::UnknownPixelSettings, loader::Loader};
-    use std::fs;
     use piet_core::program::Program;
+    use std::fs;
 
     const SETTINGS: UnknownPixelSettings = UnknownPixelSettings::TreatAsError;
     #[test]
@@ -223,7 +233,7 @@ mod test {
         let cfg_gen = CFGBuilder::new(&program, 1, true);
         let mut cg = CodeGen::new(&context, module, builder, cfg_gen, 1);
         let options = SaveOptions::EmitLLVMIR;
-        let ir = cg.generate(
+        let ir = cg.build_all(
             "../../compilation.ll",
             OptimizationLevel::Aggressive,
             false,

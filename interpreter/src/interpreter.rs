@@ -1,22 +1,23 @@
-use crate::settings::{InterpSettings, Verbosity};
-use std::collections::VecDeque;
-use std::env;
-use std::io::Write;
-use std::{io, io::Read};
 use piet_core::cfg::{Node, CFG};
 use piet_core::error::ExecutionError;
 use piet_core::flow::{find_offset, PointerState};
 use piet_core::instruction::*;
+use piet_core::settings::{InterpreterSettings, Verbosity};
 use piet_core::state::{ExecutionState, ExecutionStatus};
+use std::collections::VecDeque;
+use std::env;
+use std::io::Write;
+use std::{io, io::Read};
 
-pub struct Interpreter {
-    cfg: CFG,
+#[derive(Debug)]
+pub struct Interpreter<'a> {
+    cfg: &'a CFG,
     state: ExecutionState,
-    settings: InterpSettings,
+    settings: InterpreterSettings,
 }
 
-impl Interpreter {
-    pub fn new(cfg: CFG, settings: InterpSettings) -> Self {
+impl<'a> Interpreter<'a> {
+    pub fn new(cfg: &'a CFG, settings: InterpreterSettings) -> Self {
         Self {
             cfg,
             state: ExecutionState::default(),
@@ -65,7 +66,7 @@ impl Interpreter {
 
     pub fn exec_instr(&mut self, instr: Instruction) -> Result<(), ExecutionError> {
         Ok(match instr {
-            Instruction::Push => self.push(self.state.cb),
+            Instruction::Push => self.push(self.state.prev_cb_count),
             Instruction::Pop => self.pop(),
             Instruction::Add => self.add()?,
             Instruction::Sub => self.sub()?,
@@ -298,6 +299,9 @@ impl Interpreter {
     #[inline]
     pub(crate) fn int_in(&mut self) -> Result<(), ExecutionError> {
         self.state.stdin.clear();
+        if self.settings.abstract_interp {
+            self.state.status = ExecutionStatus::NeedsInput;
+        }
         let _ = io::stdin().read_line(&mut self.state.stdin);
         if let Ok(n) = self.state.stdin.trim().parse::<i64>() {
             Ok(self.state.stack.push_front(n))
@@ -312,6 +316,11 @@ impl Interpreter {
     #[inline]
     pub(crate) fn char_in(&mut self) -> Result<(), ExecutionError> {
         self.state.stdin.clear();
+
+        if self.settings.abstract_interp {
+            self.state.status = ExecutionStatus::NeedsInput;
+        }
+
         let char = io::stdin()
             .bytes()
             .next()
@@ -381,9 +390,13 @@ impl Interpreter {
 
         loop {
             io::stdout().flush().unwrap();
-            self.state.cb = block.get_region().len() as u64;
-            let (next, maybe_instr) = self.next_block(block.clone());
+            self.state.prev_cb_count = block.get_region().len() as u64;
+            self.state.prev_cb_label = block.get_label().clone();
+            if self.settings.abstract_interp && self.state.status == ExecutionStatus::NeedsInput {
+                break;
+            }
 
+            let (next, maybe_instr) = self.next_block(block.clone());
             if next.is_none() {
                 self.state.status = ExecutionStatus::Completed;
                 break;
@@ -423,7 +436,7 @@ mod test {
         // Setup
         let vec = Vec::<Lightness>::new();
         let program = PietSource::new(&vec, 0, 0);
-        let mut interpreter = Interpreter::new(&program, InterpSettings::default());
+        let mut interpreter = Interpreter::new(&program, InterpreterSettings::default());
 
         // Positive roll to depth 2
         interpreter.stack = VecDeque::from([1, 2, 6, 5]);

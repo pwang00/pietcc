@@ -142,7 +142,7 @@ pub trait FindAdj {
         .collect()
     }
 }
-#[derive(Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub struct PietTransition {
     pub entry_state: PointerState,
     pub exit_state: PointerState,

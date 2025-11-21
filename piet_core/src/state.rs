@@ -18,7 +18,8 @@ pub enum ExecutionStatus {
 #[derive(Debug, Default, Clone)]
 pub struct ExecutionState {
     pub pointers: PointerState,
-    pub cb: u64,
+    pub prev_cb_count: u64,
+    pub prev_cb_label: String,
     pub stdin: String,
     pub stdout: Vec<StdOutWrapper>,
     pub steps: u64,
@@ -32,7 +33,7 @@ impl std::fmt::Display for ExecutionState {
         writeln!(f, "ExecutionState {{");
         writeln!(f, "    dp: {:?}", self.pointers.dp);
         writeln!(f, "    cc: {:?}", self.pointers.cc);
-        writeln!(f, "    cb: {:?}", self.cb);
+        writeln!(f, "    cb: {:?}", self.prev_cb_count);
         writeln!(f, "    stdin: {:?}", self.stdin);
         writeln!(f, "    stdout: {:?}", self.stdout);
         writeln!(f, "    steps: {:?}", self.steps);

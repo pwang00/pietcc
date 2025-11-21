@@ -2,19 +2,18 @@ pub mod verbosity;
 
 use crate::Verbosity;
 use cfg_to_ir::codegen::CodeGen;
-use cfg_to_ir::settings::CompilerSettings;
-use cfg_to_ir::settings::SaveOptions;
 use clap::{App, Arg};
 use inkwell::context::Context;
 use inkwell::OptimizationLevel;
-use interpreter::{interpreter::Interpreter, settings::*};
+use interpreter::interpreter::Interpreter;
 use parser::cfg::CFGBuilder;
 use parser::convert::UnknownPixelSettings;
-use parser::{infer::CodelSettings, loader::Loader};
+use parser::loader::Loader;
+use piet_core::program::PietSource;
+use piet_core::settings::*;
 use std::env;
 use std::io::Error;
 use std::process::exit;
-use piet_core::program::PietSource;
 
 fn main() -> Result<(), Error> {
     let matches = App::new("pietcc")
@@ -161,7 +160,7 @@ fn main() -> Result<(), Error> {
         program = prog;
         let mut codel_settings = CodelSettings::Infer;
         let mut verbosity = Verbosity::Normal;
-        let mut interp_settings = InterpSettings::default();
+        let mut interp_settings = InterpreterSettings::default();
 
         if let Some(val) = matches.value_of("codel_size") {
             if let Ok(val) = val.parse::<u32>() {
