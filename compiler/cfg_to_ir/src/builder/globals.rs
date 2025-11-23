@@ -1,0 +1,154 @@
+use crate::{consts::STACK_SIZE, lowering_ctx::LoweringCtx};
+use inkwell::{module::Linkage, AddressSpace};
+use piet_core::{instruction::Instruction, state::ExecutionState};
+use strum::IntoEnumIterator;
+
+pub(crate) fn build_globals<'a, 'b>(ctx: &LoweringCtx<'a, 'b>, execution_state: &ExecutionState) {
+    // Our piet stack is a Vec<i64> so we want to malloc an i64
+    let ptr_type = ctx.llvm_context.ptr_type(AddressSpace::default());
+    let piet_stack = ctx.module.add_global(ptr_type, None, "piet_stack");
+    let i8_type = ctx.llvm_context.i8_type();
+    let i64_type = ctx.llvm_context.i64_type();
+    let void_type = ctx.llvm_context.void_type();
+
+    let init_dp = i8_type.const_int(execution_state.pointers.dp as u64, false);
+    let init_cc = i8_type.const_int(execution_state.pointers.cc as u64, false);
+
+    let global_dp = ctx.module.add_global(i8_type, None, "dp");
+    let global_cc = ctx.module.add_global(i8_type, None, "cc");
+
+    let global_stack_size = ctx.module.add_global(i64_type, None, "stack_size");
+    let global_retries = ctx.module.add_global(i8_type, None, "rctr");
+    // Defines dp, cc, and stack depth
+    piet_stack.set_linkage(Linkage::Internal);
+    piet_stack.set_initializer(&ptr_type.const_null());
+
+    global_dp.set_linkage(Linkage::Internal);
+    global_dp.set_initializer(&init_dp);
+
+    global_cc.set_linkage(Linkage::Internal);
+    global_cc.set_initializer(&init_cc);
+
+    global_stack_size.set_linkage(Linkage::Internal);
+    global_stack_size.set_initializer(&i64_type.const_zero());
+
+    global_retries.set_linkage(Linkage::Internal);
+    global_retries.set_initializer(&i8_type.const_zero());
+
+    // Initialize the piet stack
+    let init_fn_type = ctx.llvm_context.void_type().fn_type(&[], false);
+    let init_fn = ctx.module.add_function("init_globals", init_fn_type, None);
+    let init_block = ctx.llvm_context.append_basic_block(init_fn, "");
+    ctx.builder.position_at_end(init_block);
+
+    unsafe {
+        let _ = ctx
+            .builder
+            .build_global_string("Enter number: ", "input_message_int");
+        let _ = ctx
+            .builder
+            .build_global_string("Enter char: ", "input_message_char");
+        // let _ = ctx.builder.build_global_string("%ld\0", "dec_fmt");
+        // let _ = ctx.builder.build_global_string("%c\0", "char_fmt");
+        // let _ = ctx.builder.build_global_string("%s\0", "string_fmt");
+        // let _ = ctx.builder.build_global_string("%ld \0", "stack_fmt");
+        // let _ = ctx
+        //     .builder
+        //     .build_global_string("\nStack (size %d): ", "stack_id");
+        // let _ = ctx
+        //     .builder
+        //     .build_global_string("\nStack empty", "stack_id_empty");
+
+        let _ = ctx.builder.build_global_string("w", "fdopen_mode");
+
+        for instr in Instruction::iter() {
+            let _ = ctx.builder.build_global_string(
+                &(instr.to_llvm_name().to_owned() + "\n"),
+                &(instr.to_llvm_name().to_owned() + "_fmt"),
+            );
+        }
+
+        let _ = ctx.builder.build_global_string(
+            "\nStack memory exhausted, terminating program.",
+            "exhausted_fmt",
+        );
+        let _ = ctx
+            .builder
+            .build_global_string("Calling retry", "retry_fmt");
+        let _ = ctx.builder.build_global_string("\n", "newline");
+    }
+
+    /* External functions and LLVM intrinsics */
+
+    // malloc type
+    let malloc_fn_type = ptr_type.fn_type(&[ctx.llvm_context.i64_type().into()], false);
+    let malloc_fn = ctx.module.add_function("malloc", malloc_fn_type, None);
+
+    // printf type
+    let printf_type = ctx
+        .llvm_context
+        .i64_type()
+        .fn_type(&[ptr_type.into()], true);
+    let _printf_fn = ctx.module.add_function("printf", printf_type, None);
+
+    // scanf type
+    let scanf_type = ctx
+        .llvm_context
+        .i64_type()
+        .fn_type(&[ptr_type.into()], true);
+
+    let _scanf_fn = ctx.module.add_function("__isoc99_scanf", scanf_type, None);
+
+    let size_value = ctx
+        .llvm_context
+        .i64_type()
+        .const_int((STACK_SIZE * 8) as u64, false);
+    let malloc_call = ctx
+        .builder
+        .build_call(malloc_fn, &[size_value.into()], "malloc");
+
+    let value = malloc_call.unwrap().try_as_basic_value().left().unwrap();
+    let _ = ctx
+        .builder
+        .build_store(piet_stack.as_pointer_value(), value.into_pointer_value());
+
+    let llvm_stackrestore_type = void_type.fn_type(&[ptr_type.into()], false);
+    let _llvm_stackrestore_fn =
+        ctx.module
+            .add_function("llvm.stackrestore", llvm_stackrestore_type, None);
+
+    let llvm_smax_type = i64_type.fn_type(&[i64_type.into(), i64_type.into()], false);
+    let _llvm_smax_fn = ctx
+        .module
+        .add_function("llvm.smax.i64", llvm_smax_type, None);
+
+    let llvm_stacksave_type = ptr_type.fn_type(&[], false);
+    let _llvm_stacksave_fn = ctx
+        .module
+        .add_function("llvm.stacksave", llvm_stacksave_type, None);
+
+    let exit_fn_type = i64_type.fn_type(&[i64_type.into()], false);
+    let _exit_fn = ctx.module.add_function("exit", exit_fn_type, None);
+
+    // setvbuf to disable buffering
+    let i32_type = ctx.llvm_context.i32_type();
+    let void_type = ctx.llvm_context.void_type();
+
+    let setvbuf_type = void_type.fn_type(
+        &[
+            ptr_type.into(),
+            ptr_type.into(),
+            i32_type.into(),
+            i32_type.into(),
+        ],
+        false,
+    );
+
+    ctx.module.add_function("setvbuf", setvbuf_type, None);
+
+    // fdopen to get pointer to stdout
+    let fdopen_type = ptr_type.fn_type(&[i32_type.into(), ptr_type.into()], false);
+    let _fdopen_fn = ctx.module.add_function("fdopen", fdopen_type, None);
+
+    let _ = ctx.builder.build_return(None);
+}

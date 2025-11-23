@@ -18,7 +18,7 @@ pub enum SaveOptions {
 
 #[derive(Clone, Debug)]
 pub struct CompilerSettings {
-    pub llvm_opt_level: OptimizationLevel,
+    pub opt_level: OptimizationLevel,
     pub codel_settings: CodelSettings,
     pub save_options: SaveOptions,
     pub output_fname: String,

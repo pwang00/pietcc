@@ -1,3 +1,5 @@
+use std::{fmt, io::Stdout};
+
 use strum_macros::EnumIter;
 
 #[derive(EnumIter, Debug, PartialEq, Eq, Copy, Clone)]
@@ -25,6 +27,15 @@ pub enum Instruction {
 pub enum StdOutWrapper {
     Char(char),
     Int(i64),
+}
+
+impl fmt::Display for StdOutWrapper {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            StdOutWrapper::Char(c) => write!(f, "{c}"),
+            StdOutWrapper::Int(x) => write!(f, "{x}"),
+        }
+    }
 }
 
 impl Instruction {

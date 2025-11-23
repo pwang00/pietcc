@@ -1,7 +1,7 @@
 pub mod verbosity;
 
 use crate::Verbosity;
-use cfg_to_ir::codegen::CodeGen;
+use cfg_to_ir::lowering_ctx::LoweringCtx;
 use clap::{App, Arg};
 use inkwell::context::Context;
 use inkwell::OptimizationLevel;
@@ -83,7 +83,7 @@ fn main() -> Result<(), Error> {
                 .conflicts_with("o2")
                 .conflicts_with("interpret")
                 .conflicts_with("o3")
-                .help("Sets the compiler optimization level to 1 (LLVM Less)"),
+                .help("Sets the compiler optimization level to 1 (LLVM Less, attempts Piet constant folding)"),
         )
         .arg(
             Arg::with_name("o2")
@@ -92,7 +92,7 @@ fn main() -> Result<(), Error> {
                 .conflicts_with("o1")
                 .conflicts_with("interpret")
                 .conflicts_with("o3")
-                .help("Sets the compiler optimization level to 2 (LLVM Default)"),
+                .help("Sets the compiler optimization level to 2 (LLVM Default, attempts Piet constant folding)"),
         )
         .arg(
             Arg::with_name("o3")
@@ -101,7 +101,7 @@ fn main() -> Result<(), Error> {
                 .conflicts_with("o1")
                 .conflicts_with("interpret")
                 .conflicts_with("o2")
-                .help("Sets the compiler optimization level to 3 (LLVM Aggressive)"),
+                .help("Sets the compiler optimization level to 3 (LLVM Aggressive, attempts Piet constant folding)"),
         )
         .arg(
             Arg::with_name("pe")
@@ -210,7 +210,7 @@ fn main() -> Result<(), Error> {
 
         if matches.is_present("interpret") {
             interp_settings.codel_settings = codel_settings;
-            interpreter = Interpreter::new(builder.get_cfg(), interp_settings);
+            interpreter = Interpreter::new(&builder.get_cfg(), interp_settings);
             println!("\n{}", interpreter.run());
             exit(0);
         }
@@ -251,17 +251,17 @@ fn main() -> Result<(), Error> {
             };
 
             let compile_options = CompilerSettings {
-                llvm_opt_level: opt_level,
+                opt_level,
                 codel_settings,
                 save_options,
-                output_fname,
+                output_fname: output_fname.to_string(),
                 warn_nt,
                 show_cfg_size,
                 show_codel_size,
             };
 
             let cfg_gen = CFGBuilder::new(&program, codel_settings, show_codel_size);
-            let mut cg = CodeGen::new(&context, module, builder, cfg_gen, compile_options);
+            let mut cg = LoweringCtx::new(&context, module, builder, cfg_gen, compile_options);
             if let Err(e) = cg.run(compile_options) {
                 println!("{:?}", e);
             }
