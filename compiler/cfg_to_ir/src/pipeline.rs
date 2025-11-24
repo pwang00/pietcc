@@ -20,7 +20,7 @@ fn generate_cfg(cfg_builder: &mut CFGBuilder) {
 
 pub fn run_pipeline(
     ctx: &mut LoweringCtx,
-    mut cfg: &mut CFG,
+    cfg: &mut CFG,
     settings: CompilerSettings,
 ) -> Result<(), Error> {
     // Build globals - declares all functions and global variables
@@ -30,8 +30,8 @@ pub fn run_pipeline(
         OptimizationLevel::None => builder::build_partial(ctx, cfg, &ExecutionState::default()),
         _ => {
             let mut piet_opt_manager =
-                OptimizationPassManager::new(vec![Box::new(StaticEvaluatorPass)], settings.clone());
-            piet_opt_manager.run_all(&mut cfg);
+                OptimizationPassManager::new(vec![Box::new(StaticEvaluatorPass)], settings);
+            piet_opt_manager.run_all(cfg);
             if let Some(execution_result) =
                 piet_opt_manager.get_analysis_cache().get_cached_result()
             {
@@ -40,7 +40,7 @@ pub fn run_pipeline(
                         builder::build_complete(ctx, execution_state)
                     }
                     ExecutionResult::Partial(execution_state) => {
-                        builder::build_partial(ctx, &mut cfg, execution_state)
+                        builder::build_partial(ctx, cfg, execution_state)
                     }
                 }
             }

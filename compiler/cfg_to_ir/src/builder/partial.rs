@@ -9,7 +9,6 @@ pub(crate) fn build_partial<'a, 'b>(
     // Initialize dp/cc with execution state
     builder::build_dp_cc(ctx, execution_state);
     // Build init_globals function body
-    builder::build_init_globals(ctx);
     builder::build_stdout_unbuffered(ctx);
     builder::build_print_stack(ctx);
     builder::build_terminate(ctx);

@@ -19,6 +19,7 @@ fn main() {
                 "llvm16-0" => ("LLVM_SYS_160_PREFIX", "/opt/homebrew/opt/llvm@16/"),
                 "llvm17-0" => ("LLVM_SYS_170_PREFIX", "/opt/homebrew/opt/llvm@17/"),
                 "llvm18-0" => ("LLVM_SYS_180_PREFIX", "/opt/homebrew/opt/llvm@18/"),
+                "llvm18-1" => ("LLVM_SYS_181_PREFIX", "/opt/homebrew/opt/llvm@18/"),
                 _ => panic!("No supported LLVM version found!"),
             };
 

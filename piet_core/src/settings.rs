@@ -27,7 +27,7 @@ pub struct CompilerSettings<'a> {
     pub warn_nt: bool,
 }
 
-#[derive(Copy, Clone, Default, Debug)]
+#[derive(Copy, Clone, Debug)]
 pub struct InterpreterSettings {
     pub verbosity: Verbosity,
     pub codel_settings: CodelSettings,
@@ -37,15 +37,28 @@ pub struct InterpreterSettings {
     pub print: bool,
 }
 
+impl Default for InterpreterSettings {
+    fn default() -> Self {
+        Self { 
+            verbosity: Default::default(), 
+            codel_settings: Default::default(), 
+            max_steps: Default::default(), 
+            partial_eval: Default::default(), 
+            abstract_interp: Default::default(), 
+            print: true
+        }
+    }
+}
+
 impl InterpreterSettings {
-    pub fn abstract_interp(max_steps: u64, codel_settings: CodelSettings, print: bool) -> Self {
+    pub fn abstract_interp(max_steps: u64, codel_settings: CodelSettings) -> Self {
         InterpreterSettings {
             verbosity: Verbosity::Low,
             codel_settings,
             max_steps: Some(max_steps),
             partial_eval: true,
             abstract_interp: true,
-            print,
+            print: false,
         }
     }
 }

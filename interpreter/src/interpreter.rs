@@ -301,6 +301,7 @@ impl<'a> Interpreter<'a> {
         self.state.stdin.clear();
         if self.settings.abstract_interp {
             self.state.status = ExecutionStatus::NeedsInput;
+            return Ok(())
         }
         let _ = io::stdin().read_line(&mut self.state.stdin);
         if let Ok(n) = self.state.stdin.trim().parse::<i64>() {
@@ -319,6 +320,7 @@ impl<'a> Interpreter<'a> {
 
         if self.settings.abstract_interp {
             self.state.status = ExecutionStatus::NeedsInput;
+            return Ok(())
         }
 
         let char = io::stdin()

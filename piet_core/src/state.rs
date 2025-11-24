@@ -48,8 +48,6 @@ impl std::fmt::Display for ExecutionState {
         writeln!(f, "    dp: {:?}", self.pointers.dp);
         writeln!(f, "    cc: {:?}", self.pointers.cc);
         writeln!(f, "    cb: {:?}", self.prev_cb_count);
-        writeln!(f, "    stdin: {:?}", self.stdin);
-        writeln!(f, "    stdout: {:?}", self.stdout);
         writeln!(f, "    steps: {:?}", self.steps);
         writeln!(f, "    status: {:?}", self.status);
         writeln!(f, "    stack: {:?}", self.stack);

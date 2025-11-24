@@ -14,7 +14,9 @@ impl<'a> OptimizationPassManager<'a> {
     pub fn run_all(&mut self, cfg: &mut CFG) {
         // Borrow checker :(
         for pass in &mut self.passes {
-            pass.run(cfg, &mut self.analysis_cache);
+            if let Err(err) = pass.run(cfg, &mut self.analysis_cache) {
+                eprintln!("Error while running optimization pass: {}", err)
+            }
         }
     }
 

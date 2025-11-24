@@ -6,10 +6,10 @@ pub(crate) fn build_complete<'a, 'b>(ctx: &LoweringCtx<'a, 'b>, execution_state:
     // Insert basic block after
     let start_fn = ctx.module.get_function("start").unwrap();
     let printf_fn = ctx.module.get_function("printf").unwrap();
-    let _ = ctx
+    let print_stdout_basic_block = ctx
         .llvm_context
         .append_basic_block(start_fn, "print_stdout");
-
+    ctx.builder.position_at_end(print_stdout_basic_block);
     let stdout: String = execution_state
         .stdout
         .iter()

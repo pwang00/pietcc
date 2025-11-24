@@ -1,5 +1,5 @@
 mod complete;
-mod constants;
+mod literals;
 mod globals;
 mod instructions;
 mod io;
@@ -11,7 +11,7 @@ mod terminate;
 mod transitions;
 
 pub(crate) use complete::build_complete;
-pub(crate) use constants::*;
+pub(crate) use literals::*;
 pub(crate) use globals::*;
 pub(crate) use instructions::*;
 pub(crate) use io::*;
