@@ -7,18 +7,12 @@ use std::collections::HashMap;
 pub(crate) fn build_transitions<'a, 'b>(ctx: &LoweringCtx<'a, 'b>, cfg: &CFG, entry_label: &str) {
     let i8_type = ctx.llvm_context.i8_type();
     let i64_type = ctx.llvm_context.i64_type();
-    let start_fn = ctx.module.get_function("start").unwrap_or_else(|| {
-        ctx.module.add_function(
-            "start",
-            ctx.llvm_context.void_type().fn_type(&[], false),
-            None,
-        )
-    });
-    let basic_block = ctx.llvm_context.append_basic_block(start_fn, "");
+    let start_fn = ctx.module.get_function("start").unwrap();
+    let start_adj_basic_block = ctx.llvm_context.append_basic_block(start_fn, "");
 
     let mut block_lookup_table = HashMap::<&str, BasicBlock>::new();
 
-    ctx.builder.position_at_end(basic_block);
+    ctx.builder.position_at_end(start_adj_basic_block);
     // Globals
     let dp_addr = ctx
         .module
@@ -50,7 +44,7 @@ pub(crate) fn build_transitions<'a, 'b>(ctx: &LoweringCtx<'a, 'b>, cfg: &CFG, en
     let ret_block = ctx.llvm_context.append_basic_block(start_fn, "ret");
 
     // Init (jumps to entry block)
-    ctx.builder.position_at_end(basic_block);
+    ctx.builder.position_at_end(start_adj_basic_block);
     let _ = ctx.builder.build_unconditional_branch(entry);
 
     // For every node, we want to get its adjacencies and generate the correct instructions depending on DP / CC
@@ -73,12 +67,12 @@ pub(crate) fn build_transitions<'a, 'b>(ctx: &LoweringCtx<'a, 'b>, cfg: &CFG, en
 
         let global_dp = ctx
             .builder
-            .build_load(ctx.llvm_context.i64_type(), dp_addr, "load_dp")
+            .build_load(ctx.llvm_context.i8_type(), dp_addr, "load_dp")
             .unwrap()
             .into_int_value();
         let global_cc = ctx
             .builder
-            .build_load(ctx.llvm_context.i64_type(), cc_addr, "load_cc")
+            .build_load(ctx.llvm_context.i8_type(), cc_addr, "load_cc")
             .unwrap()
             .into_int_value();
 

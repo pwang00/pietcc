@@ -3,11 +3,7 @@ use inkwell::IntPredicate;
 
 pub(crate) fn build_print_stack<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
     // The stack is only valid from 0 to stack_size, so decrementing the stack size effectively pops the top element off the stack.
-    let void_type = ctx.llvm_context.void_type();
-    let print_stack_fn_type = void_type.fn_type(&[], false);
-    let print_stack_fn =
-        ctx.module
-            .add_function("print_piet_stack", print_stack_fn_type, None);
+    let print_stack_fn = ctx.module.get_function("print_piet_stack").unwrap();
     let printf_fn = ctx.module.get_function("printf").unwrap();
     // Labels
     let basic_block = ctx.llvm_context.append_basic_block(print_stack_fn, "");
@@ -69,11 +65,7 @@ pub(crate) fn build_print_stack<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
         .unwrap()
         .as_pointer_value();
 
-    let newline_fmt = ctx
-        .module
-        .get_global("newline")
-        .unwrap()
-        .as_pointer_value();
+    let newline_fmt = ctx.module.get_global("newline").unwrap().as_pointer_value();
 
     let const_fmt_stack_id_gep = unsafe {
         ctx.builder
@@ -96,9 +88,9 @@ pub(crate) fn build_print_stack<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
         .builder
         .build_int_compare(IntPredicate::EQ, stack_size_val, const_0, "")
         .unwrap();
-    let _ =
-        ctx.builder
-            .build_conditional_branch(size_eq_0, size_zero_block, size_gt_zero_block);
+    let _ = ctx
+        .builder
+        .build_conditional_branch(size_eq_0, size_zero_block, size_gt_zero_block);
 
     ctx.builder.position_at_end(size_zero_block);
 
@@ -175,8 +167,6 @@ pub(crate) fn build_print_stack<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
             .build_gep(newline_fmt.get_type(), newline_fmt, &[const_0, const_0], "")
             .unwrap()
     };
-    let _ = ctx
-        .builder
-        .build_call(printf_fn, &[newline_fmt.into()], "");
+    let _ = ctx.builder.build_call(printf_fn, &[newline_fmt.into()], "");
     let _ = ctx.builder.build_return(None);
 }

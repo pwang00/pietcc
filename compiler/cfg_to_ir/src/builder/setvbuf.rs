@@ -3,10 +3,7 @@ use inkwell::AddressSpace;
 // ...
 
 pub(crate) fn build_stdout_unbuffered<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
-    let void_type = ctx.llvm_context.void_type().fn_type(&[], false);
-    let set_stdout_unbuffered_fn =
-        ctx.module
-            .add_function("set_stdout_unbuffered", void_type, None);
+    let set_stdout_unbuffered_fn = ctx.module.get_function("set_stdout_unbuffered").unwrap();
 
     // Basic blocks
     let basic_block = ctx.llvm_context.append_basic_block(set_stdout_unbuffered_fn, "");

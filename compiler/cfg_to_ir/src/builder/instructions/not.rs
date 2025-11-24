@@ -6,11 +6,7 @@ use crate::lowering_ctx::LoweringCtx;
 #[allow(unused)]
 pub(crate) fn build_not<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
     // The stack is only valid from 0 to stack_size, so decrementing the stack size effectively pops the top element off the stack.
-    let void_type = ctx.llvm_context.void_type();
-    let not_fn_type = void_type.fn_type(&[], false);
-    let not_fn = ctx
-        .module
-        .add_function(Instruction::Not.to_llvm_name(), not_fn_type, None);
+    let not_fn = ctx.module.get_function(Instruction::Not.to_llvm_name()).unwrap();
 
     // Labels
     let basic_block = ctx.llvm_context.append_basic_block(not_fn, "");

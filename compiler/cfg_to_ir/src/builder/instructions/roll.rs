@@ -7,10 +7,7 @@ use piet_core::instruction::Instruction;
 use crate::lowering_ctx::LoweringCtx;
 pub(crate) fn build_roll<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
     // Roll function type
-    let roll_fn_type = ctx.llvm_context.void_type().fn_type(&[], false);
-    let roll_fn = ctx
-        .module
-        .add_function(Instruction::Roll.to_llvm_name(), roll_fn_type, None);
+    let roll_fn = ctx.module.get_function(Instruction::Roll.to_llvm_name()).unwrap();
 
     // LLVM intrinsics
     let stack_save_fn = ctx.module.get_function("llvm.stacksave").unwrap();

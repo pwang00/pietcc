@@ -7,17 +7,16 @@ use piet_core::instruction::Instruction;
 
 #[allow(unused)]
 pub(crate) fn build_input<'a, 'b>(ctx: &LoweringCtx<'a, 'b>, instr: Instruction) {
-    let void_type = ctx.llvm_context.void_type();
-    let in_fn_type = void_type.fn_type(&[], false);
-
     let in_fn = match instr {
         Instruction::IntIn => {
             ctx.module
-                .add_function(Instruction::IntIn.to_llvm_name(), in_fn_type, None)
+                .get_function(Instruction::IntIn.to_llvm_name())
+                .unwrap()
         }
         Instruction::CharIn => {
             ctx.module
-                .add_function(Instruction::CharIn.to_llvm_name(), in_fn_type, None)
+                .get_function(Instruction::CharIn.to_llvm_name())
+                .unwrap()
         }
         _ => panic!("Not an input instruction!"),
     };
@@ -175,12 +174,9 @@ pub(crate) fn build_input<'a, 'b>(ctx: &LoweringCtx<'a, 'b>, instr: Instruction)
     ctx.builder.build_return(None).unwrap();
 }
 pub(crate) fn build_output<'a, 'b>(ctx: &LoweringCtx<'a, 'b>, instr: Instruction) {
-    let void_type = ctx.llvm_context.void_type();
-    let out_fn_type = void_type.fn_type(&[], false);
-
     let out_fn = match instr {
-        Instruction::IntOut => ctx.module.add_function("piet_intout", out_fn_type, None),
-        Instruction::CharOut => ctx.module.add_function("piet_charout", out_fn_type, None),
+        Instruction::IntOut => ctx.module.get_function("piet_intout").unwrap(),
+        Instruction::CharOut => ctx.module.get_function("piet_charout").unwrap(),
         _ => panic!("Not an output instruction!"),
     };
 

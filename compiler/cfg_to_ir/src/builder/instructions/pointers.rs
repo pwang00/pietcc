@@ -1,12 +1,9 @@
 use crate::lowering_ctx::LoweringCtx;
 use inkwell::IntPredicate;
 use piet_core::instruction::Instruction;
+
 pub(crate) fn build_switch<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
-    let switch_fn = ctx.module.add_function(
-        Instruction::Swi.to_llvm_name(),
-        ctx.llvm_context.void_type().fn_type(&[], false),
-        None,
-    );
+    let switch_fn = ctx.module.get_function(Instruction::Swi.to_llvm_name()).unwrap();
 
     let const_0 = ctx.llvm_context.i64_type().const_int(0, false);
     let const_1 = ctx.llvm_context.i64_type().const_int(1, false);
@@ -14,7 +11,9 @@ pub(crate) fn build_switch<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
     let const_2_i8 = ctx.llvm_context.i8_type().const_int(2, false);
     let basic_block = ctx.llvm_context.append_basic_block(switch_fn, "");
     ctx.builder.position_at_end(basic_block);
-    let then_block = ctx.llvm_context.append_basic_block(switch_fn, "stack_nonempty");
+    let then_block = ctx
+        .llvm_context
+        .append_basic_block(switch_fn, "stack_nonempty");
     let lz_block = ctx.llvm_context.append_basic_block(switch_fn, "mod_lz");
     let gz_block = ctx.llvm_context.append_basic_block(switch_fn, "mod_gz");
     let ret_block = ctx.llvm_context.insert_basic_block_after(gz_block, "ret");
@@ -22,7 +21,7 @@ pub(crate) fn build_switch<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
     let cc_addr = ctx.module.get_global("cc").unwrap().as_pointer_value();
     let cc_val = ctx
         .builder
-        .build_load(ctx.llvm_context.i64_type(), cc_addr, "")
+        .build_load(ctx.llvm_context.i8_type(), cc_addr, "")
         .unwrap()
         .into_int_value();
 
@@ -135,9 +134,9 @@ pub(crate) fn build_switch<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
     ctx.builder.position_at_end(ret_block);
     let _ = ctx.builder.build_return(None);
 }
+
 pub(crate) fn build_rotate<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
-    let rotate_fn_type = ctx.llvm_context.void_type().fn_type(&[], false);
-    let rotate_fn = ctx.module.add_function("piet_rotate", rotate_fn_type, None);
+    let rotate_fn = ctx.module.get_function("piet_rotate").unwrap();
 
     let const_0 = ctx.llvm_context.i64_type().const_int(0, false);
     let const_1 = ctx.llvm_context.i64_type().const_int(1, false);
@@ -145,7 +144,9 @@ pub(crate) fn build_rotate<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
     let const_4_i8 = ctx.llvm_context.i8_type().const_int(4, false);
     let basic_block = ctx.llvm_context.append_basic_block(rotate_fn, "");
     ctx.builder.position_at_end(basic_block);
-    let then_block = ctx.llvm_context.append_basic_block(rotate_fn, "stack_nonempty");
+    let then_block = ctx
+        .llvm_context
+        .append_basic_block(rotate_fn, "stack_nonempty");
 
     let lz_block = ctx.llvm_context.append_basic_block(rotate_fn, "top_lz");
     let gz_block = ctx.llvm_context.append_basic_block(rotate_fn, "top_gz");
@@ -154,7 +155,7 @@ pub(crate) fn build_rotate<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
     let dp_addr = ctx.module.get_global("dp").unwrap().as_pointer_value();
     let dp_val = ctx
         .builder
-        .build_load(ctx.llvm_context.i64_type(), dp_addr, "")
+        .build_load(ctx.llvm_context.i8_type(), dp_addr, "")
         .unwrap()
         .into_int_value();
     let stack_addr = ctx
@@ -270,15 +271,16 @@ pub(crate) fn build_rotate<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
     ctx.builder.position_at_end(ret_block);
     let _ = ctx.builder.build_return(None);
 }
+
 pub(crate) fn build_retry<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
-    let void_type = ctx.llvm_context.void_type();
     let i8_type = ctx.llvm_context.i8_type();
-    let retry_fn_type = void_type.fn_type(&[], false);
-    let retry_fn = ctx.module.add_function("retry", retry_fn_type, None);
+    let retry_fn = ctx.module.get_function("retry").unwrap();
     // Basic blocks
     let basic_block = ctx.llvm_context.append_basic_block(retry_fn, "");
     let one_mod_two = ctx.llvm_context.append_basic_block(retry_fn, "one_mod_two");
-    let zero_mod_two = ctx.llvm_context.append_basic_block(retry_fn, "zero_mod_two");
+    let zero_mod_two = ctx
+        .llvm_context
+        .append_basic_block(retry_fn, "zero_mod_two");
     let ret_block = ctx.llvm_context.append_basic_block(retry_fn, "ret");
 
     ctx.builder.position_at_end(basic_block);
@@ -295,17 +297,17 @@ pub(crate) fn build_retry<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
     // Loaded values
     let dp_val = ctx
         .builder
-        .build_load(ctx.llvm_context.i64_type(), dp_addr, "load_dp")
+        .build_load(ctx.llvm_context.i8_type(), dp_addr, "load_dp")
         .unwrap()
         .into_int_value();
     let cc_val = ctx
         .builder
-        .build_load(ctx.llvm_context.i64_type(), cc_addr, "load_cc")
+        .build_load(ctx.llvm_context.i8_type(), cc_addr, "load_cc")
         .unwrap()
         .into_int_value();
     let rctr_val = ctx
         .builder
-        .build_load(ctx.llvm_context.i64_type(), rctr_addr, "load_rctr")
+        .build_load(ctx.llvm_context.i8_type(), rctr_addr, "load_rctr")
         .unwrap()
         .into_int_value();
 

@@ -29,7 +29,7 @@ pub(crate) fn generate_executable(module: &Module, filename: &str) -> Result<(),
 
     if !llc_output.status.success() {
         let stderr = String::from_utf8_lossy(&llc_output.stderr);
-        eprintln!("Error: {}", stderr);
+        eprintln!("Error in llc: {}", stderr);
     }
 
     let clang_output = Command::new("clang")
@@ -42,7 +42,7 @@ pub(crate) fn generate_executable(module: &Module, filename: &str) -> Result<(),
 
     if !clang_output.status.success() {
         let stderr = String::from_utf8_lossy(&llc_output.stderr);
-        eprintln!("Error: {}", stderr);
+        eprintln!("Error in clang: {}", stderr);
     }
 
     remove_file(bitcode_fname)?;

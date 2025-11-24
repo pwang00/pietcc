@@ -8,11 +8,7 @@ use piet_core::instruction::Instruction;
 #[allow(unused)]
 pub(crate) fn build_dup<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
     // The stack is only valid from 0 to stack_size, so decrementing the stack size effectively pops the top element off the stack.
-    let void_type = ctx.llvm_context.void_type();
-    let dup_fn_type = void_type.fn_type(&[], false);
-    let dup_fn = ctx
-        .module
-        .add_function(Instruction::Dup.to_llvm_name(), dup_fn_type, None);
+    let dup_fn = ctx.module.get_function(Instruction::Dup.to_llvm_name()).unwrap();
 
     // Labels
     let basic_block = ctx.llvm_context.append_basic_block(dup_fn, "");

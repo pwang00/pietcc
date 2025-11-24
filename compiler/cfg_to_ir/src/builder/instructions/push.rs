@@ -4,11 +4,7 @@ use crate::lowering_ctx::LoweringCtx;
 
 #[allow(unused)]
 pub(crate) fn build_push<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
-    let void_type = ctx.llvm_context.void_type();
-    let push_fn_type = void_type.fn_type(&[ctx.llvm_context.i64_type().into()], false);
-    let push_fn = ctx
-        .module
-        .add_function(Instruction::Push.to_llvm_name(), push_fn_type, None);
+    let push_fn = ctx.module.get_function(Instruction::Push.to_llvm_name()).unwrap();
 
     let basic_block = ctx.llvm_context.append_basic_block(push_fn, "");
     ctx.builder.position_at_end(basic_block);

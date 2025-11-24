@@ -3,8 +3,6 @@ use inkwell::IntPredicate;
 use piet_core::instruction::Instruction;
 
 pub(crate) fn build_binops<'a, 'b>(ctx: &LoweringCtx<'a, 'b>, instr: Instruction) {
-    let void_type = ctx.llvm_context.void_type();
-    let binop_fn_type = void_type.fn_type(&[], false);
     let binop_fn = match instr {
         Instruction::Add
         | Instruction::Sub
@@ -13,7 +11,8 @@ pub(crate) fn build_binops<'a, 'b>(ctx: &LoweringCtx<'a, 'b>, instr: Instruction
         | Instruction::Mod
         | Instruction::Gt => ctx
             .module
-            .add_function(instr.to_llvm_name(), binop_fn_type, None),
+            .get_function(instr.to_llvm_name())
+            .unwrap(),
         _ => panic!("Not a binary operation!"),
     };
 

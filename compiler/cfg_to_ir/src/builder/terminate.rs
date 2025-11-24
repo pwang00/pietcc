@@ -2,10 +2,7 @@ use crate::{consts::STACK_SIZE, lowering_ctx::LoweringCtx};
 
 // Terminates the program and prints the stack
 pub(crate) fn build_stack_size_check<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
-    let void_fn_type = ctx.llvm_context.void_type().fn_type(&[], false);
-    let stack_check_fn = ctx
-        .module
-        .add_function("stack_size_check", void_fn_type, None);
+    let stack_check_fn = ctx.module.get_function("stack_size_check").unwrap();
     let terminate_fn = ctx.module.get_function("terminate").unwrap();
 
     // Basic blocks
@@ -52,16 +49,13 @@ pub(crate) fn build_stack_size_check<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
 }
 
 pub(crate) fn build_terminate<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
-    let i64_fn_type = ctx.llvm_context.i64_type().fn_type(&[], false);
+    let terminate_fn = ctx.module.get_function("terminate").unwrap();
     let print_stack_fn = ctx.module.get_function("print_piet_stack").unwrap();
     let exit_fn = ctx.module.get_function("exit").unwrap();
     let printf_fn = ctx.module.get_function("printf").unwrap();
     // Constants
     let const_0 = ctx.llvm_context.i64_type().const_zero();
     let const_1 = ctx.llvm_context.i64_type().const_int(1, false);
-
-    // Function type
-    let terminate_fn = ctx.module.add_function("terminate", i64_fn_type, None);
 
     // Basic blocks
     let basic_block = ctx.llvm_context.append_basic_block(terminate_fn, "");
