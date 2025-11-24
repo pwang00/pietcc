@@ -23,17 +23,15 @@ pub fn run_pipeline(
     mut cfg: &mut CFG,
     settings: CompilerSettings,
 ) -> Result<(), Error> {
+    // Build globals - declares all functions and global variables
+    builder::build_globals(ctx);
+
     match settings.opt_level {
         OptimizationLevel::None => builder::build_partial(ctx, cfg, &ExecutionState::default()),
         _ => {
             let mut piet_opt_manager =
                 OptimizationPassManager::new(vec![Box::new(StaticEvaluatorPass)], settings.clone());
             piet_opt_manager.run_all(&mut cfg);
-
-            // Build main and constants first as everything will depend on it
-            builder::build_main(&ctx);
-            builder::build_constants(&ctx);
-
             if let Some(execution_result) =
                 piet_opt_manager.get_analysis_cache().get_cached_result()
             {
