@@ -11,7 +11,7 @@ pub struct LoweringCtx<'a, 'b> {
     pub(crate) module: Module<'b>,
     pub(crate) builder: Builder<'b>,
     pub(crate) cfg_builder: CFGBuilder<'a>,
-    pub(crate) settings: CompilerSettings,
+    pub(crate) settings: CompilerSettings<'a>,
 }
 
 impl<'a, 'b> DecodeInstruction for LoweringCtx<'a, 'b> {}
@@ -23,7 +23,7 @@ impl<'a, 'b> LoweringCtx<'a, 'b> {
         module: Module<'b>,
         builder: Builder<'b>,
         cfg_builder: CFGBuilder<'a>,
-        settings: CompilerSettings,
+        settings: CompilerSettings<'a>,
     ) -> Self {
         Self {
             llvm_context,

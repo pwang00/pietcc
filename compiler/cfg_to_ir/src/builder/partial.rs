@@ -3,7 +3,7 @@ use piet_core::{cfg::CFG, instruction::Instruction, state::ExecutionState};
 
 pub(crate) fn build_partial<'a, 'b>(
     ctx: &LoweringCtx<'a, 'b>,
-    cfg: CFG,
+    cfg: &mut CFG,
     execution_state: &ExecutionState,
 ) {
     builder::build_globals(ctx, execution_state);
@@ -30,4 +30,5 @@ pub(crate) fn build_partial<'a, 'b>(
     builder::build_rotate(ctx);
     builder::build_retry(ctx);
     builder::build_transitions(ctx, &cfg, &execution_state.prev_cb_label);
+    builder::build_main(ctx);
 }

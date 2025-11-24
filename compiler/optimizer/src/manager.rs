@@ -4,13 +4,13 @@ use piet_core::cfg::CFG;
 use piet_core::settings::CompilerSettings;
 
 #[derive(Debug)]
-pub struct OptimizationPassManager {
+pub struct OptimizationPassManager<'a> {
     passes: Vec<Box<dyn Pass>>,
     analysis_cache: AnalysisCache,
-    settings: CompilerSettings,
+    settings: CompilerSettings<'a>,
 }
 
-impl OptimizationPassManager {
+impl<'a> OptimizationPassManager<'a> {
     pub fn run_all(&mut self, cfg: &mut CFG) {
         // Borrow checker :(
         for pass in &mut self.passes {
@@ -18,7 +18,7 @@ impl OptimizationPassManager {
         }
     }
 
-    pub fn new(passes: Vec<Box<dyn Pass>>, settings: CompilerSettings) -> Self {
+    pub fn new(passes: Vec<Box<dyn Pass>>, settings: CompilerSettings<'a>) -> Self {
         Self {
             passes,
             analysis_cache: AnalysisCache::default(),

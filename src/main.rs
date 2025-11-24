@@ -2,6 +2,7 @@ pub mod verbosity;
 
 use crate::Verbosity;
 use cfg_to_ir::lowering_ctx::LoweringCtx;
+use cfg_to_ir::pipeline;
 use clap::{App, Arg};
 use inkwell::context::Context;
 use inkwell::OptimizationLevel;
@@ -205,12 +206,13 @@ fn main() -> Result<(), Error> {
             interp_settings.verbosity = verbosity;
         }
 
-        let mut builder = CFGBuilder::new(&program, codel_settings, false);
-        builder.build();
+        let mut cfg_builder = CFGBuilder::new(&program, codel_settings, false);
+        cfg_builder.build();
+        let cfg = cfg_builder.get_cfg();
 
         if matches.is_present("interpret") {
             interp_settings.codel_settings = codel_settings;
-            interpreter = Interpreter::new(&builder.get_cfg(), interp_settings);
+            interpreter = Interpreter::new(&cfg, interp_settings);
             println!("\n{}", interpreter.run());
             exit(0);
         }
@@ -254,15 +256,18 @@ fn main() -> Result<(), Error> {
                 opt_level,
                 codel_settings,
                 save_options,
-                output_fname: output_fname.to_string(),
+                output_fname,
                 warn_nt,
                 show_cfg_size,
                 show_codel_size,
             };
 
             let cfg_gen = CFGBuilder::new(&program, codel_settings, show_codel_size);
-            let mut cg = LoweringCtx::new(&context, module, builder, cfg_gen, compile_options);
-            if let Err(e) = cg.run(compile_options) {
+            let mut piet_ctx =
+                LoweringCtx::new(&context, module, builder, cfg_gen, compile_options);
+            if let Err(e) =
+                pipeline::run_pipeline(&mut piet_ctx, &mut cfg_builder.get_cfg(), compile_options)
+            {
                 println!("{:?}", e);
             }
         }

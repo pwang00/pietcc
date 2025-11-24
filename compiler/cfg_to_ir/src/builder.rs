@@ -1,6 +1,5 @@
 mod complete;
 mod constants;
-mod entry;
 mod globals;
 mod instructions;
 mod io;

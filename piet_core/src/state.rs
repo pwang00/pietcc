@@ -15,7 +15,7 @@ pub enum ExecutionStatus {
 }
 
 /// Immmediate state information
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Clone)]
 pub struct ExecutionState {
     pub pointers: PointerState,
     pub prev_cb_count: u64,
@@ -27,6 +27,20 @@ pub struct ExecutionState {
     pub stack: VecDeque<i64>,
 }
 
+impl Default for ExecutionState {
+    fn default() -> Self {
+        Self {
+            pointers: Default::default(),
+            prev_cb_count: Default::default(),
+            prev_cb_label: "Entry".into(),
+            stdin: Default::default(),
+            stdout: Default::default(),
+            steps: Default::default(),
+            status: Default::default(),
+            stack: Default::default(),
+        }
+    }
+}
 #[allow(unused_must_use)]
 impl std::fmt::Display for ExecutionState {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

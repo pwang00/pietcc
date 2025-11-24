@@ -14,7 +14,9 @@ pub(crate) fn build_not<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
 
     // Labels
     let basic_block = ctx.llvm_context.append_basic_block(not_fn, "");
-    let then_block = ctx.llvm_context.append_basic_block(not_fn, "stack_nonempty");
+    let then_block = ctx
+        .llvm_context
+        .append_basic_block(not_fn, "stack_nonempty");
     let ret_block = ctx.llvm_context.append_basic_block(not_fn, "ret");
 
     ctx.builder.position_at_end(basic_block);

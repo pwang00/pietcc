@@ -7,7 +7,13 @@ use std::collections::HashMap;
 pub(crate) fn build_transitions<'a, 'b>(ctx: &LoweringCtx<'a, 'b>, cfg: &CFG, entry_label: &str) {
     let i8_type = ctx.llvm_context.i8_type();
     let i64_type = ctx.llvm_context.i64_type();
-    let start_fn = ctx.module.get_function("start").unwrap();
+    let start_fn = ctx.module.get_function("start").unwrap_or_else(|| {
+        ctx.module.add_function(
+            "start",
+            ctx.llvm_context.void_type().fn_type(&[], false),
+            None,
+        )
+    });
     let basic_block = ctx.llvm_context.append_basic_block(start_fn, "");
 
     let mut block_lookup_table = HashMap::<&str, BasicBlock>::new();
@@ -35,10 +41,11 @@ pub(crate) fn build_transitions<'a, 'b>(ctx: &LoweringCtx<'a, 'b>, cfg: &CFG, en
     let retry_fn = ctx.module.get_function("retry").unwrap();
     // Generate all basic blocks
     for node in cfg.keys() {
-        let block = ctx.llvm_context.append_basic_block(start_fn, &node.get_label());
+        let block = ctx
+            .llvm_context
+            .append_basic_block(start_fn, &node.get_label());
         block_lookup_table.insert(node.get_label(), block);
     }
-
     let entry = block_lookup_table.get(entry_label).unwrap().to_owned();
     let ret_block = ctx.llvm_context.append_basic_block(start_fn, "ret");
 

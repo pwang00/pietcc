@@ -16,12 +16,12 @@ pub enum SaveOptions {
     EmitLLVMIR,
 }
 
-#[derive(Clone, Debug)]
-pub struct CompilerSettings {
+#[derive(Copy, Clone, Debug)]
+pub struct CompilerSettings<'a> {
     pub opt_level: OptimizationLevel,
     pub codel_settings: CodelSettings,
     pub save_options: SaveOptions,
-    pub output_fname: String,
+    pub output_fname: &'a str,
     pub show_codel_size: bool,
     pub show_cfg_size: bool,
     pub warn_nt: bool,

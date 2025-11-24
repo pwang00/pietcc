@@ -48,16 +48,16 @@ pub(crate) fn build_globals<'a, 'b>(ctx: &LoweringCtx<'a, 'b>, execution_state: 
         let _ = ctx
             .builder
             .build_global_string("Enter char: ", "input_message_char");
-        // let _ = ctx.builder.build_global_string("%ld\0", "dec_fmt");
-        // let _ = ctx.builder.build_global_string("%c\0", "char_fmt");
-        // let _ = ctx.builder.build_global_string("%s\0", "string_fmt");
-        // let _ = ctx.builder.build_global_string("%ld \0", "stack_fmt");
-        // let _ = ctx
-        //     .builder
-        //     .build_global_string("\nStack (size %d): ", "stack_id");
-        // let _ = ctx
-        //     .builder
-        //     .build_global_string("\nStack empty", "stack_id_empty");
+        let _ = ctx.builder.build_global_string("%ld\0", "dec_fmt");
+        let _ = ctx.builder.build_global_string("%c\0", "char_fmt");
+        let _ = ctx.builder.build_global_string("%s\0", "string_fmt");
+        let _ = ctx.builder.build_global_string("%ld \0", "stack_fmt");
+        let _ = ctx
+            .builder
+            .build_global_string("\nStack (size %d): ", "stack_id");
+        let _ = ctx
+            .builder
+            .build_global_string("\nStack empty", "stack_id_empty");
 
         let _ = ctx.builder.build_global_string("w", "fdopen_mode");
 
