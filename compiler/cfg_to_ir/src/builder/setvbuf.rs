@@ -6,7 +6,9 @@ pub(crate) fn build_stdout_unbuffered<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
     let set_stdout_unbuffered_fn = ctx.module.get_function("set_stdout_unbuffered").unwrap();
 
     // Basic blocks
-    let basic_block = ctx.llvm_context.append_basic_block(set_stdout_unbuffered_fn, "");
+    let basic_block = ctx
+        .llvm_context
+        .append_basic_block(set_stdout_unbuffered_fn, "");
     // Constants
     let const_0 = ctx.llvm_context.i32_type().const_zero();
     let setvbuf_fn = ctx.module.get_function("setvbuf").unwrap();
@@ -33,10 +35,13 @@ pub(crate) fn build_stdout_unbuffered<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
         )
         .unwrap()
         .try_as_basic_value()
-        .unwrap_left()
+        .unwrap_basic()
         .into_pointer_value();
 
-    let null_ptr = ctx.llvm_context.ptr_type(AddressSpace::default()).const_null();
+    let null_ptr = ctx
+        .llvm_context
+        .ptr_type(AddressSpace::default())
+        .const_null();
     let unbuffered = ctx.llvm_context.i32_type().const_int(2, false);
 
     ctx.builder

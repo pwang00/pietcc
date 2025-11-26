@@ -12,7 +12,7 @@ cfg_to_ir = { version = "0.1", path = "compiler/cfg_to_ir" }
 piet-optimizer = { version = "0.1", path = "compiler/optimizer" }
 piet-interpreter = { version = "0.1", path = "interpreter" }
 piet-core = { version = "0.1", path = "piet_core" }
-inkwell = { version = "0.6.0", features = ["llvm18-1"] }
+inkwell = { version = "0.7.0", features = ["llvm18-1"] }
 image = "0.24.5"
 clap = "3.0.0-beta.5"
 

@@ -1,5 +1,5 @@
 mod analysis_cache;
-mod error;
+pub mod error;
 pub mod manager;
 pub mod pass;
 pub mod result;

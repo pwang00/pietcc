@@ -7,7 +7,10 @@ use piet_core::instruction::Instruction;
 use crate::lowering_ctx::LoweringCtx;
 pub(crate) fn build_roll<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
     // Roll function type
-    let roll_fn = ctx.module.get_function(Instruction::Roll.to_llvm_name()).unwrap();
+    let roll_fn = ctx
+        .module
+        .get_function(Instruction::Roll.to_llvm_name())
+        .unwrap();
 
     // LLVM intrinsics
     let stack_save_fn = ctx.module.get_function("llvm.stacksave").unwrap();
@@ -169,7 +172,10 @@ pub(crate) fn build_roll<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
 
     // Block 22
     ctx.builder.position_at_end(block_22);
-    let phi1 = ctx.builder.build_phi(ctx.llvm_context.i64_type(), "").unwrap();
+    let phi1 = ctx
+        .builder
+        .build_phi(ctx.llvm_context.i64_type(), "")
+        .unwrap();
     phi1.add_incoming(&[
         (&sub2.as_basic_value_enum(), block_18),
         (&top_elem_val.as_basic_value_enum(), block_14),
@@ -201,7 +207,10 @@ pub(crate) fn build_roll<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
 
     // Block 27
     ctx.builder.position_at_end(block_27);
-    let phi2 = ctx.builder.build_phi(ctx.llvm_context.i64_type(), "").unwrap();
+    let phi2 = ctx
+        .builder
+        .build_phi(ctx.llvm_context.i64_type(), "")
+        .unwrap();
     phi2.add_incoming(&[(&phi1.as_basic_value(), block_22)]);
     let cmp3 = ctx
         .builder
@@ -285,7 +294,10 @@ pub(crate) fn build_roll<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
 
     // Block 41
     ctx.builder.position_at_end(block_41);
-    let phi3 = ctx.builder.build_phi(ctx.llvm_context.i64_type(), "").unwrap();
+    let phi3 = ctx
+        .builder
+        .build_phi(ctx.llvm_context.i64_type(), "")
+        .unwrap();
     let cmp3 = ctx
         .builder
         .build_int_compare(
@@ -305,7 +317,7 @@ pub(crate) fn build_roll<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
         .builder
         .build_call(
             stack_restore_fn,
-            &[stack_save.try_as_basic_value().unwrap_left().into()],
+            &[stack_save.try_as_basic_value().unwrap_basic().into()],
             "",
         )
         .unwrap();

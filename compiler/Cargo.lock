@@ -9,6 +9,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f26201604c87b1e01bd3d98f8d5d9a8fcbb815e8cedb41ffccbeb4bf593a35fe"
 
 [[package]]
+name = "aho-corasick"
+version = "1.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ddd31a130427c27518df266943a5308ed92d4b226cc639f5a8f1002816174301"
+dependencies = [
+ "memchr",
+]
+
+[[package]]
 name = "anyhow"
 version = "1.0.100"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -67,7 +76,8 @@ name = "cfg_to_ir"
 version = "0.1.0"
 dependencies = [
  "image",
- "inkwell",
+ "inkwell 0.7.1",
+ "llvm-plugin",
  "piet-core",
  "piet-interpreter",
  "piet-optimizer",
@@ -285,11 +295,37 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e67349bd7578d4afebbe15eaa642a80b884e8623db74b1716611b131feb1deef"
 dependencies = [
  "either",
- "inkwell_internals",
+ "inkwell_internals 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc",
  "llvm-sys",
  "once_cell",
- "thiserror",
+ "thiserror 1.0.69",
+]
+
+[[package]]
+name = "inkwell"
+version = "0.6.0"
+source = "git+https://github.com/TheDan64/inkwell?rev=50c16a6#50c16a644c6f5d5b41c27cc1620d63097cad43dd"
+dependencies = [
+ "either",
+ "inkwell_internals 0.11.0 (git+https://github.com/TheDan64/inkwell?rev=50c16a6)",
+ "libc",
+ "llvm-sys",
+ "once_cell",
+ "thiserror 2.0.17",
+]
+
+[[package]]
+name = "inkwell"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "39457e8611219cf690f862a470575f5c06862910d03ea3c3b187ad7abc44b4e2"
+dependencies = [
+ "inkwell_internals 0.12.0",
+ "libc",
+ "llvm-sys",
+ "once_cell",
+ "thiserror 2.0.17",
 ]
 
 [[package]]
@@ -297,6 +333,27 @@ name = "inkwell_internals"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f365c8de536236cfdebd0ba2130de22acefed18b1fb99c32783b3840aec5fb46"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.110",
+]
+
+[[package]]
+name = "inkwell_internals"
+version = "0.11.0"
+source = "git+https://github.com/TheDan64/inkwell?rev=50c16a6#50c16a644c6f5d5b41c27cc1620d63097cad43dd"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.110",
+]
+
+[[package]]
+name = "inkwell_internals"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ad9a7dd586b00f2b20e0b9ae3c6faa351fbfd56d15d63bbce35b13bece682eda"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -340,6 +397,29 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3304a64d199bb964be99741b7a14d26972741915b3649639149b2479bb46f4b5"
 
 [[package]]
+name = "llvm-plugin"
+version = "0.6.0"
+source = "git+https://github.com/jamesmth/llvm-plugin-rs#0a0dcc0cb10220ca45141fb952a13b6e9956a897"
+dependencies = [
+ "cc",
+ "inkwell 0.6.0 (git+https://github.com/TheDan64/inkwell?rev=50c16a6)",
+ "lazy_static",
+ "llvm-plugin-macros",
+ "regex",
+ "semver",
+]
+
+[[package]]
+name = "llvm-plugin-macros"
+version = "0.2.0"
+source = "git+https://github.com/jamesmth/llvm-plugin-rs#0a0dcc0cb10220ca45141fb952a13b6e9956a897"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
+]
+
+[[package]]
 name = "llvm-sys"
 version = "181.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -371,6 +451,12 @@ checksum = "abb12e687cfb44aa40f41fc3978ef76448f9b6038cad6aef4259d3c095a2382e"
 dependencies = [
  "cfg-if",
 ]
+
+[[package]]
+name = "memchr"
+version = "2.7.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f52b00d39961fc5b2736ea853c9cc86238e165017a493d1d5c8eac6bdc4cc273"
 
 [[package]]
 name = "memoffset"
@@ -460,7 +546,7 @@ name = "piet-core"
 version = "0.1.0"
 dependencies = [
  "image",
- "inkwell",
+ "inkwell 0.7.1",
  "strum",
  "strum_macros",
 ]
@@ -479,7 +565,7 @@ dependencies = [
 name = "piet-optimizer"
 version = "0.1.0"
 dependencies = [
- "inkwell",
+ "inkwell 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "piet-core",
  "piet-interpreter",
 ]
@@ -613,10 +699,39 @@ dependencies = [
 ]
 
 [[package]]
+name = "regex"
+version = "1.12.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "843bc0191f75f3e22651ae5f1e72939ab2f72a4bc30fa80a066bd66edefc24d4"
+dependencies = [
+ "aho-corasick",
+ "memchr",
+ "regex-automata",
+ "regex-syntax",
+]
+
+[[package]]
+name = "regex-automata"
+version = "0.4.13"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5276caf25ac86c8d810222b3dbb938e512c55c6831a10f3e6ed1c93b84041f1c"
+dependencies = [
+ "aho-corasick",
+ "memchr",
+ "regex-syntax",
+]
+
+[[package]]
 name = "regex-lite"
 version = "0.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8d942b98df5e658f56f20d592c7f868833fe38115e65c33003d8cd224b0155da"
+
+[[package]]
+name = "regex-syntax"
+version = "0.8.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7a2d987857b319362043e95f5353c0535c1f58eec5336fdfcf626430af7def58"
 
 [[package]]
 name = "rustversion"
@@ -704,7 +819,16 @@ version = "1.0.69"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b6aaf5339b578ea85b50e080feb250a3e8ae8cfcdff9a461c9ec2904bc923f52"
 dependencies = [
- "thiserror-impl",
+ "thiserror-impl 1.0.69",
+]
+
+[[package]]
+name = "thiserror"
+version = "2.0.17"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f63587ca0f12b72a0600bcba1d40081f830876000bb46dd2337a3051618f4fc8"
+dependencies = [
+ "thiserror-impl 2.0.17",
 ]
 
 [[package]]
@@ -712,6 +836,17 @@ name = "thiserror-impl"
 version = "1.0.69"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4fee6c4efc90059e10f81e6d42c60a18f76588c3d74cb83a0b242a2b6c7504c1"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.110",
+]
+
+[[package]]
+name = "thiserror-impl"
+version = "2.0.17"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3ff15c8ecd7de3849db632e14d18d2571fa09dfc5ed93479bc4485c7a517c913"
 dependencies = [
  "proc-macro2",
  "quote",
