@@ -308,13 +308,13 @@ A compiled Piet program terminates once a jump is taken to a color block that ha
 PietCC implements several optimization passes to improve the performance of generated code:
 
 #### Dead Code Elimination (LLVM)
-- Removes unreachable basic blocks from the CFG
-- Eliminates color blocks that can never be reached during program execution
+- Removes unreachable LLVM basic blocks from the CFG
 - Reduces binary size and improves runtime performance
 
-#### Constant Folding / Static evaluation (LLVM)
-- Pre-computes constant expressions at compile time
-- Optimizes push operations with known constant values
+#### Compile-time Constant Evaluation (Piet)
+- Attempts to fold a Piet program at compile-time
+- If consteval completes, then final execution stack and stdout are compiled into the program, and stdout is printed
+- If consteval does not complete, either due to input instructions or max steps reached, then a partial execution state (stack, pointers, stdout) is compiled, and program resumes from color block
 - Reduces runtime computation for deterministic operations
 
 
