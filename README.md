@@ -4,9 +4,9 @@ PietCC is a Rust interpreter and compiler for the [Piet](https://www.dangermouse
 
 ## Organization
 
-1. [piet_core](https://github.com/pwang00/pietcc/tree/main/types): core Piet language types
+1. [piet_core](https://github.com/pwang00/pietcc/tree/main/piet_core): core language types
 2. [interpreter](https://github.com/pwang00/pietcc/tree/main/interpreter): core interpreter logic
-3. [compiler](https://github.com/pwang00/pietcc/tree/main/compiler): core compiler logic, handles CFG generation and uses Inkwell to generate LLVM IR from CFGs
+3. [compiler](https://github.com/pwang00/pietcc/tree/main/compiler): core compiler logic, handles CFG generation and subsequent optimizations
 4. [parser](https://github.com/pwang00/pietcc/tree/main/parser): core image parsing logic, handles image loading and pixel/codel operations
 4. [src](https://github.com/pwang00/pietcc/tree/main/src): main CLI, allows users to run either the interpreter or compiler with a variety of flags
 
@@ -15,25 +15,20 @@ PietCC is a Rust interpreter and compiler for the [Piet](https://www.dangermouse
 - Rust 1.89+ (Stable, Beta, or Nightly), for inkwell
 - LLVM libraries, including clang and llc, for generating IR / lowering to assembly.
 
-## Progress
-
-### Interpreter
+## Features
 
 - Supports treating unknown colors as white / black.
-
-### Compiler 
-
 - Supports white block tracing and elimination
 - Supports nontermination detection for certain classes of programs
 - Supports running LLVM module optimization passes via inkwell
-- Supports static evaluation / constant folding
+- Supports static evaluation / constant folding optimizations at the CFG level
 
 
 ## TODO
 
 ### Compiler
 
-* Develop more optimizations and respective optimization passes at the CFG level
+* Develop more Piet-specific optimizations and respective optimization passes
 
 ## Installation
 

@@ -12,12 +12,12 @@ use piet_optimizer::result::ExecutionResult;
 use piet_optimizer::static_eval::StaticEvaluatorPass;
 use std::error::Error;
 
-pub fn run_pipeline(
+pub fn run_piet_optimization_pipeline(
     ctx: &mut LoweringCtx,
     cfg: &mut CFG,
     settings: CompilerSettings,
 ) -> Result<(), Box<dyn Error>> {
-    // Build globals - declares all functions and global variables
+    // Build globals: declares all functions (minus LLVM intrinsics) and global variables
     builder::build_globals(ctx);
 
     match settings.opt_level {

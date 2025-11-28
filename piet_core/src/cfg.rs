@@ -9,8 +9,7 @@ use crate::flow::PietTransition;
 use crate::state::Position;
 
 pub type Node = Rc<ColorBlock>;
-pub type Info = Vec<PietTransition>;
-pub type NodeAdj = HashMap<Node, Info>;
+pub type NodeAdj = HashMap<Node, Vec<PietTransition>>;
 pub type CFG = HashMap<Node, NodeAdj>;
 
 #[allow(unused)]

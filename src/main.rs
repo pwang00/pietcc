@@ -266,9 +266,11 @@ fn main() -> Result<(), Error> {
             let cfg_gen = CFGBuilder::new(&program, codel_settings, show_codel_size);
             let mut piet_ctx =
                 LoweringCtx::new(&context, module, builder, cfg_gen, compile_options);
-            if let Err(e) =
-                pipeline::run_pipeline(&mut piet_ctx, &mut cfg_builder.get_cfg(), compile_options)
-            {
+            if let Err(e) = pipeline::run_piet_optimization_pipeline(
+                &mut piet_ctx,
+                &mut cfg_builder.get_cfg(),
+                compile_options,
+            ) {
                 println!("{:?}", e);
             }
         }
