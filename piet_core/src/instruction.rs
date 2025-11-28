@@ -1,4 +1,4 @@
-use std::{fmt, io::Stdout};
+use std::fmt;
 
 use strum_macros::EnumIter;
 

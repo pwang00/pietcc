@@ -1,17 +1,16 @@
 use crate::decode::DecodeInstruction;
 use crate::infer::InferCodelWidth;
-use std::collections::{HashMap, HashSet, VecDeque};
-use std::hash::Hash;
-use std::rc::Rc;
-use std::{env, fmt};
 use piet_core::cfg::{ColorBlock, CFG};
-use piet_core::color::{Lightness, Lightness::*};
+use piet_core::color::Lightness::*;
 use piet_core::flow::PietTransition;
 use piet_core::flow::{FindAdj, FURTHEST, MOVE_IN};
 use piet_core::flow::{PointerState, DIRECTIONS};
 use piet_core::program::PietSource;
 use piet_core::settings::CodelSettings;
 use piet_core::state::{Position, ENTRY};
+use std::collections::{HashMap, HashSet, VecDeque};
+use std::env;
+use std::rc::Rc;
 
 pub type Node = Rc<ColorBlock>;
 pub type Transitions = Vec<PietTransition>;
@@ -226,7 +225,7 @@ impl<'a> CFGBuilder<'a> {
     }
 }
 
-#[cfg(Test)]
+#[cfg(test)]
 mod test {
     use super::*;
     use crate::{convert::UnknownPixelSettings, loader::Loader};
@@ -238,10 +237,10 @@ mod test {
 
     #[test]
     fn test_colorblock_eq_hash() {
-        let cb1 = ColorBlock {
-            label: String::from("LightRed_1_2"),
-            lightness: Light(Red),
-            region: HashSet::from([
+        let cb1 = ColorBlock::new(
+            String::from("LightRed_1_2"),
+            Light(Red),
+            HashSet::from([
                 (2, 2),
                 (1, 0),
                 (0, 0),
@@ -251,11 +250,11 @@ mod test {
                 (1, 2),
                 (2, 0),
             ]),
-        };
-        let cb2 = ColorBlock {
-            label: String::from("LightRed_1_2"),
-            lightness: Light(Red),
-            region: HashSet::from([
+        );
+        let cb2 = ColorBlock::new(
+            String::from("LightRed_1_2"),
+            Light(Red),
+            HashSet::from([
                 (0, 0),
                 (1, 0),
                 (0, 1),
@@ -265,7 +264,7 @@ mod test {
                 (0, 2),
                 (2, 1),
             ]),
-        };
+        );
 
         assert_eq!(cb1, cb2);
         assert_eq!(get_hash(&cb1), get_hash(&cb2));

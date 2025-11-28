@@ -1,21 +1,24 @@
+use crate::result::ExecutionResult;
 use std::{error::Error, fmt::Display};
 
 #[derive(Debug)]
-pub enum CompilerError {
-    NotImplementedError,
+pub enum OptimizerError {
+    StaticEvaluationError(String, ExecutionResult),
     LLVMError(String),
 }
 
-impl Display for CompilerError {
+impl Display for OptimizerError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            CompilerError::NotImplementedError => write!(f, "Feature not yet implemented"),
-            CompilerError::LLVMError(msg) => write!(f, "{msg}"),
+            OptimizerError::StaticEvaluationError(msg, _) => {
+                write!(f, "{msg}")
+            }
+            OptimizerError::LLVMError(msg) => write!(f, "{msg}"),
         }
     }
 }
 
-impl Error for CompilerError {
+impl Error for OptimizerError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         None
     }

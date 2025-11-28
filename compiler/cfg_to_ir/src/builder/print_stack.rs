@@ -88,26 +88,30 @@ pub(crate) fn build_print_stack<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
         .builder
         .build_int_compare(IntPredicate::EQ, stack_size_val, const_0, "")
         .unwrap();
-    let _ = ctx
-        .builder
-        .build_conditional_branch(size_eq_0, size_zero_block, size_gt_zero_block);
+    ctx.builder
+        .build_conditional_branch(size_eq_0, size_zero_block, size_gt_zero_block)
+        .unwrap();
 
     ctx.builder.position_at_end(size_zero_block);
 
-    let _ = ctx.builder.build_call(
-        printf_fn,
-        &[const_fmt_stack_id_empty_gep.into()],
-        "call_printf_stack_const_empty",
-    );
-    let _ = ctx.builder.build_unconditional_branch(ret_block);
+    ctx.builder
+        .build_call(
+            printf_fn,
+            &[const_fmt_stack_id_empty_gep.into()],
+            "call_printf_stack_const_empty",
+        )
+        .unwrap();
+    ctx.builder.build_unconditional_branch(ret_block).unwrap();
 
     ctx.builder.position_at_end(size_gt_zero_block);
 
-    let _ = ctx.builder.build_call(
-        printf_fn,
-        &[const_fmt_stack_id_gep.into(), stack_size_val.into()],
-        "call_printf_stack_const",
-    );
+    ctx.builder
+        .build_call(
+            printf_fn,
+            &[const_fmt_stack_id_gep.into(), stack_size_val.into()],
+            "call_printf_stack_const",
+        )
+        .unwrap();
 
     let const_fmt_gep = unsafe {
         ctx.builder
@@ -115,8 +119,8 @@ pub(crate) fn build_print_stack<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
             .unwrap()
     };
     // Store index
-    let _ = ctx.builder.build_store(index, stack_size_val);
-    let _ = ctx.builder.build_unconditional_branch(loop_block);
+    ctx.builder.build_store(index, stack_size_val).unwrap();
+    ctx.builder.build_unconditional_branch(loop_block).unwrap();
     ctx.builder.position_at_end(loop_block);
 
     let curr_index = ctx
@@ -145,21 +149,23 @@ pub(crate) fn build_print_stack<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
         .build_load(ctx.llvm_context.i64_type(), top_elem, "load_elem")
         .unwrap();
 
-    let _ = ctx.builder.build_call(
-        printf_fn,
-        &[const_fmt_gep.into(), top_elem_val.into()],
-        "call_printf",
-    );
+    ctx.builder
+        .build_call(
+            printf_fn,
+            &[const_fmt_gep.into(), top_elem_val.into()],
+            "call_printf",
+        )
+        .unwrap();
 
-    let _ = ctx.builder.build_store(index, updated_idx);
+    ctx.builder.build_store(index, updated_idx).unwrap();
 
     let cmp = ctx
         .builder
         .build_int_compare(IntPredicate::SGT, updated_idx, const_0, "cmp_gz")
         .unwrap();
-    let _ = ctx
-        .builder
-        .build_conditional_branch(cmp, loop_block, ret_block);
+    ctx.builder
+        .build_conditional_branch(cmp, loop_block, ret_block)
+        .unwrap();
 
     ctx.builder.position_at_end(ret_block);
     let newline_fmt = unsafe {
@@ -167,6 +173,8 @@ pub(crate) fn build_print_stack<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
             .build_gep(newline_fmt.get_type(), newline_fmt, &[const_0, const_0], "")
             .unwrap()
     };
-    let _ = ctx.builder.build_call(printf_fn, &[newline_fmt.into()], "");
-    let _ = ctx.builder.build_return(None);
+    ctx.builder
+        .build_call(printf_fn, &[newline_fmt.into()], "")
+        .unwrap();
+    ctx.builder.build_return(None).unwrap();
 }

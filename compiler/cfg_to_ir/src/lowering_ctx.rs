@@ -1,5 +1,3 @@
-use inkwell::passes::PassManager;
-use inkwell::targets::{InitializationConfig, Target};
 use inkwell::{builder::Builder, context::Context, module::Module};
 use parser::cfg::CFGBuilder;
 use parser::decode::DecodeInstruction;

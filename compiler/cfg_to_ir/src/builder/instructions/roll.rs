@@ -1,6 +1,7 @@
 use inkwell::{
+    intrinsics::Intrinsic,
     values::{AnyValue, BasicValue, IntValue, PointerValue},
-    IntPredicate,
+    AddressSpace, IntPredicate,
 };
 use piet_core::instruction::Instruction;
 
@@ -12,10 +13,22 @@ pub(crate) fn build_roll<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
         .get_function(Instruction::Roll.to_llvm_name())
         .unwrap();
 
+    let ptr_type = ctx.llvm_context.ptr_type(AddressSpace::default());
+    let i64_type = ctx.llvm_context.i64_type();
+
     // LLVM intrinsics
-    let stack_save_fn = ctx.module.get_function("llvm.stacksave").unwrap();
-    let stack_restore_fn = ctx.module.get_function("llvm.stackrestore").unwrap();
-    let llvm_smax_fn = ctx.module.get_function("llvm.smax.i64").unwrap();
+    let stack_save_fn = Intrinsic::find("llvm.stacksave")
+        .unwrap()
+        .get_declaration(&ctx.module, &[ptr_type.into()])
+        .unwrap();
+    let stack_restore_fn = Intrinsic::find("llvm.stackrestore")
+        .unwrap()
+        .get_declaration(&ctx.module, &[ptr_type.into()])
+        .unwrap();
+    let smax_fn = Intrinsic::find("llvm.smax")
+        .unwrap()
+        .get_declaration(&ctx.module, &[i64_type.into()])
+        .unwrap();
 
     // Globals
     let stack_size_addr = ctx
@@ -57,14 +70,16 @@ pub(crate) fn build_roll<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
         .unwrap()
         .as_instruction_value()
         .unwrap();
-    stack_size_load_instr.set_alignment(8).ok();
+    stack_size_load_instr.set_alignment(8).unwrap();
     let stack_size_val = stack_size_load_instr.try_into().unwrap();
 
     let cmp = ctx
         .builder
         .build_int_compare(IntPredicate::SLT, stack_size_val, const_2, "")
         .unwrap();
-    let _ = ctx.builder.build_conditional_branch(cmp, block_55, block_3);
+    ctx.builder
+        .build_conditional_branch(cmp, block_55, block_3)
+        .unwrap();
 
     // Block 3
     ctx.builder.position_at_end(block_3);
@@ -74,7 +89,7 @@ pub(crate) fn build_roll<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
         .unwrap()
         .as_instruction_value()
         .unwrap();
-    load_piet_stack.set_alignment(8).ok();
+    load_piet_stack.set_alignment(8).unwrap();
     let load_piet_stack = load_piet_stack.as_any_value_enum().into_pointer_value();
 
     let top_idx = ctx
@@ -92,7 +107,7 @@ pub(crate) fn build_roll<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
         .unwrap()
         .as_instruction_value()
         .unwrap();
-    top_elem_load_instr.set_alignment(8).ok();
+    top_elem_load_instr.set_alignment(8).unwrap();
     let top_elem_val = top_elem_load_instr.as_any_value_enum().into_int_value();
 
     let size_minus_two = ctx
@@ -115,14 +130,14 @@ pub(crate) fn build_roll<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
         .unwrap()
         .as_instruction_value()
         .unwrap();
-    next_elem_load_instr.set_alignment(8).ok();
+    next_elem_load_instr.set_alignment(8).unwrap();
     let next_elem_val = next_elem_load_instr.try_into().unwrap();
 
     let store = ctx
         .builder
         .build_store(stack_size_addr, size_minus_two)
         .unwrap();
-    store.set_alignment(8).ok();
+    store.set_alignment(8).unwrap();
 
     let left = ctx
         .builder
@@ -133,7 +148,9 @@ pub(crate) fn build_roll<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
         .build_int_compare(IntPredicate::SLT, next_elem_val, const_0, "")
         .unwrap();
     let or = ctx.builder.build_or(left, right, "").unwrap();
-    let _ = ctx.builder.build_conditional_branch(or, block_55, block_14);
+    ctx.builder
+        .build_conditional_branch(or, block_55, block_14)
+        .unwrap();
 
     // Block 14
     ctx.builder.position_at_end(block_14);
@@ -145,14 +162,14 @@ pub(crate) fn build_roll<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
         .unwrap()
         .as_instruction_value()
         .unwrap();
-    stack_alloc.set_alignment(16).ok();
+    stack_alloc.set_alignment(16).unwrap();
     let rolls_ltz = ctx
         .builder
         .build_int_compare(IntPredicate::SLT, top_elem_val, const_0, "")
         .unwrap();
-    let _ = ctx
-        .builder
-        .build_conditional_branch(rolls_ltz, block_18, block_22);
+    ctx.builder
+        .build_conditional_branch(rolls_ltz, block_18, block_22)
+        .unwrap();
 
     // Block 18
     ctx.builder.position_at_end(block_18);
@@ -168,7 +185,7 @@ pub(crate) fn build_roll<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
         .builder
         .build_int_nsw_sub(next_elem_val, rem, "")
         .unwrap();
-    let _ = ctx.builder.build_unconditional_branch(block_22);
+    ctx.builder.build_unconditional_branch(block_22).unwrap();
 
     // Block 22
     ctx.builder.position_at_end(block_22);
@@ -192,7 +209,7 @@ pub(crate) fn build_roll<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
         .unwrap()
         .as_instruction_value()
         .unwrap();
-    load_piet_stack2.set_alignment(8).ok();
+    load_piet_stack2.set_alignment(8).unwrap();
     let load_piet_stack2: PointerValue = load_piet_stack2.try_into().unwrap();
 
     let stack_size_load_instr2 = ctx
@@ -201,9 +218,9 @@ pub(crate) fn build_roll<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
         .unwrap()
         .as_instruction_value()
         .unwrap();
-    stack_size_load_instr2.set_alignment(8).ok();
+    stack_size_load_instr2.set_alignment(8).unwrap();
     let stack_size_val2: IntValue = stack_size_load_instr2.try_into().unwrap();
-    let _ = ctx.builder.build_unconditional_branch(block_27);
+    ctx.builder.build_unconditional_branch(block_27).unwrap();
 
     // Block 27
     ctx.builder.position_at_end(block_27);
@@ -221,17 +238,17 @@ pub(crate) fn build_roll<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
             "",
         )
         .unwrap();
-    let _ = ctx
-        .builder
-        .build_conditional_branch(cmp3, block_32, block_30);
+    ctx.builder
+        .build_conditional_branch(cmp3, block_32, block_30)
+        .unwrap();
 
     // Block 30
     ctx.builder.position_at_end(block_30);
     let call2 = ctx
         .builder
-        .build_call(llvm_smax_fn, &[next_elem_val.into(), const_0.into()], "")
+        .build_call(smax_fn, &[next_elem_val.into(), const_0.into()], "")
         .unwrap();
-    let _ = ctx.builder.build_unconditional_branch(block_41);
+    ctx.builder.build_unconditional_branch(block_41).unwrap();
 
     // Block 32
     ctx.builder.position_at_end(block_32);
@@ -260,7 +277,7 @@ pub(crate) fn build_roll<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
         .unwrap()
         .as_instruction_value()
         .unwrap();
-    curr_ptr_load_instr.set_alignment(8).ok();
+    curr_ptr_load_instr.set_alignment(8).unwrap();
     let curr_val = curr_ptr_load_instr.as_any_value_enum().into_int_value();
     let sub_phis = ctx
         .builder
@@ -284,13 +301,13 @@ pub(crate) fn build_roll<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
             .unwrap()
     };
     let store_in_slice = ctx.builder.build_store(slice_ptr, curr_val).unwrap();
-    store_in_slice.set_alignment(8).ok();
+    store_in_slice.set_alignment(8).unwrap();
     let incr_idx = ctx
         .builder
         .build_int_nsw_add(phi2.as_basic_value().into_int_value(), const_1, "")
         .unwrap();
     phi2.add_incoming(&[(&incr_idx.as_basic_value_enum(), block_32)]);
-    let _ = ctx.builder.build_unconditional_branch(block_27);
+    ctx.builder.build_unconditional_branch(block_27).unwrap();
 
     // Block 41
     ctx.builder.position_at_end(block_41);
@@ -307,9 +324,9 @@ pub(crate) fn build_roll<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
             "",
         )
         .unwrap();
-    let _ = ctx
-        .builder
-        .build_conditional_branch(cmp3, block_44, block_45);
+    ctx.builder
+        .build_conditional_branch(cmp3, block_44, block_45)
+        .unwrap();
 
     // Block 44
     ctx.builder.position_at_end(block_44);
@@ -322,7 +339,7 @@ pub(crate) fn build_roll<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
         )
         .unwrap();
     restore.set_tail_call(true);
-    let _ = ctx.builder.build_unconditional_branch(block_55);
+    ctx.builder.build_unconditional_branch(block_55).unwrap();
 
     // Block 45
     ctx.builder.position_at_end(block_45);
@@ -353,7 +370,7 @@ pub(crate) fn build_roll<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
         .unwrap()
         .as_instruction_value()
         .unwrap();
-    slice_elem_load_instr.set_alignment(8).ok();
+    slice_elem_load_instr.set_alignment(8).unwrap();
     let slice_elem = slice_elem_load_instr.as_any_value_enum().into_int_value();
 
     let stack_size_load_instr3 = ctx
@@ -362,7 +379,7 @@ pub(crate) fn build_roll<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
         .unwrap()
         .as_instruction_value()
         .unwrap();
-    stack_size_load_instr3.set_alignment(8).ok();
+    stack_size_load_instr3.set_alignment(8).unwrap();
     let stack_size_val = stack_size_load_instr3.as_any_value_enum().into_int_value();
 
     let sub_idx = ctx
@@ -385,7 +402,7 @@ pub(crate) fn build_roll<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
             .unwrap()
     };
     let store_in_stack = ctx.builder.build_store(curr_stack_ptr, slice_elem).unwrap();
-    store_in_stack.set_alignment(8).ok();
+    store_in_stack.set_alignment(8).unwrap();
     let incr_idx = ctx
         .builder
         .build_int_nuw_add(phi3.as_basic_value().into_int_value(), const_1, "")
@@ -394,8 +411,8 @@ pub(crate) fn build_roll<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
         (&incr_idx.as_basic_value_enum(), block_45),
         (&const_0, block_30),
     ]);
-    let _ = ctx.builder.build_unconditional_branch(block_41);
+    ctx.builder.build_unconditional_branch(block_41).unwrap();
     // Return
     ctx.builder.position_at_end(block_55);
-    let _ = ctx.builder.build_return(None);
+    ctx.builder.build_return(None).unwrap();
 }

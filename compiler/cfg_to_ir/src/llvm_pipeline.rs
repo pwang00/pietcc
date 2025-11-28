@@ -4,7 +4,7 @@ use crate::lowering_ctx::LoweringCtx;
 use inkwell::targets::{InitializationConfig, RelocMode, Target};
 use inkwell::OptimizationLevel;
 use inkwell::{passes::PassBuilderOptions, targets::TargetMachine};
-use piet_optimizer::error::CompilerError;
+use piet_optimizer::error::OptimizerError;
 
 pub(crate) fn run_llvm_optimizations(ctx: &LoweringCtx) -> Result<(), Box<dyn Error>> {
     let default_triple = TargetMachine::get_default_triple();
@@ -33,7 +33,7 @@ pub(crate) fn run_llvm_optimizations(ctx: &LoweringCtx) -> Result<(), Box<dyn Er
         Ok(ctx
             .module
             .run_passes(opt_level, &tm, options)
-            .map_err(|llvm_string| Box::new(CompilerError::LLVMError(llvm_string.to_string())))?)
+            .map_err(|llvm_string| Box::new(OptimizerError::LLVMError(llvm_string.to_string())))?)
     } else {
         Ok(())
     }

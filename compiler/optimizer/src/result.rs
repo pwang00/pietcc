@@ -1,4 +1,4 @@
-use piet_core::{cfg::CFG, state::ExecutionState};
+use piet_core::state::ExecutionState;
 
 #[derive(Debug, Clone)]
 pub enum ExecutionResult {

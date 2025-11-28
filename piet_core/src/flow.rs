@@ -1,4 +1,4 @@
-use std::{collections::HashSet, fmt::Pointer};
+use std::collections::HashSet;
 
 use crate::{instruction::Instruction, program::PietSource, state::Position};
 

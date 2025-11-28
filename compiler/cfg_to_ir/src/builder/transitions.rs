@@ -45,7 +45,7 @@ pub(crate) fn build_transitions<'a, 'b>(ctx: &LoweringCtx<'a, 'b>, cfg: &CFG, en
 
     // Init (jumps to entry block)
     ctx.builder.position_at_end(start_adj_basic_block);
-    let _ = ctx.builder.build_unconditional_branch(entry);
+    ctx.builder.build_unconditional_branch(entry).unwrap();
 
     // For every node, we want to get its adjacencies and generate the correct instructions depending on DP / CC
     // We essentially want an if / elif chain of different dp / cc cases.  If the dp or cc fall through then we
@@ -91,7 +91,9 @@ pub(crate) fn build_transitions<'a, 'b>(ctx: &LoweringCtx<'a, 'b>, cfg: &CFG, en
             .collect::<Vec<_>>();
 
         if !adj_blocks.is_empty() {
-            let _ = ctx.builder.build_unconditional_branch(adj_blocks[0]);
+            ctx.builder
+                .build_unconditional_branch(adj_blocks[0])
+                .unwrap();
         }
 
         for (i, adj) in adjs.keys().enumerate() {
@@ -105,7 +107,9 @@ pub(crate) fn build_transitions<'a, 'b>(ctx: &LoweringCtx<'a, 'b>, cfg: &CFG, en
 
             // Build link to dirvec adjacency
             ctx.builder.position_at_end(adj_blocks[i]);
-            let _ = ctx.builder.build_unconditional_branch(dirvec_blocks[0]);
+            ctx.builder
+                .build_unconditional_branch(dirvec_blocks[0])
+                .unwrap();
 
             for (j, transition) in dirvec.iter().enumerate() {
                 let call_instr = ctx.llvm_context.insert_basic_block_after(
@@ -129,24 +133,18 @@ pub(crate) fn build_transitions<'a, 'b>(ctx: &LoweringCtx<'a, 'b>, cfg: &CFG, en
                 let and_dp_cc = ctx.builder.build_and(dp_cmp, cc_cmp, "").unwrap();
 
                 if j + 1 < dirvec.len() {
-                    let _ = ctx.builder.build_conditional_branch(
-                        and_dp_cc,
-                        call_instr,
-                        dirvec_blocks[j + 1],
-                    );
+                    ctx.builder
+                        .build_conditional_branch(and_dp_cc, call_instr, dirvec_blocks[j + 1])
+                        .unwrap();
                 } else {
                     if i + 1 < adj_blocks.len() {
-                        let _ = ctx.builder.build_conditional_branch(
-                            and_dp_cc,
-                            call_instr,
-                            adj_blocks[i + 1],
-                        );
+                        ctx.builder
+                            .build_conditional_branch(and_dp_cc, call_instr, adj_blocks[i + 1])
+                            .unwrap();
                     } else {
-                        let _ = ctx.builder.build_conditional_branch(
-                            and_dp_cc,
-                            call_instr,
-                            rotate_pointers,
-                        );
+                        ctx.builder
+                            .build_conditional_branch(and_dp_cc, call_instr, rotate_pointers)
+                            .unwrap();
                     }
                 }
 
@@ -172,24 +170,26 @@ pub(crate) fn build_transitions<'a, 'b>(ctx: &LoweringCtx<'a, 'b>, cfg: &CFG, en
                     };
 
                     if instr == Instruction::Push {
-                        let _ = ctx.builder.build_call(instr_fn, &[block_size.into()], "");
+                        ctx.builder
+                            .build_call(instr_fn, &[block_size.into()], "")
+                            .unwrap();
                     } else {
-                        let _ = ctx.builder.build_call(instr_fn, &[], "");
+                        ctx.builder.build_call(instr_fn, &[], "").unwrap();
                     }
                 } else {
                     let new_dp_as_const =
                         i8_type.const_int(transition.exit_state.dp as i8 as u64, false);
                     let new_cc_as_const =
                         i8_type.const_int(transition.exit_state.cc as i8 as u64, false);
-                    let _ = ctx.builder.build_store(dp_addr, new_dp_as_const);
-                    let _ = ctx.builder.build_store(cc_addr, new_cc_as_const);
+                    ctx.builder.build_store(dp_addr, new_dp_as_const).unwrap();
+                    ctx.builder.build_store(cc_addr, new_cc_as_const).unwrap();
                 }
 
                 let const_0_i8 = ctx
                     .builder
                     .build_int_truncate(const_0, i8_type, "")
                     .unwrap();
-                let _ = ctx.builder.build_store(rctr_addr, const_0_i8);
+                ctx.builder.build_store(rctr_addr, const_0_i8).unwrap();
                 let next_block = block_lookup_table
                     .get(adj.get_label() as &str)
                     .unwrap()
@@ -202,11 +202,13 @@ pub(crate) fn build_transitions<'a, 'b>(ctx: &LoweringCtx<'a, 'b>, cfg: &CFG, en
             rotate_pointers.move_after(*adj_blocks.last().unwrap()).ok();
             ctx.builder.position_at_end(rotate_pointers);
             let _call_retry = ctx.builder.build_call(retry_fn, &[], "call_retry");
-            let _ = ctx.builder.build_unconditional_branch(color_block_start);
+            ctx.builder
+                .build_unconditional_branch(color_block_start)
+                .unwrap();
         } else {
-            let _ = ctx.builder.build_unconditional_branch(ret_block);
+            ctx.builder.build_unconditional_branch(ret_block).unwrap();
             unsafe {
-                rotate_pointers.delete().ok();
+                rotate_pointers.delete().unwrap();
             }
         }
     }
@@ -214,6 +216,6 @@ pub(crate) fn build_transitions<'a, 'b>(ctx: &LoweringCtx<'a, 'b>, cfg: &CFG, en
     ret_block
         .move_after(*block_lookup_table.values().last().unwrap())
         .ok();
-    let _ = ctx.builder.position_at_end(ret_block);
-    let _ = ctx.builder.build_return(None);
+    ctx.builder.position_at_end(ret_block);
+    ctx.builder.build_return(None).unwrap();
 }

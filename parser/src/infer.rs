@@ -1,10 +1,9 @@
 use gcd::Gcd;
-use std::cmp::min;
-use std::collections::{HashSet, VecDeque};
 use piet_core::flow::FindAdj;
 use piet_core::program::PietSource;
-use piet_core::settings::CodelSettings;
 use piet_core::state::Position;
+use std::cmp::min;
+use std::collections::{HashSet, VecDeque};
 
 pub trait InferCodelWidth: FindAdj {
     fn infer_codel_width(program: &PietSource) -> u32 {

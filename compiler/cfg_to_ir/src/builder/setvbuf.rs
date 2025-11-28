@@ -10,7 +10,7 @@ pub(crate) fn build_stdout_unbuffered<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
         .llvm_context
         .append_basic_block(set_stdout_unbuffered_fn, "");
     // Constants
-    let const_0 = ctx.llvm_context.i32_type().const_zero();
+    let const_0 = ctx.llvm_context.i64_type().const_zero();
     let setvbuf_fn = ctx.module.get_function("setvbuf").unwrap();
     let fdopen_fn = ctx.module.get_function("fdopen").unwrap();
     let stdout_fd = ctx.llvm_context.i32_type().const_int(1, false); // File descriptor for stdout is 1

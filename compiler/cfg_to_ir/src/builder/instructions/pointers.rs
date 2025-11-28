@@ -3,7 +3,10 @@ use inkwell::IntPredicate;
 use piet_core::instruction::Instruction;
 
 pub(crate) fn build_switch<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
-    let switch_fn = ctx.module.get_function(Instruction::Swi.to_llvm_name()).unwrap();
+    let switch_fn = ctx
+        .module
+        .get_function(Instruction::Swi.to_llvm_name())
+        .unwrap();
 
     let const_0 = ctx.llvm_context.i64_type().const_int(0, false);
     let const_1 = ctx.llvm_context.i64_type().const_int(1, false);
@@ -53,9 +56,9 @@ pub(crate) fn build_switch<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
         )
         .unwrap();
 
-    let _ = ctx
-        .builder
-        .build_conditional_branch(stack_size_cmp, then_block, ret_block);
+    ctx.builder
+        .build_conditional_branch(stack_size_cmp, then_block, ret_block)
+        .unwrap();
     ctx.builder.position_at_end(then_block);
 
     let top_idx = ctx
@@ -89,15 +92,17 @@ pub(crate) fn build_switch<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
         .builder
         .build_int_compare(IntPredicate::SGE, res, const_0, "cmp_mod_gz")
         .unwrap();
-    let _ = ctx
-        .builder
-        .build_conditional_branch(cmp, lz_block, gz_block);
+    ctx.builder
+        .build_conditional_branch(cmp, lz_block, gz_block)
+        .unwrap();
     ctx.builder.position_at_end(lz_block);
     let decremented = ctx
         .builder
         .build_int_sub(stack_size_val, const_1, "decrement_stack_size")
         .unwrap();
-    let _ = ctx.builder.build_store(stack_size_addr, decremented);
+    ctx.builder
+        .build_store(stack_size_addr, decremented)
+        .unwrap();
     let rem_lz = ctx.builder.build_int_neg(res, "neg_res").unwrap();
     let rem_lz = ctx
         .builder
@@ -108,8 +113,8 @@ pub(crate) fn build_switch<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
         .builder
         .build_int_unsigned_rem(rem_lz, const_2_i8, "")
         .unwrap();
-    let _ = ctx.builder.build_store(cc_addr, rem_lz);
-    let _ = ctx.builder.build_unconditional_branch(ret_block);
+    ctx.builder.build_store(cc_addr, rem_lz).unwrap();
+    ctx.builder.build_unconditional_branch(ret_block).unwrap();
 
     ctx.builder.position_at_end(gz_block);
     let decremented = ctx
@@ -128,11 +133,11 @@ pub(crate) fn build_switch<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
         .builder
         .build_int_unsigned_rem(rem_gz, const_2_i8, "")
         .unwrap();
-    let _ = ctx.builder.build_store(cc_addr, rem_gz);
-    let _ = ctx.builder.build_unconditional_branch(ret_block);
+    ctx.builder.build_store(cc_addr, rem_gz).unwrap();
+    ctx.builder.build_unconditional_branch(ret_block).unwrap();
     // Return
     ctx.builder.position_at_end(ret_block);
-    let _ = ctx.builder.build_return(None);
+    ctx.builder.build_return(None).unwrap();
 }
 
 pub(crate) fn build_rotate<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
@@ -186,9 +191,9 @@ pub(crate) fn build_rotate<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
         )
         .unwrap();
 
-    let _ = ctx
-        .builder
-        .build_conditional_branch(stack_size_cmp, then_block, ret_block);
+    ctx.builder
+        .build_conditional_branch(stack_size_cmp, then_block, ret_block)
+        .unwrap();
     ctx.builder.position_at_end(then_block);
 
     let top_idx = ctx
@@ -223,9 +228,9 @@ pub(crate) fn build_rotate<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
         .build_int_compare(IntPredicate::SGE, top_ptr_val, const_0, "cmp_top_zero")
         .unwrap();
 
-    let _ = ctx
-        .builder
-        .build_conditional_branch(cmp, gz_block, lz_block);
+    ctx.builder
+        .build_conditional_branch(cmp, gz_block, lz_block)
+        .unwrap();
     ctx.builder.position_at_end(lz_block);
     let decremented = ctx
         .builder
@@ -247,15 +252,17 @@ pub(crate) fn build_rotate<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
         .builder
         .build_int_unsigned_rem(rem_lz, const_4_i8, "")
         .unwrap();
-    let _ = ctx.builder.build_store(dp_addr, rem_lz);
-    let _ = ctx.builder.build_unconditional_branch(ret_block);
+    ctx.builder.build_store(dp_addr, rem_lz).unwrap();
+    ctx.builder.build_unconditional_branch(ret_block).unwrap();
 
     ctx.builder.position_at_end(gz_block);
     let decremented = ctx
         .builder
         .build_int_sub(stack_size_val, const_1, "decrement_stack_size")
         .unwrap();
-    let _ = ctx.builder.build_store(stack_size_addr, decremented);
+    ctx.builder
+        .build_store(stack_size_addr, decremented)
+        .unwrap();
     let rem_gz = ctx
         .builder
         .build_int_truncate(rem, ctx.llvm_context.i8_type(), "trunc_to_i8")
@@ -265,11 +272,11 @@ pub(crate) fn build_rotate<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
         .builder
         .build_int_unsigned_rem(rem_gz, const_4_i8, "")
         .unwrap();
-    let _ = ctx.builder.build_store(dp_addr, rem_gz);
-    let _ = ctx.builder.build_unconditional_branch(ret_block);
+    ctx.builder.build_store(dp_addr, rem_gz).unwrap();
+    ctx.builder.build_unconditional_branch(ret_block).unwrap();
     // Return
     ctx.builder.position_at_end(ret_block);
-    let _ = ctx.builder.build_return(None);
+    ctx.builder.build_return(None).unwrap();
 }
 
 pub(crate) fn build_retry<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
@@ -319,9 +326,9 @@ pub(crate) fn build_retry<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
         .builder
         .build_int_compare(IntPredicate::EQ, rem, const_1, "")
         .unwrap();
-    let _ = ctx
-        .builder
-        .build_conditional_branch(cmp, one_mod_two, zero_mod_two);
+    ctx.builder
+        .build_conditional_branch(cmp, one_mod_two, zero_mod_two)
+        .unwrap();
 
     // One mod two
     ctx.builder.position_at_end(one_mod_two);
@@ -337,8 +344,8 @@ pub(crate) fn build_retry<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
         .builder
         .build_int_truncate(dp_mod_4, ctx.llvm_context.i8_type(), "trunc_dp_to_i8")
         .unwrap();
-    let _ = ctx.builder.build_store(dp_addr, dp_to_i8);
-    let _ = ctx.builder.build_unconditional_branch(ret_block);
+    ctx.builder.build_store(dp_addr, dp_to_i8).unwrap();
+    ctx.builder.build_unconditional_branch(ret_block).unwrap();
 
     // Zero mod two
     ctx.builder.position_at_end(zero_mod_two);
@@ -354,8 +361,8 @@ pub(crate) fn build_retry<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
         .builder
         .build_int_truncate(cc_mod_2, ctx.llvm_context.i8_type(), "trunc_cc_to_i8")
         .unwrap();
-    let _ = ctx.builder.build_store(cc_addr, cc_to_i8);
-    let _ = ctx.builder.build_unconditional_branch(ret_block);
+    ctx.builder.build_store(cc_addr, cc_to_i8).unwrap();
+    ctx.builder.build_unconditional_branch(ret_block).unwrap();
 
     // Ret
     ctx.builder.position_at_end(ret_block);
@@ -369,6 +376,6 @@ pub(crate) fn build_retry<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
         .builder
         .build_int_truncate(rctr_mod_8, ctx.llvm_context.i8_type(), "trunc_to_i8")
         .unwrap();
-    let _ = ctx.builder.build_store(rctr_addr, rctr_to_i8);
-    let _ = ctx.builder.build_return(None);
+    ctx.builder.build_store(rctr_addr, rctr_to_i8).unwrap();
+    ctx.builder.build_return(None).unwrap();
 }

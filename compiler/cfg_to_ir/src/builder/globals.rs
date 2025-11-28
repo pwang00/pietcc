@@ -1,4 +1,4 @@
-use crate::{consts::STACK_SIZE, lowering_ctx::LoweringCtx};
+use crate::lowering_ctx::LoweringCtx;
 use inkwell::{module::Linkage, AddressSpace};
 use piet_core::{instruction::Instruction, state::ExecutionState};
 use strum::IntoEnumIterator;
@@ -8,7 +8,7 @@ pub(crate) fn build_globals(ctx: &LoweringCtx) {
     build_literals(ctx);
 }
 
-pub(crate) fn build_global_definitions<'a, 'b>(ctx: &LoweringCtx) {
+pub(crate) fn build_global_definitions(ctx: &LoweringCtx) {
     let ptr_type = ctx.llvm_context.ptr_type(AddressSpace::default());
     let i8_type = ctx.llvm_context.i8_type();
     let i32_type = ctx.llvm_context.i32_type();
@@ -34,13 +34,25 @@ pub(crate) fn build_global_definitions<'a, 'b>(ctx: &LoweringCtx) {
     ctx.module.add_function("printf", printf_type, None);
 
     let scanf_type = i32_type.fn_type(&[ptr_type.into()], true);
-    ctx.module.add_function("__isoc99_scanf", scanf_type, None);
+    ctx.module.add_function("scanf", scanf_type, None);
 
-    let exit_type = void_type.fn_type(&[i32_type.into()], false);
+    let exit_type = void_type.fn_type(&[i64_type.into()], false);
     ctx.module.add_function("exit", exit_type, None);
 
     let fdopen_type = ptr_type.fn_type(&[i32_type.into(), ptr_type.into()], false);
     ctx.module.add_function("fdopen", fdopen_type, None);
+
+    // malloc type
+    let malloc_fn_type = ctx
+        .llvm_context
+        .ptr_type(AddressSpace::default())
+        .fn_type(&[ctx.llvm_context.i64_type().into()], false);
+
+    ctx.module.add_function("malloc", malloc_fn_type, None);
+
+    // setvbuf to disable buffering
+    let i32_type = ctx.llvm_context.i32_type();
+    let void_type = ctx.llvm_context.void_type();
 
     let setvbuf_type = i32_type.fn_type(
         &[
@@ -52,19 +64,6 @@ pub(crate) fn build_global_definitions<'a, 'b>(ctx: &LoweringCtx) {
         false,
     );
     ctx.module.add_function("setvbuf", setvbuf_type, None);
-
-    // LLVM intrinsics for roll
-    let stack_save_type = ptr_type.fn_type(&[], false);
-    ctx.module
-        .add_function("llvm.stacksave", stack_save_type, None);
-
-    let stack_restore_type = void_type.fn_type(&[ptr_type.into()], false);
-    ctx.module
-        .add_function("llvm.stackrestore", stack_restore_type, None);
-
-    let smax_type = i64_type.fn_type(&[i64_type.into(), i64_type.into()], false);
-    ctx.module.add_function("llvm.smax.i64", smax_type, None);
-
     // Main functions
     let main_fn_type = i64_type.fn_type(&[], false);
     ctx.module.add_function("main", main_fn_type, None);
@@ -100,6 +99,9 @@ pub(crate) fn build_global_definitions<'a, 'b>(ctx: &LoweringCtx) {
     ctx.module.add_function("retry", void_fn_type, None);
 
     // Stack manipulation functions
+    ctx.module
+        .add_function("initialize_piet_stack", void_fn_type, None);
+
     ctx.module
         .add_function(Instruction::Dup.to_llvm_name(), void_fn_type, None);
     ctx.module
@@ -160,45 +162,53 @@ pub(crate) fn build_literals<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
     ctx.builder.position_at_end(init_block);
     unsafe {
         // Format strings for I/O
-        let _ = ctx.builder.build_global_string("%ld\0", "dec_fmt");
-        let _ = ctx.builder.build_global_string("%c\0", "char_fmt");
-        let _ = ctx.builder.build_global_string("%s\0", "string_fmt");
-        let _ = ctx.builder.build_global_string("%ld \0", "stack_fmt");
-        let _ = ctx
-            .builder
-            .build_global_string("\nStack (size %d): ", "stack_id");
-        let _ = ctx
-            .builder
-            .build_global_string("\nStack empty", "stack_id_empty");
+        ctx.builder.build_global_string("%ld\0", "dec_fmt").unwrap();
+        ctx.builder.build_global_string("%c\0", "char_fmt").unwrap();
+        ctx.builder
+            .build_global_string("%s\0", "string_fmt")
+            .unwrap();
+        ctx.builder
+            .build_global_string("%ld \0", "stack_fmt")
+            .unwrap();
+        ctx.builder
+            .build_global_string("\nStack (size %d): ", "stack_id")
+            .unwrap();
+        ctx.builder
+            .build_global_string("\nStack empty", "stack_id_empty")
+            .unwrap();
 
         // Input prompt strings
-        let _ = ctx
-            .builder
-            .build_global_string("Enter number: ", "input_message_int");
-        let _ = ctx
-            .builder
-            .build_global_string("Enter char: ", "input_message_char");
+        ctx.builder
+            .build_global_string("Enter number: ", "input_message_int")
+            .unwrap();
+        ctx.builder
+            .build_global_string("Enter char: ", "input_message_char")
+            .unwrap();
 
-        let _ = ctx.builder.build_global_string("w", "fdopen_mode");
+        ctx.builder.build_global_string("w", "fdopen_mode").unwrap();
 
         // Instruction format strings
         for instr in Instruction::iter() {
-            let _ = ctx.builder.build_global_string(
-                &(instr.to_llvm_name().to_owned() + "\n"),
-                &(instr.to_llvm_name().to_owned() + "_fmt"),
-            );
+            ctx.builder
+                .build_global_string(
+                    &(instr.to_llvm_name().to_owned() + "\n"),
+                    &(instr.to_llvm_name().to_owned() + "_fmt"),
+                )
+                .unwrap();
         }
 
         // Error and debug strings
-        let _ = ctx.builder.build_global_string(
-            "\nStack memory exhausted, terminating program.",
-            "exhausted_fmt",
-        );
-        let _ = ctx
-            .builder
-            .build_global_string("Calling retry", "retry_fmt");
-        let _ = ctx.builder.build_global_string("\n", "newline");
+        ctx.builder
+            .build_global_string(
+                "\nStack memory exhausted, terminating program.",
+                "exhausted_fmt",
+            )
+            .unwrap();
+        ctx.builder
+            .build_global_string("Calling retry", "retry_fmt")
+            .unwrap();
+        ctx.builder.build_global_string("\n", "newline").unwrap();
     }
 
-    let _ = ctx.builder.build_return(None);
+    ctx.builder.build_return(None).unwrap();
 }

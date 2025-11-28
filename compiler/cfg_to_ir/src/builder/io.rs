@@ -8,16 +8,14 @@ use piet_core::instruction::Instruction;
 #[allow(unused)]
 pub(crate) fn build_input<'a, 'b>(ctx: &LoweringCtx<'a, 'b>, instr: Instruction) {
     let in_fn = match instr {
-        Instruction::IntIn => {
-            ctx.module
-                .get_function(Instruction::IntIn.to_llvm_name())
-                .unwrap()
-        }
-        Instruction::CharIn => {
-            ctx.module
-                .get_function(Instruction::CharIn.to_llvm_name())
-                .unwrap()
-        }
+        Instruction::IntIn => ctx
+            .module
+            .get_function(Instruction::IntIn.to_llvm_name())
+            .unwrap(),
+        Instruction::CharIn => ctx
+            .module
+            .get_function(Instruction::CharIn.to_llvm_name())
+            .unwrap(),
         _ => panic!("Not an input instruction!"),
     };
 
@@ -90,7 +88,7 @@ pub(crate) fn build_input<'a, 'b>(ctx: &LoweringCtx<'a, 'b>, instr: Instruction)
 
     // Build scanf call
     // scanf reads into our local variable, so we need to load it next
-    let scanf_fn = ctx.module.get_function("__isoc99_scanf").unwrap();
+    let scanf_fn = ctx.module.get_function("scanf").unwrap();
     let scanf = ctx
         .builder
         .build_call(scanf_fn, &[const_fmt_gep.into(), read_addr.into()], "scanf")
@@ -121,7 +119,11 @@ pub(crate) fn build_input<'a, 'b>(ctx: &LoweringCtx<'a, 'b>, instr: Instruction)
 
     let stack_size_load_instr = ctx
         .builder
-        .build_load(ctx.llvm_context.i64_type(), stack_size_addr, "load_stack_size")
+        .build_load(
+            ctx.llvm_context.i64_type(),
+            stack_size_addr,
+            "load_stack_size",
+        )
         .unwrap()
         .as_instruction_value()
         .unwrap();
@@ -182,7 +184,9 @@ pub(crate) fn build_output<'a, 'b>(ctx: &LoweringCtx<'a, 'b>, instr: Instruction
 
     // Labels
     let basic_block = ctx.llvm_context.append_basic_block(out_fn, "");
-    let then_block = ctx.llvm_context.append_basic_block(out_fn, "stack_nonempty");
+    let then_block = ctx
+        .llvm_context
+        .append_basic_block(out_fn, "stack_nonempty");
     let ret_block = ctx.llvm_context.append_basic_block(out_fn, "ret");
 
     ctx.builder.position_at_end(basic_block);
@@ -205,7 +209,7 @@ pub(crate) fn build_output<'a, 'b>(ctx: &LoweringCtx<'a, 'b>, instr: Instruction
         .unwrap();
 
     // For some reason Inkwell aligns i64s at a 4 byte boundary and not 8 byte, very weirdga
-    stack_size_load_instr.set_alignment(8);
+    stack_size_load_instr.set_alignment(8).unwrap();
 
     let stack_size_val = stack_size_load_instr.try_into().unwrap();
 
@@ -220,7 +224,8 @@ pub(crate) fn build_output<'a, 'b>(ctx: &LoweringCtx<'a, 'b>, instr: Instruction
         .unwrap();
 
     ctx.builder
-        .build_conditional_branch(stack_size_cmp, then_block, ret_block);
+        .build_conditional_branch(stack_size_cmp, then_block, ret_block)
+        .unwrap();
     ctx.builder.position_at_end(then_block);
 
     let top_idx = ctx
@@ -265,7 +270,7 @@ pub(crate) fn build_output<'a, 'b>(ctx: &LoweringCtx<'a, 'b>, instr: Instruction
         .as_instruction_value()
         .unwrap();
 
-    top_ptr_load_instr.set_alignment(8);
+    top_ptr_load_instr.set_alignment(8).unwrap();
 
     let top_ptr_val = top_ptr_load_instr.as_any_value_enum().into_int_value();
 
@@ -292,8 +297,8 @@ pub(crate) fn build_output<'a, 'b>(ctx: &LoweringCtx<'a, 'b>, instr: Instruction
         .unwrap();
 
     store.set_alignment(8).ok();
-    ctx.builder.build_unconditional_branch(ret_block);
+    ctx.builder.build_unconditional_branch(ret_block).unwrap();
 
     ctx.builder.position_at_end(ret_block);
-    let _ = ctx.builder.build_return(None);
+    ctx.builder.build_return(None).unwrap();
 }

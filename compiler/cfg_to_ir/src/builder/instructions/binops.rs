@@ -9,10 +9,7 @@ pub(crate) fn build_binops<'a, 'b>(ctx: &LoweringCtx<'a, 'b>, instr: Instruction
         | Instruction::Div
         | Instruction::Mul
         | Instruction::Mod
-        | Instruction::Gt => ctx
-            .module
-            .get_function(instr.to_llvm_name())
-            .unwrap(),
+        | Instruction::Gt => ctx.module.get_function(instr.to_llvm_name()).unwrap(),
         _ => panic!("Not a binary operation!"),
     };
 
@@ -66,9 +63,9 @@ pub(crate) fn build_binops<'a, 'b>(ctx: &LoweringCtx<'a, 'b>, instr: Instruction
         )
         .unwrap();
 
-    let _ = ctx
-        .builder
-        .build_conditional_branch(cmp, cont_block, ret_block);
+    ctx.builder
+        .build_conditional_branch(cmp, cont_block, ret_block)
+        .unwrap();
 
     // Enough elems on stack
     ctx.builder.position_at_end(cont_block);
@@ -148,9 +145,9 @@ pub(crate) fn build_binops<'a, 'b>(ctx: &LoweringCtx<'a, 'b>, instr: Instruction
                 const_0,
                 "check_dividend_nonzero",
             );
-            let _ = ctx
-                .builder
-                .build_conditional_branch(cmp.unwrap(), dividend_nonzero, ret_block);
+            ctx.builder
+                .build_conditional_branch(cmp.unwrap(), dividend_nonzero, ret_block)
+                .unwrap();
 
             // Set names for blocks and delete unused
             unsafe { then_block.delete().ok() };
@@ -183,9 +180,9 @@ pub(crate) fn build_binops<'a, 'b>(ctx: &LoweringCtx<'a, 'b>, instr: Instruction
                 "check_dividend_nonzero",
             );
 
-            let _ = ctx
-                .builder
-                .build_conditional_branch(cmp.unwrap(), dividend_nonzero, ret_block);
+            ctx.builder
+                .build_conditional_branch(cmp.unwrap(), dividend_nonzero, ret_block)
+                .unwrap();
 
             ctx.builder.position_at_end(dividend_nonzero);
             let rem = ctx
@@ -197,7 +194,7 @@ pub(crate) fn build_binops<'a, 'b>(ctx: &LoweringCtx<'a, 'b>, instr: Instruction
                 .builder
                 .build_alloca(ctx.llvm_context.i64_type(), "rem_result")
                 .unwrap();
-            let _ = ctx.builder.build_store(store_rem_result, rem);
+            ctx.builder.build_store(store_rem_result, rem).unwrap();
 
             let cmp =
                 ctx.builder
@@ -206,14 +203,16 @@ pub(crate) fn build_binops<'a, 'b>(ctx: &LoweringCtx<'a, 'b>, instr: Instruction
             then_block.set_name("lz");
             else_block.set_name("gez");
 
-            let _ = ctx
-                .builder
-                .build_conditional_branch(cmp.unwrap(), else_block, then_block);
+            ctx.builder
+                .build_conditional_branch(cmp.unwrap(), else_block, then_block)
+                .unwrap();
 
             ctx.builder.position_at_end(then_block);
             let rem_lz = ctx.builder.build_int_add(top_ptr_val, rem, "rem_lz");
-            let _ = ctx.builder.build_store(store_rem_result, rem_lz.unwrap());
-            let _ = ctx.builder.build_unconditional_branch(else_block);
+            ctx.builder
+                .build_store(store_rem_result, rem_lz.unwrap())
+                .unwrap();
+            ctx.builder.build_unconditional_branch(else_block).unwrap();
             ctx.builder.position_at_end(else_block);
             ctx.builder
                 .build_load(ctx.llvm_context.i64_type(), store_rem_result, "load_result")
@@ -248,14 +247,13 @@ pub(crate) fn build_binops<'a, 'b>(ctx: &LoweringCtx<'a, 'b>, instr: Instruction
         ctx.builder
             .build_int_sub(stack_size_val, const_1, "decrement_stack_size");
 
-    let _ = ctx
-        .builder
-        .build_store(stack_size_addr, updated_stack_size.unwrap());
+    ctx.builder
+        .build_store(stack_size_addr, updated_stack_size.unwrap())
+        .unwrap();
 
-    let _ = ctx.builder.build_store(next_ptr, result);
-
-    let _ = ctx.builder.build_unconditional_branch(ret_block);
+    ctx.builder.build_store(next_ptr, result).unwrap();
+    ctx.builder.build_unconditional_branch(ret_block).unwrap();
     // Not enough elems on stack
     ctx.builder.position_at_end(ret_block);
-    let _ = ctx.builder.build_return(None);
+    ctx.builder.build_return(None).unwrap();
 }

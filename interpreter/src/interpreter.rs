@@ -1,6 +1,6 @@
 use piet_core::cfg::{Node, CFG};
 use piet_core::error::ExecutionError;
-use piet_core::flow::{find_offset, PointerState};
+use piet_core::flow::find_offset;
 use piet_core::instruction::*;
 use piet_core::settings::{InterpreterSettings, Verbosity};
 use piet_core::state::{ExecutionState, ExecutionStatus};
@@ -66,7 +66,7 @@ impl<'a> Interpreter<'a> {
 
     pub fn exec_instr(&mut self, instr: Instruction) -> Result<(), ExecutionError> {
         Ok(match instr {
-            Instruction::Push => self.push(self.state.prev_cb_count),
+            Instruction::Push => self.push(self.state.cb_count),
             Instruction::Pop => self.pop(),
             Instruction::Add => self.add()?,
             Instruction::Sub => self.sub()?,
@@ -301,9 +301,11 @@ impl<'a> Interpreter<'a> {
         self.state.stdin.clear();
         if self.settings.abstract_interp {
             self.state.status = ExecutionStatus::NeedsInput;
-            return Ok(())
+            return Ok(());
         }
-        let _ = io::stdin().read_line(&mut self.state.stdin);
+        io::stdin()
+            .read_line(&mut self.state.stdin)
+            .expect("Failed to read input");
         if let Ok(n) = self.state.stdin.trim().parse::<i64>() {
             Ok(self.state.stack.push_front(n))
         } else {
@@ -320,7 +322,7 @@ impl<'a> Interpreter<'a> {
 
         if self.settings.abstract_interp {
             self.state.status = ExecutionStatus::NeedsInput;
-            return Ok(())
+            return Ok(());
         }
 
         let char = io::stdin()
@@ -392,13 +394,22 @@ impl<'a> Interpreter<'a> {
 
         loop {
             io::stdout().flush().unwrap();
-            self.state.prev_cb_count = block.get_region().len() as u64;
-            self.state.prev_cb_label = block.get_label().clone();
+            self.state.cb_count = block.get_region().len() as u64;
+            self.state.cb_label = block.get_label().clone();
+
+            if let Some(max_steps) = self.settings.max_steps {
+                if self.state.steps == max_steps {
+                    self.state.status = ExecutionStatus::MaxSteps;
+                    break;
+                }
+            }
+
             if self.settings.abstract_interp && self.state.status == ExecutionStatus::NeedsInput {
                 break;
             }
 
             let (next, maybe_instr) = self.next_block(block.clone());
+
             if next.is_none() {
                 self.state.status = ExecutionStatus::Completed;
                 break;
@@ -414,13 +425,6 @@ impl<'a> Interpreter<'a> {
                     }
                 }
                 self.state.steps += 1;
-            }
-
-            if let Some(max_steps) = self.settings.max_steps {
-                if self.state.steps == max_steps {
-                    self.state.status = ExecutionStatus::MaxSteps;
-                    break;
-                }
             }
         }
 

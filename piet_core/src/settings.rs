@@ -25,6 +25,7 @@ pub struct CompilerSettings<'a> {
     pub show_codel_size: bool,
     pub show_cfg_size: bool,
     pub warn_nt: bool,
+    pub verbosity: Verbosity,
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -39,13 +40,13 @@ pub struct InterpreterSettings {
 
 impl Default for InterpreterSettings {
     fn default() -> Self {
-        Self { 
-            verbosity: Default::default(), 
-            codel_settings: Default::default(), 
-            max_steps: Default::default(), 
-            partial_eval: Default::default(), 
-            abstract_interp: Default::default(), 
-            print: true
+        Self {
+            verbosity: Default::default(),
+            codel_settings: Default::default(),
+            max_steps: Default::default(),
+            partial_eval: Default::default(),
+            abstract_interp: Default::default(),
+            print: true,
         }
     }
 }

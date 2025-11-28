@@ -4,7 +4,10 @@ use crate::lowering_ctx::LoweringCtx;
 
 #[allow(unused)]
 pub(crate) fn build_push<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
-    let push_fn = ctx.module.get_function(Instruction::Push.to_llvm_name()).unwrap();
+    let push_fn = ctx
+        .module
+        .get_function(Instruction::Push.to_llvm_name())
+        .unwrap();
 
     let basic_block = ctx.llvm_context.append_basic_block(push_fn, "");
     ctx.builder.position_at_end(basic_block);
@@ -12,6 +15,7 @@ pub(crate) fn build_push<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
     let stack_size_check_fn = ctx.module.get_function("stack_size_check").unwrap();
     ctx.builder
         .build_call(stack_size_check_fn, &[], "call_stack_size_check");
+
     let stack_addr = ctx
         .module
         .get_global("piet_stack")

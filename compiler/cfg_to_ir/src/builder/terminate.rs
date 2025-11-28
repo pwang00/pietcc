@@ -24,7 +24,10 @@ pub(crate) fn build_stack_size_check<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
         .unwrap()
         .into_int_value();
 
-    let max_stack_size_value = ctx.llvm_context.i64_type().const_int(STACK_SIZE as u64, false);
+    let max_stack_size_value = ctx
+        .llvm_context
+        .i64_type()
+        .const_int(STACK_SIZE as u64, false);
 
     let cmp = ctx
         .builder
@@ -36,16 +39,18 @@ pub(crate) fn build_stack_size_check<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
         )
         .unwrap();
 
-    let _ = ctx
-        .builder
-        .build_conditional_branch(cmp, stack_exhausted_block, ret_block);
+    ctx.builder
+        .build_conditional_branch(cmp, stack_exhausted_block, ret_block)
+        .unwrap();
 
     ctx.builder.position_at_end(stack_exhausted_block);
-    let _ = ctx.builder.build_call(terminate_fn, &[], "call_terminate");
-    let _ = ctx.builder.build_unreachable();
+    ctx.builder
+        .build_call(terminate_fn, &[], "call_terminate")
+        .unwrap();
+    ctx.builder.build_unreachable().unwrap();
 
     ctx.builder.position_at_end(ret_block);
-    let _ = ctx.builder.build_return(None);
+    ctx.builder.build_return(None).unwrap();
 }
 
 pub(crate) fn build_terminate<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
@@ -77,12 +82,12 @@ pub(crate) fn build_terminate<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
             .unwrap()
     };
 
-    let _ = ctx
-        .builder
-        .build_call(printf_fn, &[exhausted_fmt_gep.into()], "");
-    let _ = ctx.builder.build_call(print_stack_fn, &[], "");
-    let _ = ctx
-        .builder
-        .build_call(exit_fn, &[const_1.into()], "call_exit");
-    let _ = ctx.builder.build_return(Some(&const_1));
+    ctx.builder
+        .build_call(printf_fn, &[exhausted_fmt_gep.into()], "")
+        .unwrap();
+    ctx.builder.build_call(print_stack_fn, &[], "").unwrap();
+    ctx.builder
+        .build_call(exit_fn, &[const_1.into()], "call_exit")
+        .unwrap();
+    ctx.builder.build_return(Some(&const_1)).unwrap();
 }

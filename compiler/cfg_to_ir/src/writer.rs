@@ -7,16 +7,6 @@ pub(crate) fn generate_executable(module: &Module, filename: &str) -> Result<(),
     let bitcode_fname = &format!("{}.bc", filename);
     let asm_fname = &format!("{}.s", filename);
 
-    let _bitcode_file = OpenOptions::new()
-        .write(true)
-        .create(true)
-        .open(bitcode_fname)?;
-
-    let _asm_file = OpenOptions::new()
-        .write(true)
-        .create(true)
-        .open(asm_fname)?;
-
     let bitcode_path = std::path::Path::new(bitcode_fname);
     module.write_bitcode_to_path(bitcode_path);
 
@@ -52,13 +42,7 @@ pub(crate) fn generate_executable(module: &Module, filename: &str) -> Result<(),
 
 pub(crate) fn generate_llvm_bitcode(module: &Module, filename: &str) -> Result<(), Error> {
     let bitcode_file_name = &format!("{}.bc", filename);
-    let _bitcode_file = OpenOptions::new()
-        .write(true) // Enable writing to the file
-        .create(true) // Create the file if it doesn't exist
-        .open(bitcode_file_name)?;
-
-    let bitcode_path = std::path::Path::new(bitcode_file_name);
-    module.write_bitcode_to_path(bitcode_path);
+    module.write_bitcode_to_path(bitcode_file_name);
     Ok(())
 }
 

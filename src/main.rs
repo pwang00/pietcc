@@ -260,6 +260,7 @@ fn main() -> Result<(), Error> {
                 warn_nt,
                 show_cfg_size,
                 show_codel_size,
+                verbosity,
             };
 
             let cfg_gen = CFGBuilder::new(&program, codel_settings, show_codel_size);

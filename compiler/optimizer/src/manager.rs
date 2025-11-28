@@ -1,9 +1,9 @@
-use crate::analysis_cache;
 use crate::{analysis_cache::AnalysisCache, pass::Pass};
 use piet_core::cfg::CFG;
 use piet_core::settings::CompilerSettings;
 
 #[derive(Debug)]
+#[allow(unused)]
 pub struct OptimizationPassManager<'a> {
     passes: Vec<Box<dyn Pass>>,
     analysis_cache: AnalysisCache,
@@ -12,7 +12,6 @@ pub struct OptimizationPassManager<'a> {
 
 impl<'a> OptimizationPassManager<'a> {
     pub fn run_all(&mut self, cfg: &mut CFG) {
-        // Borrow checker :(
         for pass in &mut self.passes {
             if let Err(err) = pass.run(cfg, &mut self.analysis_cache) {
                 eprintln!("Error while running optimization pass: {}", err)
