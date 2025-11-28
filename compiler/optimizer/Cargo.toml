@@ -1,0 +1,11 @@
+[package]
+name = "piet-optimizer"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+inkwell = { version = "0.6.0", features = ["llvm18-1"] }
+piet-interpreter = { version = "0.1", path = "../../interpreter" }
+piet-core = { version = "0.1", path = "../../piet_core" }

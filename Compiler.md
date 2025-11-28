@@ -2,25 +2,29 @@
 
 ## Control flow graph types
 
-We can model Piet control flow like a directed graph: each vertex represents a color block and each edge represents a transition between color blocks, which encodes the command to be executed.  We can consider the following types to represent our control flow graph: 
+We can model Piet control flow as a directed graph: each vertex represents a color block and each edge represents a transition between color blocks, which encodes the command to be executed.  We can consider the following types to represent our control flow graph (CFG): 
 
 ```Rust
-pub type DirVec = (Direction, Codel);
-pub(crate) type Node = Rc<ColorBlock>;
-pub(crate) type Info = Vec<(EntryDir, ExitDir, Option<Instruction>)>;
-pub(crate) type Adjacencies = HashMap<Node, Info>;
-pub(crate) type CFG = HashMap<Node, Adjacencies>;
+pub type Node = Rc<ColorBlock>;
+pub type NodeAdj = HashMap<Node, Vec<PietTransition>>;
+pub type CFG = HashMap<Node, NodeAdj>;
 
-#[allow(unused)]
-pub struct CFGGenerator<'a> {
-    program: &'a Program<'a>,
-    adjacencies: CFG,
-    codel_width: u32,
+#[derive(Copy, Clone, Debug, Default)]
+pub struct PointerState {
+    pub dp: DirPointer,
+    pub cc: CodelChooser,
+}
+
+#[derive(Debug, Copy, Clone)]
+pub struct PietTransition {
+    pub entry_state: PointerState,
+    pub exit_state: PointerState,
+    pub instruction: Option<Instruction>,
 }
 
 #[allow(unused)]
 #[derive(Eq)]
-pub(crate) struct ColorBlock {
+pub struct ColorBlock {
     label: String,
     lightness: Lightness,
     region: HashSet<Position>,
@@ -34,24 +38,28 @@ In a `Node`:
 * `lightness` stores the current color
 * `region` is a set of all coordinates in the color block
 
-`Info = Vec<(EntryDir, ExitDir, Option<Instruction>)>` represents the adjacency data for each node.  In particular, `(EntryDir, ExitDir, Option<Instruction>)` represents, respectively, the current direction state (direction pointer, codel chooser), (direction pointer, codel chooser) after a potential transition, and command encoded by the color difference between the current node and adjacency.  This command isn't necessarily going to be `Some` even between two non-white adjacencies in the final CFG, which will be explained in the white block elimination section.
+`Vec<PietTransition>` represents the adjacency data for each node. Each `PietTransition` contains the entry state (direction pointer, codel chooser), exit state (direction pointer, codel chooser) after a potential transition, and command encoded by the color difference between the current node and adjacency. Transitions between even two non-white adjacencies in the final CFG will not necessarily encode an instruction, which will be explained in the white block elimination section.
 
-The rest is pretty straightforward: `Adjacencies = HashMap<Node, Info>` is a map of every node with its adjacency data, and `CFG = HashMap<Node, Adjacencies>` is the adjacency list representation for our entire program's control flow graph.
+The rest is pretty straightforward: `NodeAdj = HashMap<Node, Vec<PietTransition>>` is a map of every node with its adjacency data, and `CFG = HashMap<Node, NodeAdj>` is the adjacency list representation for our entire program's CFG.
 
-## Control flow graph generation
+## CFG generation
 
-Generating a CFG for Piet can be done in the following steps:
+Piet CFGs are generated via the following process:
 
 1. Discover all pixels in the current color block via BFS.  
 2. Determine all possible exits from the current color block, and enqueue the unvisited ones.  Note that we filter out all exits that are either black or out of bounds.
 3. Iterate through the remaining coordinates in the boundaries and filter out the visited ones.  This is important since otherwise we might be doing repeated work trying to discover the same color block.
-4. For non-white blocks, discover each adjacent color block corresponding the block's exits, determine the bordering direction, corresponding instruction to be executed, and add the node and its adjacencies to the CFG.  Note that in the context of `Info`
+4. For non-white blocks, discover each adjacent color block corresponding the block's exits, determine the bordering direction, corresponding instruction to be executed, and add the node and its adjacencies to the CFG.  Note that in the context of 
 
 ```Rust
-(EntryDir, ExitDir, Option<Instruction>);
+PietTransition {
+    entry_state: PointerState,
+    exit_state: PointerState,
+    instruction: Option<Instruction>,
+}
 ```
 
-We set the `EntryDir` and `ExitDir` to be the same, since from a control-flow perspective, only hitting restrictions or tracing white blocks can change the dp / cc, and we don't explicitly represent restrictions in our CFG (if a block's exit is out of bounds or black, we simply don't add it).  We set the `Instruction` to be the corresponding one based on the lightness / hue differences between the current and adjacent block colors.  During compilation, we generate LLVM basic blocks for each node and its adjacencies using this information.
+We set the `entry_state` and `exit_state` to be the same, since from a control-flow perspective, only hitting restrictions or tracing white blocks can change the dp / cc, and we don't explicitly represent restrictions in our CFG (if a block's exit is out of bounds or black, we simply don't add it).  We set the `instruction` to be the corresponding one based on the lightness / hue differences between the current and adjacent block colors.  During compilation, we generate LLVM basic blocks for each node and its adjacencies using this Transitionsrmation.
 
 
 ## White block tracing and elimination
@@ -60,13 +68,17 @@ White blocks follow a different exit convention than blocks of other color.  Nam
 
 Once the exits have been traced, we can eliminate white blocks entirely from our CFG and join the blocks corresponding to the entry point and exit point with an edge.  As an example, let A, C be non-white blocks and let B be a white block.  Then after elimination, A -> B -> C becomes A -> C if it's determined that B can be exited from A into C with the given adjacency state.  Otherwise, if there is no way out from B, we would just have A -> B becomes A.
 
-By eliminating white blocks, we can simplify our CFG and eliminate the need to generate a label, list of branches containing all possible dp / cc states for entrance, and a jump for every white block.  In the context of `Info`,
+By eliminating white blocks, we can simplify our CFG and eliminate the need to generate a label, list of branches containing all possible dp / cc states for entrance, and a jump for every white block.  In the context of `PietTransition`,
 
 ```rust
-(EntryDir, ExitDir, Option<Instruction>)
+PietTransition {
+    entry_state: PointerState,
+    exit_state: PointerState, 
+    instruction: Option<Instruction>,
+}
 ```
 
-We set the `EntryDir` to be the entry direction state, and `ExitDir` to be exit direction state, and `Instruction` to be `None` since no command is executed between white block transitions.
+We set the `entry_state` to be the entry direction state, and `exit_state` to be exit direction state, and `instruction` to be `None` since no command is executed between white block transitions.
 
 ## Code generation
 
@@ -119,17 +131,15 @@ define void @init_globals() {
 }
 ```
 
-There are also a lot of format strings for `printf` and `scanf`, such as `"%s", "%d"`, etc.  These aren't super important.
-
 ### Piet instructions
 
-All Piet instructions are compiled into each program, and they follow spec [here](https://www.dangermouse.net/esoteric/piet.html).  Since Push and Dup increment the stack size, we need to make sure that the stack size is less than the constant size of `STACK_SIZE`.  If the runtime stack exceeds STACK_SIZE, then the program terminates. Currently, the stack size is initialized as 
+All Piet instructions are compiled into each program, and they obey the spec [here](https://www.dangermouse.net/esoteric/piet.html).  Since Push and Dup increment the stack size, we need to make sure that the stack size is less than the constant size of `STACK_SIZE`.  If the runtime stack exceeds STACK_SIZE, then the program terminates. Currently, the stack size is initialized as 
 
 ```rust
 pub const STACK_SIZE: u32 = 1 << 18;
 ```
 
-and the call to `malloc` allocates STACK_SIZE * sizeof(i64) = STACK_SIZE * 8 bytes.  Push and Dup both call `stack_size_check` before modifying the stack, which then calls `terminate`, which prints "Stack memory exhausted" and exits with code 1.
+and the call to `malloc` allocates STACK_SIZE * sizeof(i64) = STACK_SIZE * 8 bytes.  Push and Dup both call `stack_size_check` before modifying the stack, which then calls `terminate` if the stack size is exceeded.  `terminate` then prints "Stack memory exhausted" and exits with code 1.
 
 ```
 define void @piet_push(i64 %0) {
@@ -178,7 +188,7 @@ define i64 @main() {
 
 `start` marks the start of the actual Piet program.
 
-### Control flow graph to IR
+### CFG to IR
 
 For every node in our CFG with outdegree greater than 0, we generate the LLVM basic blocks with the following structure:
 ```
@@ -292,3 +302,19 @@ ret:                                              ; preds = %zero_mod_two, %one_
 ### Termination
 
 A compiled Piet program terminates once a jump is taken to a color block that has no adjacencies.  In this case, `start` returns immediately and the stack state is printed.  It follows that every Piet program CFG that contains no nodes of outdegree 0 will never terminate, since only nodes of oudegree zero are compiled with `ret` instructions.  Therefore, we can detect a certain class of nonterminating programs at compile-time and warn the user accordingly.
+
+### Optimizations (WIP)
+
+PietCC implements several optimization passes to improve the performance of generated code:
+
+#### Dead Code Elimination (LLVM)
+- Removes unreachable basic blocks from the CFG
+- Eliminates color blocks that can never be reached during program execution
+- Reduces binary size and improves runtime performance
+
+#### Constant Folding / Static evaluation (LLVM)
+- Pre-computes constant expressions at compile time
+- Optimizes push operations with known constant values
+- Reduces runtime computation for deterministic operations
+
+

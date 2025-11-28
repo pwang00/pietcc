@@ -4,28 +4,31 @@ PietCC is a Rust interpreter and compiler for the [Piet](https://www.dangermouse
 
 ## Organization
 
-1. [types](https://github.com/pwang00/pietcc/tree/main/types): core types shared between the interpreter, compiler, and parser
+1. [piet_core](https://github.com/pwang00/pietcc/tree/main/piet_core): core language types
 2. [interpreter](https://github.com/pwang00/pietcc/tree/main/interpreter): core interpreter logic
-3. [compiler](https://github.com/pwang00/pietcc/tree/main/compiler): core compiler logic, handles CFG generation and uses Inkwell to generate LLVM IR from CFGs.
-4. [parser](https://github.com/pwang00/pietcc/tree/main/parser): core image parsing logic, handles image loading and pixel/codel operations.
-4. [src](https://github.com/pwang00/pietcc/tree/main/src): main CLI, allows users to run either the interpreter or compiler with a variety of flags.
+3. [compiler](https://github.com/pwang00/pietcc/tree/main/compiler): core compiler logic, handles CFG generation and subsequent optimizations
+4. [parser](https://github.com/pwang00/pietcc/tree/main/parser): core image parsing logic, handles image loading and pixel/codel operations
+4. [src](https://github.com/pwang00/pietcc/tree/main/src): main CLI, allows users to run either the interpreter or compiler with a variety of flags
 
 ## Dependencies
 
-- Rust 1.56+ (Stable, Beta, or Nightly), for inkwell
+- Rust 1.89+ (Stable, Beta, or Nightly), for inkwell
 - LLVM libraries, including clang and llc, for generating IR / lowering to assembly.
 
-## Progress
+## Features
 
-- [x] Interpreter: functionally complete, supports treating unknown colors as white / black.
-- [x] Compiler: functionally complete and correct to my knowledge, with white block tracing / elimination and nontermination detection implemented as well as support for running LLVM module optimization passes.
+- Supports treating unknown colors as white / black.
+- Supports white block tracing and elimination
+- Supports nontermination detection for certain classes of programs
+- Supports running LLVM module optimization passes via inkwell
+- Supports static evaluation / constant folding optimizations at the CFG level
+
 
 ## TODO
 
-Compiler:
+### Compiler
 
-* Decrease compilation times
-* Maybe attempt to add custom LLVM passes upon proving Piet program properties to further improve compiled program efficiency
+* Develop more Piet-specific optimizations and respective optimization passes
 
 ## Installation
 
@@ -38,10 +41,10 @@ cd pietcc
 
 ## Building PietCC
 
-To build PietCC, first make sure you have supported versions of rustc and LLVM on your system.  You may need to modify inkwell's cargo feature flags in the Cargo.tomls of the [project root](https://github.com/pwang00/pietcc/blob/main/Cargo.toml) and [compiler](https://github.com/pwang00/pietcc/blob/main/compiler/Cargo.toml).  This project sets them at LLVM 14.0:
+To build PietCC, first make sure you have supported versions of rustc and LLVM on your system.  You may need to modify inkwell's cargo feature flags in the Cargo.tomls of the [project root](https://github.com/pwang00/pietcc/blob/main/Cargo.toml) and [compiler](https://github.com/pwang00/pietcc/blob/main/compiler/Cargo.toml).  This project sets them at LLVM 18.1:
 
 ```
-inkwell = { git = "https://github.com/TheDan64/inkwell", branch = "master", features = ["llvm14-0"] }
+inkwell = { version = "0.7.0", features = ["llvm18-1"] }
 ```
 
 However, other versions are supported as well per the inkwell docs:
@@ -61,8 +64,10 @@ However, other versions are supported as well per the inkwell docs:
 | 14.0.x       | llvm14-0      |
 | 15.0.x       | llvm15-0      |
 | 16.0.x       | llvm16-0      |
+| 17.0.x       | llvm17-0      |
+| 18.1.x       | llvm18-1      |
 
-so replace `features = ["llvm14-0"]` with the desired cargo feature flag.
+so replace `features = ["llvm18-1"]` with the desired cargo feature flag.
 
 Once you have verified that the LLVM version is correct, run
 

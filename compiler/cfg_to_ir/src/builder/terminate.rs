@@ -1,0 +1,93 @@
+use crate::{consts::STACK_SIZE, lowering_ctx::LoweringCtx};
+
+// Terminates the program and prints the stack
+pub(crate) fn build_stack_size_check<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
+    let stack_check_fn = ctx.module.get_function("stack_size_check").unwrap();
+    let terminate_fn = ctx.module.get_function("terminate").unwrap();
+
+    // Basic blocks
+    let basic_block = ctx.llvm_context.append_basic_block(stack_check_fn, "");
+    let stack_exhausted_block = ctx.llvm_context.append_basic_block(stack_check_fn, "");
+    let ret_block = ctx.llvm_context.append_basic_block(stack_check_fn, "");
+
+    ctx.builder.position_at_end(basic_block);
+
+    let stack_size_addr = ctx
+        .module
+        .get_global("stack_size")
+        .unwrap()
+        .as_pointer_value();
+
+    let stack_size_val = ctx
+        .builder
+        .build_load(ctx.llvm_context.i64_type(), stack_size_addr, "stack_size")
+        .unwrap()
+        .into_int_value();
+
+    let max_stack_size_value = ctx
+        .llvm_context
+        .i64_type()
+        .const_int(STACK_SIZE as u64, false);
+
+    let cmp = ctx
+        .builder
+        .build_int_compare(
+            inkwell::IntPredicate::UGE,
+            stack_size_val,
+            max_stack_size_value,
+            "check_overflow",
+        )
+        .unwrap();
+
+    ctx.builder
+        .build_conditional_branch(cmp, stack_exhausted_block, ret_block)
+        .unwrap();
+
+    ctx.builder.position_at_end(stack_exhausted_block);
+    ctx.builder
+        .build_call(terminate_fn, &[], "call_terminate")
+        .unwrap();
+    ctx.builder.build_unreachable().unwrap();
+
+    ctx.builder.position_at_end(ret_block);
+    ctx.builder.build_return(None).unwrap();
+}
+
+pub(crate) fn build_terminate<'a, 'b>(ctx: &LoweringCtx<'a, 'b>) {
+    let terminate_fn = ctx.module.get_function("terminate").unwrap();
+    let print_stack_fn = ctx.module.get_function("print_piet_stack").unwrap();
+    let exit_fn = ctx.module.get_function("exit").unwrap();
+    let printf_fn = ctx.module.get_function("printf").unwrap();
+    // Constants
+    let const_0 = ctx.llvm_context.i64_type().const_zero();
+    let const_1 = ctx.llvm_context.i64_type().const_int(1, false);
+
+    // Basic blocks
+    let basic_block = ctx.llvm_context.append_basic_block(terminate_fn, "");
+    ctx.builder.position_at_end(basic_block);
+    let exhausted_fmt = ctx.module.get_global("exhausted_fmt").unwrap();
+    let _exhausted_fmt_load = ctx.builder.build_load(
+        exhausted_fmt.as_pointer_value().get_type(),
+        exhausted_fmt.as_pointer_value(),
+        "load_exhausted_fmt",
+    );
+    let exhausted_fmt_gep = unsafe {
+        ctx.builder
+            .build_gep(
+                exhausted_fmt.as_pointer_value().get_type(),
+                exhausted_fmt.as_pointer_value(),
+                &[const_0, const_0],
+                "load_gep",
+            )
+            .unwrap()
+    };
+
+    ctx.builder
+        .build_call(printf_fn, &[exhausted_fmt_gep.into()], "")
+        .unwrap();
+    ctx.builder.build_call(print_stack_fn, &[], "").unwrap();
+    ctx.builder
+        .build_call(exit_fn, &[const_1.into()], "call_exit")
+        .unwrap();
+    ctx.builder.build_return(Some(&const_1)).unwrap();
+}

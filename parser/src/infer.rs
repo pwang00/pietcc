@@ -1,20 +1,12 @@
 use gcd::Gcd;
+use piet_core::flow::FindAdj;
+use piet_core::program::PietSource;
+use piet_core::state::Position;
 use std::cmp::min;
 use std::collections::{HashSet, VecDeque};
-use types::flow::FindAdj;
-use types::program::Program;
-use types::state::Position;
-
-#[derive(Copy, Clone, Default, Debug)]
-pub enum CodelSettings {
-    #[default]
-    Default,
-    Infer,
-    Width(u32),
-}
 
 pub trait InferCodelWidth: FindAdj {
-    fn infer_codel_width(program: &Program) -> u32 {
+    fn infer_codel_width(program: &PietSource) -> u32 {
         let (height, width) = program.dimensions();
         // The idea of this heuristic is that since the codel size is constant across the program,
         // each block must have width and height as a multiple of the codel size.  A somewhat reasonable metric

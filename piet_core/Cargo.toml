@@ -1,0 +1,14 @@
+[package]
+name = "piet-core"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "piet_core"
+path = "src/lib.rs"
+
+[dependencies]
+image = "0.24.5"
+inkwell = { version = "0.7.0", features = ["llvm18-1"] }
+strum = "0.24.1"
+strum_macros = "0.24"

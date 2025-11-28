@@ -1,132 +1,72 @@
-use crate::settings::{InterpSettings, Verbosity};
-use parser::infer::{CodelSettings, InferCodelWidth};
-use parser::{convert::ConvertToLightness, decode::DecodeInstruction};
-use std::collections::{HashSet, VecDeque};
+use piet_core::cfg::{Node, CFG};
+use piet_core::error::ExecutionError;
+use piet_core::flow::find_offset;
+use piet_core::instruction::*;
+use piet_core::settings::{InterpreterSettings, Verbosity};
+use piet_core::state::{ExecutionState, ExecutionStatus};
+use std::collections::VecDeque;
 use std::env;
 use std::io::Write;
 use std::{io, io::Read};
-use types::color::Lightness::{Black, White};
-use types::error::ExecutionError;
-use types::flow::{Codel, Direction, FindAdj, FURTHEST, MOVE_IN};
-use types::instruction::Instruction;
-use types::program::Program;
-use types::state::{ExecutionResult, ExecutionState, Position};
 
+#[derive(Debug)]
 pub struct Interpreter<'a> {
-    program: &'a Program<'a>,
+    cfg: &'a CFG,
     state: ExecutionState,
-    stack: VecDeque<i64>,
-    codel_width: u32,
-    settings: InterpSettings,
+    settings: InterpreterSettings,
 }
 
-impl<'a> DecodeInstruction for Interpreter<'a> {}
-impl<'a> ConvertToLightness for Interpreter<'a> {}
-impl<'a> FindAdj for Interpreter<'a> {}
-impl<'a> InferCodelWidth for Interpreter<'a> {}
-
 impl<'a> Interpreter<'a> {
-    pub fn new(program: &'a Program, settings: InterpSettings) -> Self {
-        let codel_width = match settings.codel_settings {
-            CodelSettings::Default => 1,
-            CodelSettings::Infer => Self::infer_codel_width(&program),
-            CodelSettings::Width(codel_width) => codel_width,
-        };
-
+    pub fn new(cfg: &'a CFG, settings: InterpreterSettings) -> Self {
         Self {
-            program,
+            cfg,
             state: ExecutionState::default(),
-            stack: VecDeque::new(),
-            codel_width,
             settings,
         }
     }
 
-    pub(crate) fn furthest_in_direction(&mut self, region: &HashSet<Position>) -> Position {
-        let idx = match (self.state.dp, self.state.cc) {
-            (Direction::Right, Codel::Left) => 0,
-            (Direction::Right, Codel::Right) => 1,
-            (Direction::Down, Codel::Left) => 2,
-            (Direction::Down, Codel::Right) => 3,
-            (Direction::Left, Codel::Left) => 4,
-            (Direction::Left, Codel::Right) => 5,
-            (Direction::Up, Codel::Left) => 6,
-            (Direction::Up, Codel::Right) => 7,
-        };
+    pub fn next_block(&mut self, block: Node) -> (Option<Node>, Option<Instruction>) {
+        let bordering = &mut self.cfg.get(&block).unwrap();
+        let mut directions = vec![];
 
-        *region.iter().max_by_key(FURTHEST[idx]).unwrap()
-    }
-
-    pub(crate) fn move_to_next_block(&self, (x, y): Position) -> Position {
-        Some((x, y, self.codel_width))
-            .map(MOVE_IN[self.state.dp as usize])
-            .unwrap()
-    }
-
-    pub(crate) fn explore_region(&self, entry: Position) -> HashSet<Position> {
-        let mut queue = VecDeque::from([entry]);
-        let mut discovered = HashSet::new();
-        let lightness = *self.program.get(entry).unwrap();
-
-        while !queue.is_empty() {
-            let pos = queue.pop_front().unwrap();
-            discovered.insert(pos);
-
-            let adjs = Self::adjacencies(pos, self.program, self.codel_width);
-            let in_block = adjs
-                .iter()
-                .filter(|&&pos| *self.program.get(pos).unwrap() == lightness)
-                .collect::<Vec<_>>();
-
-            for adj in in_block {
-                if !discovered.contains(adj) {
-                    queue.push_back(*adj);
-                }
-                discovered.insert(*adj);
-            }
-        }
-        discovered
-    }
-
-    pub(crate) fn recalculate_entry(&mut self, region: &HashSet<Position>) -> Position {
-        if self.state.rctr % 2 == 1 {
-            self.state.dp = self.state.dp.rotate(1);
-        } else {
-            self.state.cc = self.state.cc.switch(1);
+        for adj in bordering.keys() {
+            directions.extend(bordering.get(&*adj).unwrap().iter().map(|transition| {
+                return (
+                    transition.entry_state,
+                    transition.exit_state,
+                    adj,
+                    transition.instruction,
+                );
+            }));
         }
 
-        self.furthest_in_direction(region)
+        // Calculates the block who is the minimum amount of rotations away from the current entry direction
+        // Want min exit conditioned on min entry
+        let curr = self.state.pointers;
+        match directions.into_iter().min_by_key(|&(entry, exit, _, _)| {
+            let entry_offset = find_offset(curr, entry);
+            let exit_offset = find_offset(entry, exit);
+            (entry_offset, exit_offset)
+        }) {
+            Some((_, exit, adj, instr)) => {
+                self.state.pointers = exit;
+                (Some(adj.clone()), instr)
+            }
+            None => (None, None),
+        }
     }
 
-    pub(crate) fn trace_white(&mut self) -> (u32, u32) {
-        let (mut x, mut y) = self.state.pos;
+    pub fn get_state(&self) -> ExecutionState {
+        self.state.clone()
+    }
 
-        loop {
-            let next_pos = Some((x, y, self.codel_width))
-                .map(MOVE_IN[self.state.dp as usize])
-                .unwrap();
-
-            let lightness = self.program.get(next_pos);
-
-            if lightness.is_none() || lightness == Some(&Black) {
-                self.state.dp = self.state.dp.rotate(1);
-                self.state.cc = self.state.cc.switch(1);
-                continue;
-            }
-
-            if lightness != Some(&White) {
-                (x, y) = next_pos;
-                break;
-            }
-
-            (x, y) = next_pos
-        }
-        (x, y)
+    pub fn is_complete(&self) -> ExecutionStatus {
+        return self.state.status;
     }
 
     pub fn exec_instr(&mut self, instr: Instruction) -> Result<(), ExecutionError> {
         Ok(match instr {
-            Instruction::Push => self.push(self.state.cb),
+            Instruction::Push => self.push(self.state.cb_count),
             Instruction::Pop => self.pop(),
             Instruction::Add => self.add()?,
             Instruction::Sub => self.sub()?,
@@ -148,26 +88,26 @@ impl<'a> Interpreter<'a> {
 
     #[inline]
     pub(crate) fn push(&mut self, cb: u64) {
-        self.stack.push_front(cb as i64)
+        self.state.stack.push_front(cb as i64)
     }
 
     #[inline]
     pub(crate) fn pop(&mut self) {
-        self.stack.pop_front();
+        self.state.stack.pop_front();
     }
 
     #[inline]
     pub(crate) fn add(&mut self) -> Result<(), ExecutionError> {
-        if self.stack.len() >= 2 {
-            let a = self.stack.pop_front().unwrap();
-            let b = self.stack.pop_front().unwrap();
-            Ok(self.stack.push_front(a + b))
+        if self.state.stack.len() >= 2 {
+            let a = self.state.stack.pop_front().unwrap();
+            let b = self.state.stack.pop_front().unwrap();
+            Ok(self.state.stack.push_front(a + b))
         } else {
             Err(ExecutionError::StackOutOfBoundsError(
                 Instruction::Add,
                 format!(
                     "Skipping Add since Add requires at least 2 elements on stack but found {}",
-                    self.stack.len()
+                    self.state.stack.len()
                 ),
             ))
         }
@@ -175,16 +115,16 @@ impl<'a> Interpreter<'a> {
 
     #[inline]
     pub(crate) fn sub(&mut self) -> Result<(), ExecutionError> {
-        if self.stack.len() >= 2 {
-            let a = self.stack.pop_front().unwrap();
-            let b = self.stack.pop_front().unwrap();
-            Ok(self.stack.push_front(b - a))
+        if self.state.stack.len() >= 2 {
+            let a = self.state.stack.pop_front().unwrap();
+            let b = self.state.stack.pop_front().unwrap();
+            Ok(self.state.stack.push_front(b - a))
         } else {
             Err(ExecutionError::StackOutOfBoundsError(
                 Instruction::Sub,
                 format!(
                     "Skipping Sub since Sub requires at least 2 elements on stack but found {}",
-                    self.stack.len()
+                    self.state.stack.len()
                 ),
             ))
         }
@@ -192,16 +132,16 @@ impl<'a> Interpreter<'a> {
 
     #[inline]
     pub(crate) fn mul(&mut self) -> Result<(), ExecutionError> {
-        if self.stack.len() >= 2 {
-            let a = self.stack.pop_front().unwrap();
-            let b = self.stack.pop_front().unwrap();
-            Ok(self.stack.push_front(b * a))
+        if self.state.stack.len() >= 2 {
+            let a = self.state.stack.pop_front().unwrap();
+            let b = self.state.stack.pop_front().unwrap();
+            Ok(self.state.stack.push_front(b * a))
         } else {
             Err(ExecutionError::StackOutOfBoundsError(
                 Instruction::Mul,
                 format!(
                     "Skipping Mul since Mul requires at least 2 elements on stack but found {}",
-                    self.stack.len()
+                    self.state.stack.len()
                 ),
             ))
         }
@@ -209,12 +149,12 @@ impl<'a> Interpreter<'a> {
 
     #[inline]
     pub(crate) fn div(&mut self) -> Result<(), ExecutionError> {
-        if self.stack.len() >= 2 {
-            let a = self.stack.pop_front().unwrap();
-            let b = self.stack.pop_front().unwrap();
+        if self.state.stack.len() >= 2 {
+            let a = self.state.stack.pop_front().unwrap();
+            let b = self.state.stack.pop_front().unwrap();
 
             if a > 0 {
-                Ok(self.stack.push_front(b / a))
+                Ok(self.state.stack.push_front(b / a))
             } else {
                 Err(ExecutionError::DivisionByZeroError(
                     Instruction::Div,
@@ -226,7 +166,7 @@ impl<'a> Interpreter<'a> {
                 Instruction::Div,
                 format!(
                     "Skipping Div since Div requires at least 2 elements on stack but found {}",
-                    self.stack.len()
+                    self.state.stack.len()
                 ),
             ))
         }
@@ -234,12 +174,12 @@ impl<'a> Interpreter<'a> {
 
     #[inline]
     pub(crate) fn rem(&mut self) -> Result<(), ExecutionError> {
-        if self.stack.len() >= 2 {
-            let a = self.stack.pop_front().unwrap();
-            let b = self.stack.pop_front().unwrap();
+        if self.state.stack.len() >= 2 {
+            let a = self.state.stack.pop_front().unwrap();
+            let b = self.state.stack.pop_front().unwrap();
 
             if a > 0 {
-                Ok(self.stack.push_front(b.rem_euclid(a)))
+                Ok(self.state.stack.push_front(b.rem_euclid(a)))
             } else {
                 Err(ExecutionError::DivisionByZeroError(
                     Instruction::Mod,
@@ -251,7 +191,7 @@ impl<'a> Interpreter<'a> {
                 Instruction::Mod,
                 format!(
                     "Skipping Mod since Mod requires at least 2 elements on stack but found {}",
-                    self.stack.len()
+                    self.state.stack.len()
                 ),
             ))
         }
@@ -259,8 +199,8 @@ impl<'a> Interpreter<'a> {
 
     #[inline]
     pub(crate) fn not(&mut self) -> Result<(), ExecutionError> {
-        if let Some(a) = self.stack.pop_front() {
-            Ok(self.stack.push_front(if a != 0 { 0 } else { 1 }))
+        if let Some(a) = self.state.stack.pop_front() {
+            Ok(self.state.stack.push_front(if a != 0 { 0 } else { 1 }))
         } else {
             Err(ExecutionError::StackOutOfBoundsError(
                 Instruction::Ptr,
@@ -270,24 +210,24 @@ impl<'a> Interpreter<'a> {
     }
 
     pub(crate) fn grt(&mut self) -> Result<(), ExecutionError> {
-        if self.stack.len() >= 2 {
-            let a = self.stack.pop_front().unwrap();
-            let b = self.stack.pop_front().unwrap();
-            Ok(self.stack.push_front(if b > a { 1 } else { 0 }))
+        if self.state.stack.len() >= 2 {
+            let a = self.state.stack.pop_front().unwrap();
+            let b = self.state.stack.pop_front().unwrap();
+            Ok(self.state.stack.push_front(if b > a { 1 } else { 0 }))
         } else {
             Err(ExecutionError::StackOutOfBoundsError(
                 Instruction::Gt,
                 format!(
                     "Skipping Gt since Gt requires at least 2 elements on stack but found {}",
-                    self.stack.len()
+                    self.state.stack.len()
                 ),
             ))
         }
     }
 
     pub(crate) fn ptr(&mut self) -> Result<(), ExecutionError> {
-        if let Some(n) = self.stack.pop_front() {
-            Ok(self.state.dp = self.state.dp.rotate(n))
+        if let Some(n) = self.state.stack.pop_front() {
+            Ok(self.state.pointers.dp = self.state.pointers.dp.rotate(n))
         } else {
             Err(ExecutionError::StackOutOfBoundsError(
                 Instruction::Ptr,
@@ -297,8 +237,8 @@ impl<'a> Interpreter<'a> {
     }
 
     pub(crate) fn swi(&mut self) -> Result<(), ExecutionError> {
-        if let Some(n) = self.stack.pop_front() {
-            Ok(self.state.cc = self.state.cc.switch(n))
+        if let Some(n) = self.state.stack.pop_front() {
+            Ok(self.state.pointers.cc = self.state.pointers.cc.switch(n))
         } else {
             Err(ExecutionError::StackOutOfBoundsError(
                 Instruction::Swi,
@@ -308,8 +248,8 @@ impl<'a> Interpreter<'a> {
     }
 
     pub(crate) fn dup(&mut self) -> Result<(), ExecutionError> {
-        if let Some(n) = self.stack.front() {
-            Ok(self.stack.push_front(*n))
+        if let Some(n) = self.state.stack.front() {
+            Ok(self.state.stack.push_front(*n))
         } else {
             Err(ExecutionError::StackOutOfBoundsError(
                 Instruction::Dup,
@@ -319,11 +259,11 @@ impl<'a> Interpreter<'a> {
     }
 
     pub(crate) fn roll(&mut self) -> Result<(), ExecutionError> {
-        if self.stack.len() >= 2 {
-            let a = self.stack.pop_front().unwrap();
-            let n = self.stack.pop_front().unwrap();
+        if self.state.stack.len() >= 2 {
+            let a = self.state.stack.pop_front().unwrap();
+            let n = self.state.stack.pop_front().unwrap();
 
-            if n < 0 || n as usize > self.stack.len() {
+            if n < 0 || n as usize > self.state.stack.len() {
                 return Err(ExecutionError::StackOutOfBoundsError(
                     Instruction::Roll,
                     format!("Invalid value for n: {}", n),
@@ -331,11 +271,12 @@ impl<'a> Interpreter<'a> {
             }
 
             let mut top_n = self
+                .state
                 .stack
                 .range(0..n as usize)
                 .map(|&x| x)
                 .collect::<VecDeque<_>>();
-            let rest = self.stack.range(n as usize..);
+            let rest = self.state.stack.range(n as usize..);
             if a < 0 {
                 top_n.rotate_right((a.abs() % top_n.len() as i64) as usize);
             } else {
@@ -343,13 +284,13 @@ impl<'a> Interpreter<'a> {
             }
 
             top_n.extend(rest);
-            Ok(self.stack = top_n)
+            Ok(self.state.stack = top_n)
         } else {
             Err(ExecutionError::StackOutOfBoundsError(
                 Instruction::Roll,
                 format!(
                     "Skipping Gt since Gt requires at least 2 elements on stack but found {}",
-                    self.stack.len()
+                    self.state.stack.len()
                 ),
             ))
         }
@@ -358,9 +299,15 @@ impl<'a> Interpreter<'a> {
     #[inline]
     pub(crate) fn int_in(&mut self) -> Result<(), ExecutionError> {
         self.state.stdin.clear();
-        let _ = io::stdin().read_line(&mut self.state.stdin);
+        if self.settings.abstract_interp {
+            self.state.status = ExecutionStatus::NeedsInput;
+            return Ok(());
+        }
+        io::stdin()
+            .read_line(&mut self.state.stdin)
+            .expect("Failed to read input");
         if let Ok(n) = self.state.stdin.trim().parse::<i64>() {
-            Ok(self.stack.push_front(n))
+            Ok(self.state.stack.push_front(n))
         } else {
             Err(ExecutionError::ParseError(
                 Instruction::IntIn,
@@ -372,6 +319,12 @@ impl<'a> Interpreter<'a> {
     #[inline]
     pub(crate) fn char_in(&mut self) -> Result<(), ExecutionError> {
         self.state.stdin.clear();
+
+        if self.settings.abstract_interp {
+            self.state.status = ExecutionStatus::NeedsInput;
+            return Ok(());
+        }
+
         let char = io::stdin()
             .bytes()
             .next()
@@ -379,7 +332,7 @@ impl<'a> Interpreter<'a> {
             .map(|byte| byte as i64);
 
         if let Some(c) = char {
-            Ok(self.stack.push_front(c))
+            Ok(self.state.stack.push_front(c))
         } else {
             Err(ExecutionError::ParseError(
                 Instruction::IntIn,
@@ -390,93 +343,106 @@ impl<'a> Interpreter<'a> {
 
     #[inline]
     pub(crate) fn int_out(&mut self) {
-        if let Some(n) = self.stack.pop_front() {
-            print!("{n}");
+        if let Some(n) = self.state.stack.pop_front() {
+            self.state.stdout.push(StdOutWrapper::Int(n));
+            if self.settings.print {
+                print!("{n}");
+            }
         }
     }
 
     #[inline]
     pub(crate) fn char_out(&mut self) {
-        if let Some(n) = self.stack.pop_front() {
+        if let Some(n) = self.state.stack.pop_front() {
             if let Some(c) = char::from_u32(n as u32) {
-                print!("{c}");
+                self.state.stdout.push(StdOutWrapper::Char(c));
+                if self.settings.print {
+                    print!("{c}");
+                }
             }
         }
     }
 
-    pub fn run(&mut self) -> ExecutionResult {
+    pub fn get_entry(&self) -> Node {
+        self.cfg
+            .keys()
+            .find(|node| *node.get_label() == "Entry")
+            .unwrap()
+            .clone()
+    }
+
+    pub fn run(&mut self) -> ExecutionState {
         match self.settings.verbosity {
             Verbosity::Verbose => match env::consts::OS {
                 "linux" => {
-                    println!("\x1B[1;37mpietcc:\x1B[0m \x1B[1;96minfo: \x1B[0mrunning with codel width {} (size of {})", 
-                        self.codel_width, self.codel_width.pow(2))
+                    println!(
+                        "\x1B[1;37mpietcc:\x1B[0m \x1B[1;96minfo: \x1B[0mrunning with {:?}",
+                        self.settings.codel_settings
+                    )
                 }
                 _ => {
                     println!(
-                        "pietcc: info: running with codel width {} (size of {})",
-                        self.codel_width,
-                        self.codel_width.pow(2)
+                        "pietcc: info: running with {:?}",
+                        self.settings.codel_settings
                     )
                 }
             },
             _ => (),
         }
 
-        // A Piet program terminates when the retries counter reaches 8
-        while self.state.rctr < 8 {
+        let mut block = self.get_entry();
+
+        loop {
             io::stdout().flush().unwrap();
-            let block = self.explore_region(self.state.pos);
-            let lightness = *self.program.get(self.state.pos).unwrap();
-            let furthest_in_dir = self.furthest_in_direction(&block);
-            let next_pos = if lightness != White {
-                self.move_to_next_block(furthest_in_dir)
-            } else {
-                self.trace_white()
-            };
-            let adj_lightness = self.program.get(next_pos);
-            self.state.cb = block.len() as u64;
+            self.state.cb_count = block.get_region().len() as u64;
+            self.state.cb_label = block.get_label().clone();
 
-            match adj_lightness {
-                None | Some(&Black) => {
-                    self.state.pos = self.recalculate_entry(&block);
-                    self.state.rctr += 1;
+            if let Some(max_steps) = self.settings.max_steps {
+                if self.state.steps == max_steps {
+                    self.state.status = ExecutionStatus::MaxSteps;
+                    break;
                 }
-                Some(&color) => {
-                    self.state.pos = next_pos;
-                    if let Some(instr) = <Self as DecodeInstruction>::decode_instr(lightness, color)
-                    {
-                        let res = self.exec_instr(instr);
-                        if let Err(res) = res {
-                            if self.settings.verbosity == Verbosity::Verbose {
-                                eprintln!("{:?}", res);
-                            }
-                        }
+            }
+
+            if self.settings.abstract_interp && self.state.status == ExecutionStatus::NeedsInput {
+                break;
+            }
+
+            let (next, maybe_instr) = self.next_block(block.clone());
+
+            if next.is_none() {
+                self.state.status = ExecutionStatus::Completed;
+                break;
+            }
+
+            block = next.unwrap();
+
+            if let Some(instr) = maybe_instr {
+                let res = self.exec_instr(instr);
+                if let Err(res) = res {
+                    if self.settings.verbosity == Verbosity::Verbose {
+                        eprintln!("{:?}", res);
                     }
-                    self.state.rctr = 0;
                 }
-            };
-
-            self.state.steps += 1;
+                self.state.steps += 1;
+            }
         }
 
-        ExecutionResult {
-            state: &self.state,
-            stack: &self.stack,
-        }
+        self.state.clone()
     }
 }
 
 #[allow(unused)]
 mod test {
     use super::*;
-    use types::color::Lightness;
+    use piet_core::color::Lightness;
 
     #[test]
     fn test_roll() {
         // Setup
         let vec = Vec::<Lightness>::new();
-        let program = Program::new(&vec, 0, 0);
-        let mut interpreter = Interpreter::new(&program, InterpSettings::default());
+        let program = PietSource::new(&vec, 0, 0);
+        let mut interpreter = Interpreter::new(&program, InterpreterSettings::default());
 
         // Positive roll to depth 2
         interpreter.stack = VecDeque::from([1, 2, 6, 5]);

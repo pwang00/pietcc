@@ -1,19 +1,20 @@
 pub mod verbosity;
 
 use crate::Verbosity;
+use cfg_to_ir::lowering_ctx::LoweringCtx;
+use cfg_to_ir::pipeline;
 use clap::{App, Arg};
-use compiler::codegen::CodeGen;
-use compiler::settings::CompilerSettings;
-use compiler::{cfg_gen::CFGGenerator, settings::SaveOptions};
 use inkwell::context::Context;
 use inkwell::OptimizationLevel;
-use interpreter::{interpreter::Interpreter, settings::*};
+use interpreter::interpreter::Interpreter;
+use parser::cfg::CFGBuilder;
 use parser::convert::UnknownPixelSettings;
-use parser::{infer::CodelSettings, loader::Loader};
+use parser::loader::Loader;
+use piet_core::program::PietSource;
+use piet_core::settings::*;
 use std::env;
 use std::io::Error;
 use std::process::exit;
-use types::program::Program;
 
 fn main() -> Result<(), Error> {
     let matches = App::new("pietcc")
@@ -83,7 +84,7 @@ fn main() -> Result<(), Error> {
                 .conflicts_with("o2")
                 .conflicts_with("interpret")
                 .conflicts_with("o3")
-                .help("Sets the compiler optimization level to 1 (LLVM Less)"),
+                .help("Sets the compiler optimization level to 1 (LLVM Less, attempts Piet constant folding)"),
         )
         .arg(
             Arg::with_name("o2")
@@ -92,7 +93,7 @@ fn main() -> Result<(), Error> {
                 .conflicts_with("o1")
                 .conflicts_with("interpret")
                 .conflicts_with("o3")
-                .help("Sets the compiler optimization level to 2 (LLVM Default)"),
+                .help("Sets the compiler optimization level to 2 (LLVM Default, attempts Piet constant folding)"),
         )
         .arg(
             Arg::with_name("o3")
@@ -101,7 +102,20 @@ fn main() -> Result<(), Error> {
                 .conflicts_with("o1")
                 .conflicts_with("interpret")
                 .conflicts_with("o2")
-                .help("Sets the compiler optimization level to 3 (LLVM Aggressive)"),
+                .help("Sets the compiler optimization level to 3 (LLVM Aggressive, attempts Piet constant folding)"),
+        )
+        .arg(
+            Arg::with_name("pe")
+                .long("pe")
+                .takes_value(false)
+                .help("Use partial evaluation to optimize compilation"),
+        )
+        .arg(
+            Arg::with_name("interpret_to_optimize")
+                .long("oi")
+                .takes_value(false)
+                .conflicts_with("i")
+                .help("Use the Piet interpreter to optimize compilation"),
         )
         .arg(
             Arg::with_name("treat_white")
@@ -130,7 +144,7 @@ fn main() -> Result<(), Error> {
 
     let filename = matches.value_of("input").unwrap();
     let mut interpreter: Interpreter;
-    let program: Program;
+    let program: PietSource;
     let mut behavior = UnknownPixelSettings::TreatAsError;
 
     if matches.is_present("treat_white") {
@@ -147,10 +161,7 @@ fn main() -> Result<(), Error> {
         program = prog;
         let mut codel_settings = CodelSettings::Infer;
         let mut verbosity = Verbosity::Normal;
-        let mut interp_settings = InterpSettings {
-            verbosity: Verbosity::Normal,
-            codel_settings,
-        };
+        let mut interp_settings = InterpreterSettings::default();
 
         if let Some(val) = matches.value_of("codel_size") {
             if let Ok(val) = val.parse::<u32>() {
@@ -195,9 +206,13 @@ fn main() -> Result<(), Error> {
             interp_settings.verbosity = verbosity;
         }
 
+        let mut cfg_builder = CFGBuilder::new(&program, codel_settings, false);
+        cfg_builder.build();
+        let cfg = cfg_builder.get_cfg();
+
         if matches.is_present("interpret") {
             interp_settings.codel_settings = codel_settings;
-            interpreter = Interpreter::new(&program, interp_settings);
+            interpreter = Interpreter::new(&cfg, interp_settings);
             println!("\n{}", interpreter.run());
             exit(0);
         }
@@ -210,7 +225,6 @@ fn main() -> Result<(), Error> {
 
             let mut save_options = SaveOptions::EmitExecutable;
             let mut opt_level = OptimizationLevel::None;
-            
 
             if matches.is_present("emit-llvm") {
                 save_options = SaveOptions::EmitLLVMIR
@@ -246,11 +260,17 @@ fn main() -> Result<(), Error> {
                 warn_nt,
                 show_cfg_size,
                 show_codel_size,
+                verbosity,
             };
 
-            let cfg_gen = CFGGenerator::new(&program, codel_settings, show_codel_size);
-            let mut cg = CodeGen::new(&context, module, builder, cfg_gen, compile_options);
-            if let Err(e) = cg.run(compile_options) {
+            let cfg_gen = CFGBuilder::new(&program, codel_settings, show_codel_size);
+            let mut piet_ctx =
+                LoweringCtx::new(&context, module, builder, cfg_gen, compile_options);
+            if let Err(e) = pipeline::run_piet_optimization_pipeline(
+                &mut piet_ctx,
+                &mut cfg_builder.get_cfg(),
+                compile_options,
+            ) {
                 println!("{:?}", e);
             }
         }
