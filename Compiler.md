@@ -133,7 +133,7 @@ define void @init_globals() {
 
 ### Piet instructions
 
-All Piet instructions are compiled into each program, and they obey the spec [here](https://www.dangermouse.net/esoteric/piet.html).  Since Push and Dup increment the stack size, we need to make sure that the stack size is less than the constant size of `STACK_SIZE`.  If the runtime stack exceeds STACK_SIZE, then the program terminates. Currently, the stack size is initialized as 
+Compiled Piet instructions obey the spec [here](https://www.dangermouse.net/esoteric/piet.html).  Since Push and Dup increment the stack size, we need to make sure that the stack size is less than the constant size of `STACK_SIZE`.  If the runtime stack exceeds STACK_SIZE, then the program terminates. Currently, the stack size is initialized as 
 
 ```rust
 pub const STACK_SIZE: u32 = 1 << 18;
@@ -305,16 +305,246 @@ A compiled Piet program terminates once a jump is taken to a color block that ha
 
 ### Optimizations (WIP)
 
-PietCC implements several optimization passes to improve the performance of generated code:
+PietCC implements an optimizer that runs on the pre-lowered CFG and LLVM IR.  The architecture is very loosely insired by LLVM's own optimizer, but greatly simplified.  PietCC provides abstractions for custom optimization passes.
 
-#### Dead Code Elimination (LLVM)
-- Removes unreachable LLVM basic blocks from the CFG
-- Reduces binary size and improves runtime performance
+```rust
+pub trait Pass: Debug {
+    fn name(&self) -> &'static str;
+    fn run(&mut self, cfg: &mut CFG, manager: &mut AnalysisCache) -> Result<(), Box<dyn Error>>;
+}
+```
 
-#### Compile-time Constant Evaluation (Piet)
-- Attempts to fold a Piet program at compile-time
-- If consteval completes, then final execution stack and stdout are compiled into the program, and stdout is printed
-- If consteval does not complete, either due to input instructions or max steps reached, then a partial execution state (stack, pointers, stdout) is compiled, and program resumes from color block
-- Reduces runtime computation for deterministic operations
+Each pass can update its optimization result in the `AnalysisCache`.  Currently the `ExecutionResult` only stores the complete or partial execution states of a Piet program, but this can be extended to support CFG modifications.
 
+```rust
+#[derive(Debug, Clone)]
+pub struct AnalysisCache {
+    pub(crate) result: Option<ExecutionResult>,
+}
 
+impl AnalysisCache {
+    pub fn get_cached_result(&self) -> Option<&ExecutionResult> {
+        self.result.as_ref()
+    }
+
+    pub fn update_result(&mut self, result: ExecutionResult) {
+        self.result = Some(result)
+    }
+}
+
+impl Default for AnalysisCache {
+    fn default() -> Self {
+        Self { result: None }
+    }
+}
+```
+
+The passes themselves are orchestrated by a `PietOptimizationManager`:
+
+```rust
+#[derive(Debug)]
+#[allow(unused)]
+pub struct OptimizationPassManager<'a> {
+    passes: Vec<Box<dyn Pass>>,
+    analysis_cache: AnalysisCache,
+    settings: CompilerSettings<'a>,
+}
+
+impl<'a> OptimizationPassManager<'a> {
+    pub fn run_all(&mut self, cfg: &mut CFG) {
+        for pass in &mut self.passes {
+            if let Err(err) = pass.run(cfg, &mut self.analysis_cache) {
+                eprintln!("Error while running optimization pass: {}", err)
+            }
+        }
+    }
+
+    pub fn new(passes: Vec<Box<dyn Pass>>, settings: CompilerSettings<'a>) -> Self {
+        Self {
+            passes,
+            analysis_cache: AnalysisCache::default(),
+            settings,
+        }
+    }
+
+    pub fn get_analysis_cache(&self) -> &AnalysisCache {
+        &self.analysis_cache
+    }
+}
+```
+
+### Compile-time Constant Evaluation
+
+Compile-time evaluation provides enormous runtime and compilation benefits.  For large programs, LLVM IR verification can take an extremely long time, so running the Piet interpreter on the program to obtain a final execution result with the stack and stdout and compiling those as constants to be printed at runtie can drastically reduce compilation times and runtime efficiency.  The pass is implemented as follows:
+
+```rust
+#[derive(Debug)]
+pub struct StaticEvaluatorPass;
+
+pub const MAX_STEPS: u64 = 200000;
+
+impl Pass for StaticEvaluatorPass {
+    fn name(&self) -> &'static str {
+        "static_eval"
+    }
+
+    fn run(
+        &mut self,
+        cfg: &mut CFG,
+        analysis_cache: &mut AnalysisCache,
+    ) -> Result<(), Box<dyn Error>> {
+        let codel_settings = piet_core::settings::CodelSettings::Default;
+        let static_eval_settings =
+            StaticEvaluatorSettings::abstract_interp(MAX_STEPS, codel_settings);
+        let mut static_eval = StaticEvaluator::new(cfg, static_eval_settings);
+        let execution_state = static_eval.run();
+        match execution_state.status {
+            ExecutionStatus::Completed => {
+                Ok(analysis_cache.update_result(ExecutionResult::Complete(execution_state)))
+            }
+            ExecutionStatus::MaxSteps => {
+                Ok(analysis_cache.update_result(ExecutionResult::Partial(execution_state)))
+            }
+            ExecutionStatus::NeedsInput => Err(Box::new(OptimizerError::StaticEvaluationError(
+                "Static evaluation on input-dependent programs not yet implemented.  Will compile with partial execution result.".into(),
+                ExecutionResult::Partial(execution_state),
+            ))),
+            _ => Ok(()),
+        }
+    }
+}
+```
+
+#### Constant programs
+
+The compile-time evaluator can completely fold constant programs, which we define as programs that run until completion after a finite number of steps, and do not depend on input instructions.  Let's consider the example of [Hello World 1](https://github.com/pwang00/pietcc/blob/main/images/hw1-11.gif)
+
+<img src="https://github.com/pwang00/pietcc/blob/main/images/hw1-11.gif" alt="Hello World with Codel Size 11"/>
+
+Here's what an LLVM IR file might look like for an unoptimized version of the program:
+
+```
+; all instruction definitions
+
+define i64 @main() {
+  call void @init_globals()
+  %malloc = call ptr @malloc(i64 2097152)
+  store ptr %malloc, ptr @piet_stack, align 8
+  call void @set_stdout_unbuffered()
+  call void @start()
+  call void @print_piet_stack()
+  ret i64 0
+}
+
+define void @start() {
+  br label %Entry
+
+LightRed_5_9:                                     ; preds = %call_instr_LightYellow_6_91524, %call_instr_LightYellow_6_91523, %call_instr_RegRed_5_101062, %call_instr_RegRed_5_101061, %call_instr_DarkRed_4_9260, %call_instr_DarkRed_4_9, %rotate_pointers_LightRed_5_9
+  %load_dp = load i8, ptr @dp, align 1
+  %load_cc = load i8, ptr @cc, align 1
+  br label %adjacency_LightRed_5_9_0
+
+adjacency_LightRed_5_9_2:                         ; preds = %dirvec_adj4
+  br label %dirvec_adj7
+
+rotate_pointers_LightRed_5_9:                     ; preds = %dirvec_adj8
+  call void @retry()
+  br label %LightRed_5_9
+
+dirvec_adj8:                                      ; preds = %dirvec_adj7
+  %1 = icmp eq i8 %load_dp, 3
+  %2 = icmp eq i8 %load_cc, 1
+  %3 = and i1 %1, %2
+  br i1 %3, label %call_instr_LightRed_5_910, label %rotate_pointers_LightRed_5_9
+
+...
+
+<hundreds of more basic blocks>
+}
+```
+
+whereas the optimized version simply contains both the stack and stdout states as string literals, which are printed at runtime.
+
+```
+; ModuleID = 'piet'
+source_filename = "piet"
+
+@stack_id_empty = private unnamed_addr constant [13 x i8] c"\0AStack empty\00", align 1
+@stack_vals = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
+@str = private unnamed_addr constant [14 x i8] c"Hello, world!\00", align 1
+
+; Function Attrs: nofree nounwind
+declare noundef i32 @printf(ptr nocapture noundef readonly, ...) local_unnamed_addr #0
+
+; Function Attrs: nofree nounwind
+define noundef i64 @main() local_unnamed_addr #0 {
+print_stdout:
+  %puts = tail call i32 @puts(ptr nonnull dereferenceable(1) @str)
+  %print_stack = tail call i32 (ptr, ...) @printf(ptr nonnull dereferenceable(1) @stack_id_empty, ptr nonnull @stack_vals)
+  ret i64 0
+}
+
+; Function Attrs: mustprogress nofree norecurse nosync nounwind willreturn memory(none)
+define void @init_globals() local_unnamed_addr #1 {
+  ret void
+}
+
+; Function Attrs: nofree nounwind
+declare noundef i32 @puts(ptr nocapture noundef readonly) local_unnamed_addr #0
+
+attributes #0 = { nofree nounwind }
+attributes #1 = { mustprogress nofree norecurse nosync nounwind willreturn memory(none) }
+```
+
+#### Non-Terminating or Input-Dependent Programs
+
+The compile-time evaluator cannot fold input-dependent or otherwise non-terminating programs, but can still generate programs that can "resume" from a given state, which may reduce the number of instructions needed to be executed at runtime. To be precise, the evaluator runs until either `MAX_STEPS` is reached, or a `CharIn` or `IntIn` instruction is encountered.  The stack, stdout, dp, cc states until this point are compiled into the program, and the last visited color block is the first adjacency that the `start` function jumps to.  Using the above Hello World program as an example, a completely unoptimized variant might produce
+
+```
+define i64 @main() {
+  call void @init_globals()
+  %malloc = call ptr @malloc(i64 2097152)
+  store ptr %malloc, ptr @piet_stack, align 8
+  call void @set_stdout_unbuffered()
+  call void @start()
+  call void @print_piet_stack()
+  ret i64 0
+}
+
+define void @start() {
+  br label %Entry
+  ...
+}
+```
+
+but if the runtime evaluator were to stop after a certain number of steps, we would have 
+
+```
+define i64 @main() {
+  call void @init_globals()
+  %malloc = call ptr @malloc(i64 2097152)
+  store ptr %malloc, ptr @piet_stack, align 8
+  call void @set_stdout_unbuffered()
+  call void @initialize_piet_stack()
+  call void @start()
+  call void @print_piet_stack()
+  ret i64 0
+}
+
+define void @initialize_piet_stack() {
+initialize_piet_stack_body:
+  store i64 1, ptr @stack_size, align 4
+  %call_printf_stdout = call i32 (ptr, ...) @printf(ptr @stdout_state)
+  %piet_stack_load = load ptr, ptr @piet_stack, align 8
+  %index = getelementptr i64, ptr %piet_stack_load, i64 0
+  store i64 10, ptr %index, align 4
+  ret void 
+}
+
+define void @start() {
+  br label %LightCyan_8_12
+  ...
+}
+```
+
+The key differences are that we compile the stack and stdout states into the program and print stdout before jumping to the correct adjacency.  Note that in the partially-evaluated `start` function, we jump to `%LightCyan_8_12` instead of `Entry`.
