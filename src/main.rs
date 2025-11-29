@@ -84,7 +84,7 @@ fn main() -> Result<(), Error> {
                 .conflicts_with("o2")
                 .conflicts_with("interpret")
                 .conflicts_with("o3")
-                .help("Sets the compiler optimization level to 1 (LLVM Less, attempts Piet constant folding)"),
+                .help("Sets the compiler optimization level to 1 (LLVM default<O1>, attempts Piet compile-time evaluation to fold constant programs)"),
         )
         .arg(
             Arg::with_name("o2")
@@ -93,7 +93,7 @@ fn main() -> Result<(), Error> {
                 .conflicts_with("o1")
                 .conflicts_with("interpret")
                 .conflicts_with("o3")
-                .help("Sets the compiler optimization level to 2 (LLVM Default, attempts Piet constant folding)"),
+                .help("Sets the compiler optimization level to 2 (LLVM default<O2>, attempts Piet compile-time evaluation to fold constant programs)"),
         )
         .arg(
             Arg::with_name("o3")
@@ -102,20 +102,7 @@ fn main() -> Result<(), Error> {
                 .conflicts_with("o1")
                 .conflicts_with("interpret")
                 .conflicts_with("o2")
-                .help("Sets the compiler optimization level to 3 (LLVM Aggressive, attempts Piet constant folding)"),
-        )
-        .arg(
-            Arg::with_name("pe")
-                .long("pe")
-                .takes_value(false)
-                .help("Use partial evaluation to optimize compilation"),
-        )
-        .arg(
-            Arg::with_name("interpret_to_optimize")
-                .long("oi")
-                .takes_value(false)
-                .conflicts_with("i")
-                .help("Use the Piet interpreter to optimize compilation"),
+                .help("Sets the compiler optimization level to 3 (LLVM default<O3>, attempts Piet compile-time evaluation to fold constant programs)"),
         )
         .arg(
             Arg::with_name("treat_white")

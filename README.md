@@ -140,6 +140,8 @@ Doing `cargo run --release images/fizzbuzz.png -i -v 2` will also work.
 PietCC supports emitting executables, LLVM IR, and LLVM bitcode.  The latter two options can be useful for targeting other architectures other than x86_64. The relevant flags are shown below.
 
 ```
+Piet compiler and interpreter
+
 USAGE:
     pietcc [OPTIONS] <input>
 
@@ -150,16 +152,22 @@ OPTIONS:
     -d, --default <use_default>    Interpret or compile with a codel size of 1
         --emit-llvm                Emit LLVM IR for a given Piet program
         --emit-llvm-bitcode        Emit LLVM bitcode for a given Piet program
+    -h, --help                     Print help information
     -i, --interpret                Interpret the given program
     -o, --output <out>             Output an executable into <file> [default: program.out]
-        --o1                       Sets the compiler optimization level to 1 (LLVM Less)
-        --o2                       Sets the compiler optimization level to 2 (LLVM Default)
-        --o3                       Sets the compiler optimization level to 3 (LLVM Aggressive)
+        --o1                       Sets the compiler optimization level to 1 (LLVM default<O1>, attempts
+                                   Piet constant folding)
+        --o2                       Sets the compiler optimization level to 2 (LLVM default<O2>, attempts
+                                   Piet constant folding)
+        --o3                       Sets the compiler optimization level to 3 (LLVM default<O3>,
+                                   attempts Piet compile-time evaluation to fold constant programs)
     -s, --size <codel_size>        Interpret or compile with a supplied codel size (must divide
                                    program height and width)
-    --ub                           Treats unknown pixels as black (default: error)
-    --uw                           Treats unknown pixels as white (default: error)
-    -w, --warn-nt                  Attempts to detect nontermination behavior in a Piet program during compilation
+        --ub                       Treats unknown pixels as black (default: error)
+        --uw                       Treats unknown pixels as white (default: error)
+    -v, --verbosity <verbosity>    Sets the interpreter or compiler's verbosity
+    -w, --warn-nt                  Attempts to detect nontermination behavior in a Piet program
+                                   during compilation
 ```
 
 To compile a Piet program to an ELF executable, LLVM IR, and LLVM bitcode respectively, do
