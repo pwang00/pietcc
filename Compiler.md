@@ -318,6 +318,14 @@ Each pass can update its optimization result in the `AnalysisCache`.  Currently 
 
 ```rust
 #[derive(Debug, Clone)]
+pub enum ExecutionResult {
+    Complete(ExecutionState),
+    Partial(ExecutionState),
+}
+```
+
+```rust
+#[derive(Debug, Clone)]
 pub struct AnalysisCache {
     pub(crate) result: Option<ExecutionResult>,
 }
