@@ -305,7 +305,7 @@ A compiled Piet program terminates once a jump is taken to a color block that ha
 
 ### Optimizations (WIP)
 
-PietCC implements an optimizer that runs on the pre-lowered CFG and LLVM IR.  The architecture is very loosely insired by LLVM's own optimizer, but greatly simplified.  PietCC provides abstractions for custom optimization passes.
+PietCC implements an optimizer that runs on the pre-lowered CFG and LLVM IR.  The architecture is very loosely inspired by LLVM's own optimizer, but greatly simplified.  PietCC provides abstractions for custom optimization passes.
 
 ```rust
 pub trait Pass: Debug {
