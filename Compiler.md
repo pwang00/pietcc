@@ -68,7 +68,7 @@ White blocks follow a different exit convention than blocks of other color.  Nam
 
 Once the exits have been traced, we can eliminate white blocks entirely from our CFG and join the blocks corresponding to the entry point and exit point with an edge.  As an example, let A, C be non-white blocks and let B be a white block.  Then after elimination, A -> B -> C becomes A -> C if it's determined that B can be exited from A into C with the given adjacency state.  Otherwise, if there is no way out from B, we would just have A -> B becomes A.
 
-By eliminating white blocks, we can simplify our CFG and eliminate the need to generate a label, list of branches containing all possible dp / cc states for entrance, and a jump for every white block.  In the context of `PietTransition`,
+By eliminating white blocks, we can simplify our CFG and eliminate the need to generate a label, list of branches containing all possible dp / cc states for entrance, and a jump for every white block.  In the context of
 
 ```rust
 PietTransition {
@@ -133,7 +133,7 @@ define void @init_globals() {
 
 ### Piet instructions
 
-Compiled Piet instructions obey the spec [here](https://www.dangermouse.net/esoteric/piet.html).  Since Push and Dup increment the stack size, we need to make sure that the stack size is less than the constant size of `STACK_SIZE`.  If the runtime stack exceeds STACK_SIZE, then the program terminates. Currently, the stack size is initialized as 
+Compiled Piet instructions obey the spec [here](https://www.dangermouse.net/esoteric/piet.html).  Since Push and Dup increment the stack size, we need to make sure that the stack size is less than STACK_SIZE.  If the runtime stack exceeds this, the program terminates. Currently, the stack size is initialized as 
 
 ```rust
 pub const STACK_SIZE: u32 = 1 << 18;
@@ -425,7 +425,7 @@ impl Pass for StaticEvaluatorPass {
 
 #### Constant programs
 
-The compile-time evaluator can completely fold constant programs, which we define as programs that run until completion after a finite number of steps, and do not depend on input instructions.  Let's consider the example of [Hello World 1](https://github.com/pwang00/pietcc/blob/main/images/hw1-11.gif)
+The compile-time evaluator can completely fold constant programs, which we define as programs that run until completion after a finite number of steps, and do not depend on input instructions.  Let's consider the example of [Hello World 1:](https://github.com/pwang00/pietcc/blob/main/images/hw1-11.gif)
 
 <img src="https://github.com/pwang00/pietcc/blob/main/images/hw1-11.gif" alt="Hello World with Codel Size 11"/>
 
