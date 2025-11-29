@@ -383,7 +383,7 @@ impl<'a> OptimizationPassManager<'a> {
 
 ### Compile-time Constant Evaluation
 
-Compile-time evaluation provides enormous runtime and compilation benefits.  For large programs, LLVM IR verification can take an extremely long time, so running the Piet interpreter on the program to obtain a final execution result with the stack and stdout and compiling those as constants to be printed at runtie can drastically reduce compilation times and runtime efficiency.  The pass is implemented as follows:
+Compile-time evaluation provides enormous runtime and compilation benefits.  For large programs, LLVM IR verification can take an extremely long time, so running the Piet interpreter on the program to obtain a final execution result with the stack and stdout and compiling those as printable constants can drastically reduce compilation times and increase runtime efficiency.  The pass is implemented as follows:
 
 ```rust
 #[derive(Debug)]
@@ -525,7 +525,7 @@ define void @start() {
 }
 ```
 
-but if the runtime evaluator were to stop after a certain number of steps, we would have 
+but if the evaluator were to stop after a certain number of steps, we would have 
 
 ```
 define i64 @main() {
