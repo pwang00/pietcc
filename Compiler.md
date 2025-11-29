@@ -339,7 +339,7 @@ impl Default for AnalysisCache {
 }
 ```
 
-The passes themselves are orchestrated by a `PietOptimizationManager`:
+The passes themselves are orchestrated by PietCC's `OptimizationPassManager`:
 
 ```rust
 #[derive(Debug)]
