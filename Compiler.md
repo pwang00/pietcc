@@ -31,8 +31,6 @@ pub struct ColorBlock {
 }
 ```
 
-The RC stuff is just so we don't have to clone the contents of the ColorBlock every time we want to insert into the map, but admittedly this is really ugly and probably not at all a good practice so I'll see if I can think of a better solution.
-
 In a `Node`:
 * `label` is a string consisting of `{current color}_{minimum block row}_{minimum block col}`.  This is done because our adjacencies are stored in a hashset using the label as a hash for efficiency, so we don't want to double-store blocks that have identical regions but different labels.
 * `lightness` stores the current color
@@ -52,7 +50,7 @@ Piet CFGs are generated via the following process:
 4. For non-white blocks, discover each adjacent color block corresponding the block's exits, determine the bordering direction, corresponding instruction to be executed, and add the node and its adjacencies to the CFG.  Note that in the context of 
 
 ```Rust
-PietTransition {
+struct PietTransition {
     entry_state: PointerState,
     exit_state: PointerState,
     instruction: Option<Instruction>,
@@ -71,7 +69,7 @@ Once the exits have been traced, we can eliminate white blocks entirely from our
 By eliminating white blocks, we can simplify our CFG and eliminate the need to generate a label, list of branches containing all possible dp / cc states for entrance, and a jump for every white block.  In the context of
 
 ```rust
-PietTransition {
+struct PietTransition {
     entry_state: PointerState,
     exit_state: PointerState, 
     instruction: Option<Instruction>,
