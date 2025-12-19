@@ -8,7 +8,8 @@ PietCC is a Rust interpreter and compiler for the [Piet](https://www.dangermouse
 2. [interpreter](https://github.com/pwang00/pietcc/tree/main/interpreter): core interpreter logic
 3. [compiler](https://github.com/pwang00/pietcc/tree/main/compiler): core compiler logic, handles CFG generation and subsequent optimizations
 4. [parser](https://github.com/pwang00/pietcc/tree/main/parser): core image parsing logic, handles image loading and pixel/codel operations
-4. [src](https://github.com/pwang00/pietcc/tree/main/src): main CLI, allows users to run either the interpreter or compiler with a variety of flags
+5. [src](https://github.com/pwang00/pietcc/tree/main/src): main CLI, allows users to run either the interpreter or compiler with a variety of flags
+6. [tests](https://github.com/pwang00/pietcc/tree/main/tests): integration tests for compiler and interpreter
 
 ## Dependencies
 
@@ -76,9 +77,23 @@ cargo build --release
 mv target/release/pietcc .
 ```
 
-Alternatively, it is possible to combine the build / run workflow via 
+Alternatively, it is possible to combine the build / run workflow via
 
 `cargo run --release <image> <flags>`, but this attempts to check for changes to the PietCC source on every run, so is not recommended.
+
+## Testing
+
+PietCC includes comprehensive unit and integration tests. To run all tests:
+
+```bash
+# Run all tests
+./scripts/run_tests.sh
+
+# Or use cargo directly
+cargo test
+```
+
+For detailed information about the test infrastructure, writing tests, and CI/CD, see [TESTING.md](TESTING.md).
 
 ## Interpreting Piet programs
 

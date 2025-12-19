@@ -19,4 +19,18 @@ clap = "3.0.0-beta.5"
 [build-dependencies]
 toml = "0.8.14"
 
+[dev-dependencies]
+# Add common test dependencies here if needed
+tempfile = "3.8"
 
+[[test]]
+name = "integration"
+path = "tests/integration/mod.rs"
+
+[profile.test]
+# Optimize test builds for faster execution
+opt-level = 1
+
+[profile.dev]
+# Faster compile times during development
+opt-level = 0

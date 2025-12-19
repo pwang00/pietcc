@@ -25,7 +25,7 @@ fn main() {
 
             println!("cargo:rustc-env=LIBRARY_PATH={ZSTD_PATH}");
             println!("cargo:rustc-env={llvm_prefix}={llvm_path}");
-            env::set_var("PATH", format!("{llvm_path}:$PATH"));
+            unsafe { env::set_var("PATH", format!("{llvm_path}:$PATH")) };
         }
     }
 }
