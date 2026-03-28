@@ -98,14 +98,14 @@ impl<'a> CFGBuilder<'a> {
 
             let lightness = self.source.get(next_pos);
 
-            if lightness.is_none() || lightness == Some(&Black) {
+            if matches!(lightness, None | Some(&Black)) {
                 dp = dp.rotate(1);
                 cc = cc.switch(1);
                 retries += 1;
                 continue;
             }
 
-            if lightness != Some(&White) {
+            if matches!(lightness, Some(&White)) {
                 return Some((next_pos, PointerState::new(dp, cc)));
             }
 
@@ -124,21 +124,19 @@ impl<'a> CFGBuilder<'a> {
         let mut queue: VecDeque<Position> = VecDeque::from([entry]);
         let lightness = *self.source.get(entry).unwrap();
 
-        while !queue.is_empty() {
-            let pos = queue.pop_front().unwrap();
+        while let Some(pos) = queue.pop_front() {
             let adjs = Self::adjacencies(pos, &self.source, self.codel_width);
 
             let in_block = adjs
                 .iter()
-                .filter(|&&pos| *self.source.get(pos).unwrap() == lightness)
+                .filter(|&&pos| matches!(*self.source.get(pos).unwrap(), lightness))
                 .collect::<Vec<_>>();
 
             // Adds adjacencies that are in the current color block to queue
             for adj in in_block {
-                if !discovered.contains(adj) {
+                if discovered.insert(*adj) {
                     queue.push_back(*adj);
                 }
-                discovered.insert(*adj);
             }
         }
 
@@ -183,8 +181,7 @@ impl<'a> CFGBuilder<'a> {
                                 })
                                 .or_insert(Vec::from([PietTransition::new(dir, next_dir, None)]));
 
-                            if !discovered_regions.contains(&new_adj_block) {
-                                discovered_regions.insert(new_adj_block.clone());
+                            if discovered_regions.insert(new_adj_block.clone()) {
                                 queue.push_back(new_adj_block)
                             }
                         }
@@ -201,7 +198,7 @@ impl<'a> CFGBuilder<'a> {
                     queue.push_back(adj_block)
                 }
             }
-            if curr_block.get_lightness() != White {
+            if !matches!(curr_block.get_lightness(), White) {
                 self.cfg.insert(curr_block, bordering);
             }
         }

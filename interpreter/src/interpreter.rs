@@ -404,7 +404,7 @@ impl<'a> Interpreter<'a> {
                 }
             }
 
-            if self.settings.abstract_interp && self.state.status == ExecutionStatus::NeedsInput {
+            if self.settings.abstract_interp && matches!(self.state.status, ExecutionStatus::NeedsInput) {
                 break;
             }
 
@@ -420,7 +420,7 @@ impl<'a> Interpreter<'a> {
             if let Some(instr) = maybe_instr {
                 let res = self.exec_instr(instr);
                 if let Err(res) = res {
-                    if self.settings.verbosity == Verbosity::Verbose {
+                    if matches!(self.settings.verbosity, Verbosity::Verbose) {
                         eprintln!("{:?}", res);
                     }
                 }

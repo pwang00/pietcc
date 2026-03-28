@@ -40,10 +40,9 @@ pub trait InferCodelWidth: FindAdj {
                 );
 
                 for adj in in_block {
-                    if !block.contains(&adj) {
+                    if block.insert(adj) {
                         queue.push_back(adj);
                     }
-                    block.insert(adj);
                 }
             }
 
