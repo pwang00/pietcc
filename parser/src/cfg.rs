@@ -76,7 +76,7 @@ impl<'a> CFGBuilder<'a> {
             .zip(DIRECTIONS.into_iter())
             .filter(|&(pos, _)| {
                 let lightness = self.source.get(pos);
-                lightness.is_some() && lightness.unwrap() != &Black
+                matches!(lightness, Some(l) if l != &Black)
             })
             .collect::<Vec<_>>()
     }
@@ -93,7 +93,7 @@ impl<'a> CFGBuilder<'a> {
         let mut cc = dir.cc;
         while retries < 8 {
             let next_pos = Some((x, y, self.codel_width))
-                .map(MOVE_IN[dir.dp as usize])
+                .map(MOVE_IN[dp as usize])
                 .unwrap();
 
             let lightness = self.source.get(next_pos);
@@ -105,7 +105,7 @@ impl<'a> CFGBuilder<'a> {
                 continue;
             }
 
-            if matches!(lightness, Some(&White)) {
+            if !matches!(lightness, Some(&White)) {
                 return Some((next_pos, PointerState::new(dp, cc)));
             }
 
@@ -129,7 +129,7 @@ impl<'a> CFGBuilder<'a> {
 
             let in_block = adjs
                 .iter()
-                .filter(|&&pos| matches!(*self.source.get(pos).unwrap(), lightness))
+                .filter(|&&pos| *self.source.get(pos).unwrap() == lightness)
                 .collect::<Vec<_>>();
 
             // Adds adjacencies that are in the current color block to queue
@@ -194,7 +194,7 @@ impl<'a> CFGBuilder<'a> {
                     }
                 }
 
-                if !discovered_regions.insert(adj_block.clone()) {
+                if discovered_regions.insert(adj_block.clone()) {
                     queue.push_back(adj_block)
                 }
             }

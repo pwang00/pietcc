@@ -6,8 +6,8 @@ use piet_core::settings::{InterpreterSettings, Verbosity};
 use piet_core::state::{ExecutionState, ExecutionStatus};
 use std::collections::VecDeque;
 use std::env;
+use std::io;
 use std::io::Write;
-use std::{io, io::Read};
 
 #[derive(Debug)]
 pub struct Interpreter<'a> {
@@ -40,14 +40,11 @@ impl<'a> Interpreter<'a> {
             }));
         }
 
-        // Calculates the block who is the minimum amount of rotations away from the current entry direction
-        // Want min exit conditioned on min entry
         let curr = self.state.pointers;
-        match directions.into_iter().min_by_key(|&(entry, exit, _, _)| {
-            let entry_offset = find_offset(curr, entry);
-            let exit_offset = find_offset(entry, exit);
-            (entry_offset, exit_offset)
-        }) {
+        match directions
+            .into_iter()
+            .min_by_key(|&(entry, _, _, _)| find_offset(curr, entry))
+        {
             Some((_, exit, adj, instr)) => {
                 self.state.pointers = exit;
                 (Some(adj.clone()), instr)
@@ -153,7 +150,7 @@ impl<'a> Interpreter<'a> {
             let a = self.state.stack.pop_front().unwrap();
             let b = self.state.stack.pop_front().unwrap();
 
-            if a > 0 {
+            if a != 0 {
                 Ok(self.state.stack.push_front(b / a))
             } else {
                 Err(ExecutionError::DivisionByZeroError(
@@ -178,8 +175,11 @@ impl<'a> Interpreter<'a> {
             let a = self.state.stack.pop_front().unwrap();
             let b = self.state.stack.pop_front().unwrap();
 
-            if a > 0 {
-                Ok(self.state.stack.push_front(b.rem_euclid(a)))
+            // Take absolute value to match compiler behavior
+            let abs_a = a.abs();
+
+            if abs_a > 0 {
+                Ok(self.state.stack.push_front(b.rem_euclid(abs_a)))
             } else {
                 Err(ExecutionError::DivisionByZeroError(
                     Instruction::Mod,
@@ -289,7 +289,7 @@ impl<'a> Interpreter<'a> {
             Err(ExecutionError::StackOutOfBoundsError(
                 Instruction::Roll,
                 format!(
-                    "Skipping Gt since Gt requires at least 2 elements on stack but found {}",
+                    "Skipping Roll since Roll requires at least 2 elements on stack but found {}",
                     self.state.stack.len()
                 ),
             ))
@@ -299,19 +299,30 @@ impl<'a> Interpreter<'a> {
     #[inline]
     pub(crate) fn int_in(&mut self) -> Result<(), ExecutionError> {
         self.state.stdin.clear();
+
         if self.settings.abstract_interp {
             self.state.status = ExecutionStatus::NeedsInput;
             return Ok(());
         }
-        io::stdin()
+
+        let nread = io::stdin()
             .read_line(&mut self.state.stdin)
             .expect("Failed to read input");
+
+        if nread == 0 {
+            return Err(ExecutionError::ParseError(
+                Instruction::IntIn,
+                "EOF while reading int input".into(),
+            ));
+        }
+
         if let Ok(n) = self.state.stdin.trim().parse::<i64>() {
-            Ok(self.state.stack.push_front(n))
+            self.state.stack.push_front(n);
+            Ok(())
         } else {
             Err(ExecutionError::ParseError(
                 Instruction::IntIn,
-                "Error parsing int input".into(),
+                format!("Error parsing int input: {:?}", self.state.stdin),
             ))
         }
     }
@@ -325,17 +336,15 @@ impl<'a> Interpreter<'a> {
             return Ok(());
         }
 
-        let char = io::stdin()
-            .bytes()
-            .next()
-            .and_then(|result| result.ok())
-            .map(|byte| byte as i64);
+        io::stdin()
+            .read_line(&mut self.state.stdin)
+            .expect("Failed to read input");
 
-        if let Some(c) = char {
-            Ok(self.state.stack.push_front(c))
+        if let Some(c) = self.state.stdin.chars().next() {
+            Ok(self.state.stack.push_front(c as i64))
         } else {
             Err(ExecutionError::ParseError(
-                Instruction::IntIn,
+                Instruction::CharIn,
                 "Error parsing char input".into(),
             ))
         }
@@ -404,7 +413,9 @@ impl<'a> Interpreter<'a> {
                 }
             }
 
-            if self.settings.abstract_interp && matches!(self.state.status, ExecutionStatus::NeedsInput) {
+            if self.settings.abstract_interp
+                && matches!(self.state.status, ExecutionStatus::NeedsInput)
+            {
                 break;
             }
 
@@ -424,8 +435,8 @@ impl<'a> Interpreter<'a> {
                         eprintln!("{:?}", res);
                     }
                 }
-                self.state.steps += 1;
             }
+            self.state.steps += 1;
         }
 
         self.state.clone()

@@ -127,6 +127,13 @@ fn main() -> Result<(), Error> {
                 .conflicts_with("interpret")
                 .help("Attempts to detect nontermination behavior in a Piet program during compilation"),
         )
+        .arg(
+            Arg::with_name("max_steps")
+                .short('m')
+                .long("max-steps")
+                .takes_value(true)
+                .help("Sets the maximum number of steps for the interpreter to execute"),
+        )
         .get_matches();
 
     let filename = matches.value_of("input").unwrap();
@@ -193,9 +200,30 @@ fn main() -> Result<(), Error> {
             interp_settings.verbosity = verbosity;
         }
 
+        if let Some(val) = matches.value_of("max_steps") {
+            if let Ok(steps) = val.parse::<u64>() {
+                interp_settings.max_steps = Some(steps);
+            } else {
+                match env::consts::OS {
+                    "linux" => {
+                        eprintln!(
+                            "\x1B[1;37mpietcc: \x1B[0m\x1B[1;31mfatal error: \x1B[0minvalid value for max-steps: {}",
+                            val
+                        );
+                        eprintln!("pietcc terminated.");
+                    }
+                    _ => {
+                        eprintln!("pietcc: fatal error: invalid value for max-steps: {}", val);
+                        eprintln!("pietcc terminated.");
+                    }
+                }
+                exit(1);
+            }
+        }
+
         let mut cfg_builder = CFGBuilder::new(&program, codel_settings, false);
         cfg_builder.build();
-        let cfg = cfg_builder.get_cfg();
+        let mut cfg = cfg_builder.get_cfg();
 
         if matches.is_present("interpret") {
             interp_settings.codel_settings = codel_settings;
@@ -250,12 +278,12 @@ fn main() -> Result<(), Error> {
                 verbosity,
             };
 
-            let cfg_gen = CFGBuilder::new(&program, codel_settings, show_codel_size);
+            // Use the already-built CFG instead of creating a new one
             let mut piet_ctx =
-                LoweringCtx::new(&context, module, builder, cfg_gen, compile_options);
+                LoweringCtx::new(&context, module, builder, cfg_builder, compile_options);
             if let Err(e) = pipeline::run_piet_optimization_pipeline(
                 &mut piet_ctx,
-                &mut cfg_builder.get_cfg(),
+                &mut cfg,
                 compile_options,
             ) {
                 println!("{:?}", e);
