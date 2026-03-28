@@ -156,8 +156,7 @@ impl<'a> CFGBuilder<'a> {
         let mut discovered_regions = HashSet::from([init_block.clone()]);
         let mut queue = VecDeque::<Rc<ColorBlock>>::from([init_block]);
 
-        while !queue.is_empty() {
-            let curr_block = queue.pop_front().unwrap();
+        while let Some(curr_block) = queue.pop_front() {
             let curr_exits = self.possible_exits(curr_block.get_region());
             let mut bordering = NodeAdj::new();
 
@@ -198,8 +197,7 @@ impl<'a> CFGBuilder<'a> {
                     }
                 }
 
-                if !discovered_regions.contains(&adj_block) {
-                    discovered_regions.insert(adj_block.clone());
+                if !discovered_regions.insert(adj_block.clone()) {
                     queue.push_back(adj_block)
                 }
             }
