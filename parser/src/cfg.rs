@@ -76,7 +76,7 @@ impl<'a> CFGBuilder<'a> {
             .zip(DIRECTIONS.into_iter())
             .filter(|&(pos, _)| {
                 let lightness = self.source.get(pos);
-                lightness.is_some() && lightness.unwrap() != &Black
+                matches!(lightness, Some(l) if l != &Black)
             })
             .collect::<Vec<_>>()
     }
@@ -93,19 +93,19 @@ impl<'a> CFGBuilder<'a> {
         let mut cc = dir.cc;
         while retries < 8 {
             let next_pos = Some((x, y, self.codel_width))
-                .map(MOVE_IN[dir.dp as usize])
+                .map(MOVE_IN[dp as usize])
                 .unwrap();
 
             let lightness = self.source.get(next_pos);
 
-            if lightness.is_none() || lightness == Some(&Black) {
+            if matches!(lightness, None | Some(&Black)) {
                 dp = dp.rotate(1);
                 cc = cc.switch(1);
                 retries += 1;
                 continue;
             }
 
-            if lightness != Some(&White) {
+            if !matches!(lightness, Some(&White)) {
                 return Some((next_pos, PointerState::new(dp, cc)));
             }
 
@@ -124,8 +124,7 @@ impl<'a> CFGBuilder<'a> {
         let mut queue: VecDeque<Position> = VecDeque::from([entry]);
         let lightness = *self.source.get(entry).unwrap();
 
-        while !queue.is_empty() {
-            let pos = queue.pop_front().unwrap();
+        while let Some(pos) = queue.pop_front() {
             let adjs = Self::adjacencies(pos, &self.source, self.codel_width);
 
             let in_block = adjs
@@ -135,10 +134,9 @@ impl<'a> CFGBuilder<'a> {
 
             // Adds adjacencies that are in the current color block to queue
             for adj in in_block {
-                if !discovered.contains(adj) {
+                if discovered.insert(*adj) {
                     queue.push_back(*adj);
                 }
-                discovered.insert(*adj);
             }
         }
 
@@ -156,8 +154,7 @@ impl<'a> CFGBuilder<'a> {
         let mut discovered_regions = HashSet::from([init_block.clone()]);
         let mut queue = VecDeque::<Rc<ColorBlock>>::from([init_block]);
 
-        while !queue.is_empty() {
-            let curr_block = queue.pop_front().unwrap();
+        while let Some(curr_block) = queue.pop_front() {
             let curr_exits = self.possible_exits(curr_block.get_region());
             let mut bordering = NodeAdj::new();
 
@@ -184,8 +181,7 @@ impl<'a> CFGBuilder<'a> {
                                 })
                                 .or_insert(Vec::from([PietTransition::new(dir, next_dir, None)]));
 
-                            if !discovered_regions.contains(&new_adj_block) {
-                                discovered_regions.insert(new_adj_block.clone());
+                            if discovered_regions.insert(new_adj_block.clone()) {
                                 queue.push_back(new_adj_block)
                             }
                         }
@@ -198,12 +194,11 @@ impl<'a> CFGBuilder<'a> {
                     }
                 }
 
-                if !discovered_regions.contains(&adj_block) {
-                    discovered_regions.insert(adj_block.clone());
+                if discovered_regions.insert(adj_block.clone()) {
                     queue.push_back(adj_block)
                 }
             }
-            if curr_block.get_lightness() != White {
+            if !matches!(curr_block.get_lightness(), White) {
                 self.cfg.insert(curr_block, bordering);
             }
         }

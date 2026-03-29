@@ -69,15 +69,31 @@ impl std::ops::Sub for CodelChooser {
     }
 }
 
-// (Up, Right) => (Right, Left)
 pub fn find_offset(curr: PointerState, target: PointerState) -> u8 {
-    let curr_idx = 2 * curr.dp as u8 + curr.cc as u8;
-    let target_idx = 2 * target.dp as u8 + target.cc as u8;
+    let mut state = curr;
 
-    std::cmp::min(
-        (curr_idx - target_idx).rem_euclid(8),
-        (target_idx - curr_idx).rem_euclid(8),
-    )
+    for attempts in 0..8 {
+        if state.dp == target.dp && state.cc == target.cc {
+            return attempts;
+        }
+
+        if attempts % 2 == 0 {
+            state.cc = match state.cc {
+                CodelChooser::Left => CodelChooser::Right,
+                CodelChooser::Right => CodelChooser::Left,
+            };
+        } else {
+            // Rotate dp: 0 -> 1 -> 2 -> 3 -> 0
+            state.dp = match state.dp {
+                DirPointer::Right => DirPointer::Down,
+                DirPointer::Down => DirPointer::Left,
+                DirPointer::Left => DirPointer::Up,
+                DirPointer::Up => DirPointer::Right,
+            };
+        }
+    }
+
+    unreachable!()
 }
 
 #[derive(Copy, Clone, Debug, Default)]
@@ -160,5 +176,24 @@ impl PietTransition {
             exit_state,
             instruction,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_find_offset_retry_sequence() {
+        let right_left = PointerState::new(DirPointer::Right, CodelChooser::Left);
+        let right_right = PointerState::new(DirPointer::Right, CodelChooser::Right);
+        let down_left = PointerState::new(DirPointer::Down, CodelChooser::Left);
+        let down_right = PointerState::new(DirPointer::Down, CodelChooser::Right);
+
+        // Retry simulation: toggle cc (even), rotate dp (odd)
+        assert_eq!(find_offset(right_left, right_right), 1);
+        assert_eq!(find_offset(right_left, down_right), 2);
+        assert_eq!(find_offset(right_left, down_left), 3);
+        assert_eq!(find_offset(down_left, right_left), 7);
     }
 }

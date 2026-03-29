@@ -22,7 +22,7 @@ pub(crate) fn run_llvm_optimizations(ctx: &LoweringCtx) -> Result<(), Box<dyn Er
         let tm = target
             .create_target_machine(
                 &default_triple,
-                "native",
+                "",
                 "",
                 ctx.settings.opt_level,
                 RelocMode::PIC,

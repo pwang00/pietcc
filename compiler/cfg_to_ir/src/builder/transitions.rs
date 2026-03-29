@@ -169,7 +169,7 @@ pub(crate) fn build_transitions<'a, 'b>(ctx: &LoweringCtx<'a, 'b>, cfg: &CFG, en
                         )
                     };
 
-                    if instr == Instruction::Push {
+                    if matches!(instr, Instruction::Push) {
                         ctx.builder
                             .build_call(instr_fn, &[block_size.into()], "")
                             .unwrap();

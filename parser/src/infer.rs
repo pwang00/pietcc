@@ -23,8 +23,7 @@ pub trait InferCodelWidth: FindAdj {
 
             let lightness = program.get(*queue.front().unwrap()).unwrap();
 
-            while !queue.is_empty() {
-                let pos = queue.pop_front().unwrap();
+            while let Some(pos) = queue.pop_front() {
                 block.insert(pos);
 
                 let adjs = <Self as FindAdj>::adjacencies(pos, program, 1);
@@ -41,10 +40,9 @@ pub trait InferCodelWidth: FindAdj {
                 );
 
                 for adj in in_block {
-                    if !block.contains(&adj) {
+                    if block.insert(adj) {
                         queue.push_back(adj);
                     }
-                    block.insert(adj);
                 }
             }
 

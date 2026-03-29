@@ -32,14 +32,14 @@ pub fn run_piet_optimization_pipeline(
                 match execution_result {
                     ExecutionResult::Complete(execution_state) => {
                         vprint(ctx.settings.verbosity, 
-                            &format!("Static evaluation succeeded (program is constant).  Compiling with final execution state:\n{}", 
+                            &format!("Static evaluation succeeded (program is constant).  Compiling with final execution state:\n\n{}", 
                             execution_state)
                         );
                         builder::build_complete(ctx, execution_state)
                     }
                     ExecutionResult::Partial(execution_state) => {
                         vprint(ctx.settings.verbosity, 
-                            &format!("Compiling with partial execution state:\n{}", execution_state)
+                            &format!("Compiling with partial execution state:\n\n{}", execution_state)
                         );
                         builder::build_partial(ctx, cfg, execution_state)
                     }
