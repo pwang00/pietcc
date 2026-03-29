@@ -46,11 +46,22 @@ fn run_npiet(image_path: &str, input: &str) -> Result<String, String> {
     }
 }
 
-/// Helper to compile a Piet program
-fn compile_program(image_path: &str, output_path: &str) -> Result<(), String> {
-    let output = Command::new(pietcc_binary())
-        .arg(image_path)
-        .arg("--uw") // Treat unknown pixels as white (some test images need this)
+/// Helper to compile a Piet program with optional optimization level
+fn compile_program(
+    image_path: &str,
+    output_path: &str,
+    opt_level: Option<&str>,
+) -> Result<(), String> {
+    let mut cmd = Command::new(pietcc_binary());
+    cmd.arg(image_path)
+        .arg("--uw"); // Treat unknown pixels as white (some test images need this)
+
+    // Add optimization flag if specified
+    if let Some(opt) = opt_level {
+        cmd.arg(opt);
+    }
+
+    let output = cmd
         .arg("-o")
         .arg(output_path)
         .output()
@@ -92,25 +103,31 @@ fn run_compiled_program(binary_path: &str, input: &str) -> Result<String, String
     }
 }
 
-/// Helper to compile and run a program, comparing against npiet
-fn compile_and_run(image_path: &str, input: &str) -> Result<String, String> {
+/// Helper to compile and run a program with optional optimization level
+fn compile_and_run(
+    image_path: &str,
+    input: &str,
+    opt_level: Option<&str>,
+) -> Result<String, String> {
+    let opt_suffix = opt_level.unwrap_or("o0");
     let output_name = format!(
-        "test_output_{}",
-        image_path.replace("/", "_").replace(".", "_")
+        "test_output_{}_{}",
+        image_path.replace("/", "_").replace(".", "_"),
+        opt_suffix
     );
     let output_path = format!("target/{}", output_name);
 
-    compile_program(image_path, &output_path)?;
+    compile_program(image_path, &output_path, opt_level)?;
     run_compiled_program(&output_path, input)
 }
 
 /// Helper to test that pietcc output matches npiet output
-fn test_against_npiet(image_path: &str, input: &str) {
+fn test_against_npiet(image_path: &str, input: &str, opt_level: Option<&str>) {
     let npiet_output =
         run_npiet(image_path, input).expect(&format!("npiet failed for {}", image_path));
 
-    let pietcc_raw_output =
-        compile_and_run(image_path, input).expect(&format!("pietcc failed for {}", image_path));
+    let pietcc_raw_output = compile_and_run(image_path, input, opt_level)
+        .expect(&format!("pietcc failed for {}", image_path));
 
     // Strip debug output (lines containing "Stack") from pietcc output
     let pietcc_output: String = pietcc_raw_output
@@ -137,44 +154,121 @@ fn test_against_npiet(image_path: &str, input: &str) {
     );
 }
 
+// Basic compilation tests (no optimization)
 #[test]
 fn test_hello_world_compiler() {
-    test_against_npiet("images/hw.png", "");
+    test_against_npiet("images/hw.png", "", None);
 }
 
 #[test]
 fn test_power2_compiler() {
-    test_against_npiet("images/power2.png", "2\n16\n");
+    test_against_npiet("images/power2.png", "2\n16\n", None);
 }
 
 #[test]
 fn test_hi_compiler() {
-    test_against_npiet("images/hi.png", "");
+    test_against_npiet("images/hi.png", "", None);
 }
 
 #[test]
 fn test_pi_compiler() {
-    test_against_npiet("images/piet_pi.png", "");
+    test_against_npiet("images/piet_pi.png", "", None);
 }
 
 #[test]
 fn test_fizzbuzz_compiler() {
-    test_against_npiet("images/fizzbuzz.png", "");
+    test_against_npiet("images/fizzbuzz.png", "", None);
 }
 
 #[test]
 fn test_factorial_compiler() {
-    test_against_npiet("images/piet_factorial.png", "5\n");
+    test_against_npiet("images/piet_factorial.png", "5\n", None);
 }
 
 #[test]
 fn test_adder_compiler() {
-    test_against_npiet("images/adder.png", "3\n5\n");
+    test_against_npiet("images/adder.png", "3\n5\n", None);
 }
 
 #[test]
 fn test_euclid_compiler() {
-    test_against_npiet("images/euclid_clint.png", "48\n18\n");
+    test_against_npiet("images/euclid_clint.png", "48\n18\n", None);
+}
+
+// Optimization level tests
+#[test]
+fn test_hello_world_o1() {
+    test_against_npiet("images/hw.png", "", Some("--o1"));
+}
+
+#[test]
+fn test_hello_world_o2() {
+    test_against_npiet("images/hw.png", "", Some("--o2"));
+}
+
+#[test]
+fn test_hello_world_o3() {
+    test_against_npiet("images/hw.png", "", Some("--o3"));
+}
+
+#[test]
+fn test_power2_o1() {
+    test_against_npiet("images/power2.png", "2\n16\n", Some("--o1"));
+}
+
+#[test]
+fn test_power2_o2() {
+    test_against_npiet("images/power2.png", "2\n16\n", Some("--o2"));
+}
+
+#[test]
+fn test_power2_o3() {
+    test_against_npiet("images/power2.png", "2\n16\n", Some("--o3"));
+}
+
+#[test]
+fn test_fizzbuzz_o1() {
+    test_against_npiet("images/fizzbuzz.png", "", Some("--o1"));
+}
+
+#[test]
+fn test_fizzbuzz_o2() {
+    test_against_npiet("images/fizzbuzz.png", "", Some("--o2"));
+}
+
+#[test]
+fn test_fizzbuzz_o3() {
+    test_against_npiet("images/fizzbuzz.png", "", Some("--o3"));
+}
+
+#[test]
+fn test_factorial_o1() {
+    test_against_npiet("images/piet_factorial.png", "5\n", Some("--o1"));
+}
+
+#[test]
+fn test_factorial_o2() {
+    test_against_npiet("images/piet_factorial.png", "5\n", Some("--o2"));
+}
+
+#[test]
+fn test_factorial_o3() {
+    test_against_npiet("images/piet_factorial.png", "5\n", Some("--o3"));
+}
+
+#[test]
+fn test_euclid_o1() {
+    test_against_npiet("images/euclid_clint.png", "48\n18\n", Some("--o1"));
+}
+
+#[test]
+fn test_euclid_o2() {
+    test_against_npiet("images/euclid_clint.png", "48\n18\n", Some("--o2"));
+}
+
+#[test]
+fn test_euclid_o3() {
+    test_against_npiet("images/euclid_clint.png", "48\n18\n", Some("--o3"));
 }
 
 #[test]
@@ -182,7 +276,7 @@ fn test_compile_output_ll() {
     let image_path = "images/hw.png";
     let output_path = "target/test_hw.ll";
 
-    let result = compile_program(image_path, output_path);
+    let result = compile_program(image_path, output_path, None);
     assert!(
         result.is_ok(),
         "Compilation to .ll failed: {:?}",
@@ -204,7 +298,7 @@ fn test_compile_output_binary() {
     let image_path = "images/hw.png";
     let output_path = "target/test_hw_bin";
 
-    let result = compile_program(image_path, output_path);
+    let result = compile_program(image_path, output_path, None);
     assert!(
         result.is_ok(),
         "Compilation to binary failed: {:?}",
@@ -227,6 +321,6 @@ fn test_invalid_image_compiler() {
     let image_path = "tests/fixtures/nonexistent.png";
     let output_path = "target/test_invalid";
 
-    let result = compile_program(image_path, output_path);
+    let result = compile_program(image_path, output_path, None);
     assert!(result.is_err(), "Expected error for nonexistent image");
 }
