@@ -1,5 +1,9 @@
 # PietCC
 
+[![CI](https://github.com/pwang00/pietcc/actions/workflows/rust.yml/badge.svg)](https://github.com/pwang00/pietcc/actions/workflows/rust.yml)
+[![License](https://img.shields.io/github/license/pwang00/pietcc)](LICENSE)
+[![Rust Version](https://img.shields.io/badge/rust-1.89%2B-blue.svg)](https://www.rust-lang.org)
+
 PietCC is a Rust interpreter and compiler for the [Piet](https://www.dangermouse.net/esoteric/piet.html) esoteric language using [inkwell](https://github.com/TheDan64/inkwell/tree/master) and LLVM as a backend / IR generator.  To read more about the compiler, visit this [writeup](https://github.com/pwang00/pietcc/blob/main/Compiler.md). 
 
 ## Organization
