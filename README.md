@@ -1,6 +1,6 @@
 # PietCC
 
-[![CI](https://github.com/pwang00/pietcc/actions/workflows/rust.yml/badge.svg)](https://github.com/pwang00/pietcc/actions/workflows/rust.yml)
+[![CI](https://github.com/pwang00/pietcc/actions/workflows/ci.yml/badge.svg)](https://github.com/pwang00/pietcc/actions/workflows/ci.yml)
 [![License](https://img.shields.io/github/license/pwang00/pietcc)](LICENSE)
 [![Rust Version](https://img.shields.io/badge/rust-1.89%2B-blue.svg)](https://www.rust-lang.org)
 
