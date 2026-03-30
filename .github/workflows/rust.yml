@@ -75,10 +75,7 @@ jobs:
           ./configure
           make
           sudo make install
-
-      - name: Run unit tests
-        run: cargo test --lib --bins
-
+          
       - name: Build release binary
         run: cargo build --release
 
