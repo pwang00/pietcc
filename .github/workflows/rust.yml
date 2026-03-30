@@ -50,6 +50,7 @@ jobs:
           chmod +x llvm.sh
           sudo ./llvm.sh 18
           sudo apt-get install -y llvm-18-dev libpolly-18-dev
+          sudo ln -s /usr/bin/llc-18 /usr/bin/llc
 
       - name: Install LLVM (macOS)
         if: matrix.os == 'macos-latest'
@@ -73,7 +74,7 @@ jobs:
       - name: Build release binary
         run: cargo build --release
 
-      - name: Run integration tests
+      - name: Run integration tests (Ubuntu)
         run: cargo test --test '*'
 
   lint:
@@ -93,6 +94,7 @@ jobs:
           chmod +x llvm.sh
           sudo ./llvm.sh 18
           sudo apt-get install -y llvm-18-dev libpolly-18-dev
+          sudo ln -s /usr/bin/llc-18 /usr/bin/llc
 
       - name: Run rustfmt
         run: cargo fmt -- --check
@@ -123,6 +125,7 @@ jobs:
           chmod +x llvm.sh
           sudo ./llvm.sh 18
           sudo apt-get install -y llvm-18-dev libpolly-18-dev
+          sudo ln -s /usr/bin/llc-18 /usr/bin/llc
 
       - name: Install npiet
         run: |

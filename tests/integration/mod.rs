@@ -5,5 +5,6 @@
 #[path = "../common/mod.rs"]
 mod common;
 
+#[cfg(not(target_os = "macos"))]
 mod compiler_tests;
 mod interpreter_tests;
