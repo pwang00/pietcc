@@ -129,7 +129,7 @@ jobs:
           ./configure
           make
           sudo make install
-          
+
       - name: Check compilation
         run: cargo check --all-targets
 
@@ -158,7 +158,8 @@ jobs:
           wget https://apt.llvm.org/llvm.sh
           chmod +x llvm.sh
           sudo ./llvm.sh 18
-          sudo apt-get install -y llvm-18-dev libpolly-18-dev
+          sudo apt-get install -y llvm-18-dev libpolly-18-dev llvm-18-tools
+          sudo ln -s /usr/bin/llc-18 /usr/bin/llc
 
       - name: Install cargo-tarpaulin
         run: cargo install cargo-tarpaulin
