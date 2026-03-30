@@ -159,7 +159,9 @@ fn main() -> Result<(), Error> {
 
         if let Some(val) = matches.value_of("codel_size") {
             if let Ok(val) = val.parse::<u32>() {
-                if program.dimensions().0 % val != 0 || program.dimensions().1 % val != 0 {
+                if !program.dimensions().0.is_multiple_of(val)
+                    || !program.dimensions().1.is_multiple_of(val)
+                {
                     match env::consts::OS {
                         "linux" => {
                             eprintln!(
@@ -187,7 +189,7 @@ fn main() -> Result<(), Error> {
             }
         }
 
-        if let Some(_) = matches.value_of("use_default") {
+        if matches.value_of("use_default").is_some() {
             codel_settings = CodelSettings::Default
         }
 
@@ -256,16 +258,8 @@ fn main() -> Result<(), Error> {
             }
 
             let warn_nt = matches.is_present("warn_nontermination");
-
-            let show_codel_size = match verbosity {
-                Verbosity::Low | Verbosity::Normal => false,
-                _ => true,
-            };
-
-            let show_cfg_size = match verbosity {
-                Verbosity::Low => false,
-                _ => true,
-            };
+            let show_codel_size = !matches!(verbosity, Verbosity::Low | Verbosity::Normal);
+            let show_cfg_size = !matches!(verbosity, Verbosity::Low);
 
             let compile_options = CompilerSettings {
                 opt_level,
