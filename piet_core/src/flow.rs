@@ -70,30 +70,15 @@ impl std::ops::Sub for CodelChooser {
 }
 
 pub fn find_offset(curr: PointerState, target: PointerState) -> u8 {
-    let mut state = curr;
+    let curr_dp = curr.dp as u8;
+    let target_dp = target.dp as u8;
+    let curr_cc = curr.cc as u8;
+    let target_cc = target.cc as u8;
 
-    for attempts in 0..8 {
-        if state.dp == target.dp && state.cc == target.cc {
-            return attempts;
-        }
+    let dd = (target_dp + 4 - curr_dp) % 4;
+    let cc_diff = curr_cc ^ target_cc; // 0 if same, 1 if different
 
-        if attempts % 2 == 0 {
-            state.cc = match state.cc {
-                CodelChooser::Left => CodelChooser::Right,
-                CodelChooser::Right => CodelChooser::Left,
-            };
-        } else {
-            // Rotate dp: 0 -> 1 -> 2 -> 3 -> 0
-            state.dp = match state.dp {
-                DirPointer::Right => DirPointer::Down,
-                DirPointer::Down => DirPointer::Left,
-                DirPointer::Left => DirPointer::Up,
-                DirPointer::Up => DirPointer::Right,
-            };
-        }
-    }
-
-    unreachable!()
+    2 * dd + (cc_diff ^ (dd & 1))
 }
 
 #[derive(Copy, Clone, Debug, Default)]
