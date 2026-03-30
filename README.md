@@ -87,7 +87,25 @@ Alternatively, it is possible to combine the build / run workflow via
 
 ## Testing
 
-PietCC includes comprehensive unit and integration tests. To run all tests:
+PietCC includes comprehensive unit and integration tests.
+
+### Prerequisites
+
+Integration tests require [npiet](https://github.com/gleitz/npiet) to be installed:
+
+**Ubuntu/Debian:**
+```bash
+sudo apt install libgd-dev groff
+git clone https://github.com/gleitz/npiet.git && cd npiet
+./configure
+make
+sudo make install
+```
+
+**macOS:**
+npiet is not currently supported on macOS due to giflib API incompatibilities. Unit tests will still work.
+
+### Running Tests
 
 ```bash
 # Run all tests

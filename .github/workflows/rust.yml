@@ -67,14 +67,8 @@ jobs:
           make
           sudo make install
 
-      - name: Install npiet (macOS)
-        if: matrix.os == 'macos-latest'
-        run: |
-          brew install gd groff
-          git clone https://github.com/gleitz/npiet.git && cd npiet
-          ./configure CFLAGS="-I$(brew --prefix)/include" LDFLAGS="-L$(brew --prefix)/lib"
-          make CFLAGS="-I$(brew --prefix)/include -g -O2 -Wall -DHAVE_CONFIG_H" LDFLAGS="-L$(brew --prefix)/lib"
-          sudo make install
+      # npiet installation skipped on macOS due to giflib 5.x API incompatibility
+      # npiet was written for giflib 4.x and requires patching for giflib 5.x
           
       - name: Build release binary
         run: cargo build --release
