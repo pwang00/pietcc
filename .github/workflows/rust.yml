@@ -57,6 +57,14 @@ jobs:
           brew install llvm@18
           echo "LLVM_SYS_180_PREFIX=$(brew --prefix llvm@18)" >> $GITHUB_ENV
 
+      - name: Install npiet
+        run: |
+          sudo apt install libgd-dev groff
+          git clone https://github.com/gleitz/npiet.git && cd npiet
+          ./configure
+          make
+          sudo make install
+
       - name: Run unit tests
         run: cargo test --lib --bins
 
@@ -114,6 +122,14 @@ jobs:
           sudo ./llvm.sh 18
           sudo apt-get install -y llvm-18-dev libpolly-18-dev
 
+      - name: Install npiet
+        run: |
+          sudo apt install libgd-dev groff
+          git clone https://github.com/gleitz/npiet.git && cd npiet
+          ./configure
+          make
+          sudo make install
+          
       - name: Check compilation
         run: cargo check --all-targets
 
@@ -128,6 +144,14 @@ jobs:
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
+
+      - name: Install npiet
+        run: |
+          sudo apt install libgd-dev groff
+          git clone https://github.com/gleitz/npiet.git && cd npiet
+          ./configure
+          make
+          sudo make install
 
       - name: Install LLVM
         run: |
