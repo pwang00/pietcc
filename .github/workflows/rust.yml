@@ -87,6 +87,12 @@ jobs:
       - name: Run rustfmt
         run: cargo fmt -- --check
 
+      - name: Install npiet
+        run: |
+          git clone git@github.com:gleitz/npiet.git && cd npiet 
+          make install
+          sudo cp npiet /bin/
+          
       - name: Run clippy
         run: cargo clippy --all-targets --all-features -- -D warnings
 
