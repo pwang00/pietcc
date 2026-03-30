@@ -71,6 +71,8 @@ jobs:
         if: matrix.os == 'macos-latest'
         run: |
           brew install gd groff
+          export CFLAGS="-I$(brew --prefix)/include"
+          export LDFLAGS="-L$(brew --prefix)/lib"
           git clone https://github.com/gleitz/npiet.git && cd npiet
           ./configure
           make
