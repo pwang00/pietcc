@@ -53,8 +53,7 @@ fn compile_program(
     opt_level: Option<&str>,
 ) -> Result<(), String> {
     let mut cmd = Command::new(pietcc_binary());
-    cmd.arg(image_path)
-        .arg("--uw"); // Treat unknown pixels as white (some test images need this)
+    cmd.arg(image_path).arg("--uw"); // Treat unknown pixels as white (some test images need this)
 
     // Add optimization flag if specified
     if let Some(opt) = opt_level {

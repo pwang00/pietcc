@@ -281,11 +281,9 @@ fn main() -> Result<(), Error> {
             // Use the already-built CFG instead of creating a new one
             let mut piet_ctx =
                 LoweringCtx::new(&context, module, builder, cfg_builder, compile_options);
-            if let Err(e) = pipeline::run_piet_optimization_pipeline(
-                &mut piet_ctx,
-                &mut cfg,
-                compile_options,
-            ) {
+            if let Err(e) =
+                pipeline::run_piet_optimization_pipeline(&mut piet_ctx, &mut cfg, compile_options)
+            {
                 println!("{:?}", e);
             }
         }

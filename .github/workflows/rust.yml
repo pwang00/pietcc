@@ -2,7 +2,7 @@ name: Rust
 
 on:
   push:
-    branches: [ main, tests ]
+    branches: [ main, tests, ci ]
   pull_request:
     branches: [ main ]
 
@@ -89,9 +89,11 @@ jobs:
 
       - name: Install npiet
         run: |
-          git clone git@github.com:gleitz/npiet.git && cd npiet 
-          make install
-          sudo cp npiet /bin/
+          sudo apt install libgd-dev groff
+          git clone https://github.com/gleitz/npiet.git && cd npiet
+          ./configure
+          make
+          sudo make install
           
       - name: Run clippy
         run: cargo clippy --all-targets --all-features -- -D warnings
