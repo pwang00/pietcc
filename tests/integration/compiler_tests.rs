@@ -53,8 +53,7 @@ fn compile_program(
     opt_level: Option<&str>,
 ) -> Result<(), String> {
     let mut cmd = Command::new(pietcc_binary());
-    cmd.arg(image_path)
-        .arg("--uw"); // Treat unknown pixels as white (some test images need this)
+    cmd.arg(image_path).arg("--uw"); // Treat unknown pixels as white (some test images need this)
 
     // Add optimization flag if specified
     if let Some(opt) = opt_level {
@@ -124,10 +123,10 @@ fn compile_and_run(
 /// Helper to test that pietcc output matches npiet output
 fn test_against_npiet(image_path: &str, input: &str, opt_level: Option<&str>) {
     let npiet_output =
-        run_npiet(image_path, input).expect(&format!("npiet failed for {}", image_path));
+        run_npiet(image_path, input).unwrap_or_else(|_| panic!("npiet failed for {}", image_path));
 
     let pietcc_raw_output = compile_and_run(image_path, input, opt_level)
-        .expect(&format!("pietcc failed for {}", image_path));
+        .unwrap_or_else(|_| panic!("pietcc failed for {}", image_path));
 
     // Strip debug output (lines containing "Stack") from pietcc output
     let pietcc_output: String = pietcc_raw_output

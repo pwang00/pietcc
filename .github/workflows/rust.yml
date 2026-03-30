@@ -2,7 +2,7 @@ name: Rust
 
 on:
   push:
-    branches: [ main, tests ]
+    branches: [ main, tests, ci ]
   pull_request:
     branches: [ main ]
 
@@ -50,20 +50,31 @@ jobs:
           chmod +x llvm.sh
           sudo ./llvm.sh 18
           sudo apt-get install -y llvm-18-dev libpolly-18-dev
+          sudo ln -s /usr/bin/llc-18 /usr/bin/llc
 
       - name: Install LLVM (macOS)
         if: matrix.os == 'macos-latest'
         run: |
           brew install llvm@18
           echo "LLVM_SYS_180_PREFIX=$(brew --prefix llvm@18)" >> $GITHUB_ENV
+          echo "$(brew --prefix llvm@18)/bin" >> $GITHUB_PATH
 
-      - name: Run unit tests
-        run: cargo test --lib --bins
+      - name: Install npiet (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt install libgd-dev groff
+          git clone https://github.com/gleitz/npiet.git && cd npiet
+          ./configure
+          make
+          sudo make install
 
+      # npiet installation skipped on macOS due to giflib 5.x API incompatibility
+      # npiet was written for giflib 4.x and requires patching for giflib 5.x
+          
       - name: Build release binary
         run: cargo build --release
 
-      - name: Run integration tests
+      - name: Run integration tests (Ubuntu)
         run: cargo test --test '*'
 
   lint:
@@ -83,15 +94,18 @@ jobs:
           chmod +x llvm.sh
           sudo ./llvm.sh 18
           sudo apt-get install -y llvm-18-dev libpolly-18-dev
+          sudo ln -s /usr/bin/llc-18 /usr/bin/llc
 
       - name: Run rustfmt
         run: cargo fmt -- --check
 
       - name: Install npiet
         run: |
-          git clone git@github.com:gleitz/npiet.git && cd npiet 
-          make install
-          sudo cp npiet /bin/
+          sudo apt install libgd-dev groff
+          git clone https://github.com/gleitz/npiet.git && cd npiet
+          ./configure
+          make
+          sudo make install
           
       - name: Run clippy
         run: cargo clippy --all-targets --all-features -- -D warnings
@@ -111,6 +125,15 @@ jobs:
           chmod +x llvm.sh
           sudo ./llvm.sh 18
           sudo apt-get install -y llvm-18-dev libpolly-18-dev
+          sudo ln -s /usr/bin/llc-18 /usr/bin/llc
+
+      - name: Install npiet
+        run: |
+          sudo apt install libgd-dev groff
+          git clone https://github.com/gleitz/npiet.git && cd npiet
+          ./configure
+          make
+          sudo make install
 
       - name: Check compilation
         run: cargo check --all-targets
@@ -127,12 +150,21 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Install npiet
+        run: |
+          sudo apt install libgd-dev groff
+          git clone https://github.com/gleitz/npiet.git && cd npiet
+          ./configure
+          make
+          sudo make install
+
       - name: Install LLVM
         run: |
           wget https://apt.llvm.org/llvm.sh
           chmod +x llvm.sh
           sudo ./llvm.sh 18
-          sudo apt-get install -y llvm-18-dev libpolly-18-dev
+          sudo apt-get install -y llvm-18-dev libpolly-18-dev llvm-18-tools
+          sudo ln -s /usr/bin/llc-18 /usr/bin/llc
 
       - name: Install cargo-tarpaulin
         run: cargo install cargo-tarpaulin

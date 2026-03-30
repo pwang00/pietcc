@@ -98,7 +98,7 @@ fn test_hi_interpreter() {
     assert!(result.is_ok(), "Interpreter failed: {:?}", result.err());
     let output = result.unwrap();
     assert!(
-        output.contains("Hi") || output.len() > 0,
+        output.contains("Hi") || !output.is_empty(),
         "Expected non-empty output, got: {}",
         output
     );
@@ -112,7 +112,7 @@ fn test_pi_interpreter() {
     assert!(result.is_ok(), "Interpreter failed: {:?}", result.err());
     let output = result.unwrap();
     // Pi calculation should produce digits
-    assert!(output.len() > 0, "Expected output from pi calculation");
+    assert!(!output.is_empty(), "Expected output from pi calculation");
 }
 
 #[test]
@@ -124,7 +124,7 @@ fn test_fizzbuzz_interpreter() {
     let output = result.unwrap();
     // FizzBuzz should contain Fizz or Buzz
     assert!(
-        output.contains("Fizz") || output.contains("Buzz") || output.len() > 0,
+        output.contains("Fizz") || output.contains("Buzz") || !output.is_empty(),
         "Expected FizzBuzz output, got: {}",
         output
     );
@@ -139,7 +139,7 @@ fn test_factorial_interpreter() {
     let output = result.unwrap();
     // 5! = 120
     assert!(
-        output.contains("120") || output.len() > 0,
+        output.contains("120") || !output.is_empty(),
         "Expected factorial output, got: {}",
         output
     );
@@ -154,7 +154,7 @@ fn test_adder_interpreter() {
     let output = result.unwrap();
     // Should add 3 + 5 = 8
     assert!(
-        output.contains("8") || output.len() > 0,
+        output.contains("8") || !output.is_empty(),
         "Expected addition output, got: {}",
         output
     );
@@ -169,7 +169,7 @@ fn test_euclid_interpreter() {
     let output = result.unwrap();
     // GCD of 48 and 18 is 6
     assert!(
-        output.contains("6") || output.len() > 0,
+        output.contains("6") || !output.is_empty(),
         "Expected GCD output, got: {}",
         output
     );
