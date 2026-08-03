@@ -78,7 +78,7 @@ name = "cfg_to_ir"
 version = "0.1.0"
 dependencies = [
  "image",
- "inkwell 0.7.1",
+ "inkwell",
  "piet-core",
  "piet-interpreter",
  "piet-optimizer",
@@ -345,40 +345,15 @@ dependencies = [
 
 [[package]]
 name = "inkwell"
-version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e67349bd7578d4afebbe15eaa642a80b884e8623db74b1716611b131feb1deef"
-dependencies = [
- "either",
- "inkwell_internals 0.11.0",
- "libc",
- "llvm-sys",
- "once_cell",
- "thiserror 1.0.61",
-]
-
-[[package]]
-name = "inkwell"
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39457e8611219cf690f862a470575f5c06862910d03ea3c3b187ad7abc44b4e2"
 dependencies = [
- "inkwell_internals 0.12.0",
+ "inkwell_internals",
  "libc",
  "llvm-sys",
  "once_cell",
- "thiserror 2.0.17",
-]
-
-[[package]]
-name = "inkwell_internals"
-version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f365c8de536236cfdebd0ba2130de22acefed18b1fb99c32783b3840aec5fb46"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.111",
+ "thiserror",
 ]
 
 [[package]]
@@ -491,7 +466,7 @@ name = "piet-core"
 version = "0.1.0"
 dependencies = [
  "image",
- "inkwell 0.7.1",
+ "inkwell",
  "strum",
  "strum_macros",
 ]
@@ -510,7 +485,6 @@ dependencies = [
 name = "piet-optimizer"
 version = "0.1.0"
 dependencies = [
- "inkwell 0.6.0",
  "piet-core",
  "piet-interpreter",
 ]
@@ -532,7 +506,7 @@ dependencies = [
  "cfg_to_ir",
  "clap",
  "image",
- "inkwell 0.7.1",
+ "inkwell",
  "piet-core",
  "piet-interpreter",
  "piet-optimizer",
@@ -807,31 +781,11 @@ checksum = "23d434d3f8967a09480fb04132ebe0a3e088c173e6d0ee7897abbdf4eab0f8b9"
 
 [[package]]
 name = "thiserror"
-version = "1.0.61"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c546c80d6be4bc6a00c0f01730c08df82eaa7a7a61f11d656526506112cc1709"
-dependencies = [
- "thiserror-impl 1.0.61",
-]
-
-[[package]]
-name = "thiserror"
 version = "2.0.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f63587ca0f12b72a0600bcba1d40081f830876000bb46dd2337a3051618f4fc8"
 dependencies = [
- "thiserror-impl 2.0.17",
-]
-
-[[package]]
-name = "thiserror-impl"
-version = "1.0.61"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "46c3384250002a6d5af4d114f2845d37b57521033f30d5c3f46c4d70e1197533"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.111",
+ "thiserror-impl",
 ]
 
 [[package]]
