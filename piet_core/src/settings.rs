@@ -5,7 +5,7 @@ pub enum CodelSettings {
     #[default]
     Default,
     Infer,
-    Width(u32),
+    Width(usize),
 }
 
 #[derive(Copy, Clone, Default, Debug)]
@@ -16,7 +16,7 @@ pub enum SaveOptions {
     EmitLLVMIR,
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Default)]
 pub struct CompilerSettings<'a> {
     pub opt_level: OptimizationLevel,
     pub codel_settings: CodelSettings,

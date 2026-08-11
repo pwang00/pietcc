@@ -1,16 +1,16 @@
+pub mod loader;
 pub mod verbosity;
 
 use crate::Verbosity;
+use crate::loader::to_lightness_raster;
 use cfg_to_ir::lowering_ctx::LoweringCtx;
 use cfg_to_ir::pipeline;
 use clap::{App, Arg};
-use inkwell::context::Context;
+use frontend::conversions::UnknownPixelSettings;
+use frontend::pipeline::run_frontend_pipeline;
 use inkwell::OptimizationLevel;
+use inkwell::context::Context;
 use interpreter::interpreter::Interpreter;
-use parser::cfg::CFGBuilder;
-use parser::convert::UnknownPixelSettings;
-use parser::loader::Loader;
-use piet_core::program::PietSource;
 use piet_core::settings::*;
 use std::env;
 use std::io::Error;
@@ -138,34 +138,32 @@ fn main() -> Result<(), Error> {
 
     let filename = matches.value_of("input").unwrap();
     let mut interpreter: Interpreter;
-    let program: PietSource;
-    let mut behavior = UnknownPixelSettings::TreatAsError;
+    let mut unknown_pixel_behavior = UnknownPixelSettings::TreatAsError;
 
     if matches.is_present("treat_white") {
-        behavior = UnknownPixelSettings::TreatAsWhite
+        unknown_pixel_behavior = UnknownPixelSettings::TreatAsWhite
     }
 
     if matches.is_present("treat_black") {
-        behavior = UnknownPixelSettings::TreatAsBlack
+        unknown_pixel_behavior = UnknownPixelSettings::TreatAsBlack
     }
 
-    let res = Loader::convert(filename, behavior);
+    let res = to_lightness_raster(filename, unknown_pixel_behavior);
 
-    if let Ok(prog) = res {
-        program = prog;
+    if let Ok(program) = res {
         let mut codel_settings = CodelSettings::Infer;
         let mut verbosity = Verbosity::Normal;
         let mut interp_settings = InterpreterSettings::default();
 
         if let Some(val) = matches.value_of("codel_size") {
-            if let Ok(val) = val.parse::<u32>() {
+            if let Ok(val) = val.parse::<usize>() {
                 if !program.dimensions().0.is_multiple_of(val)
                     || !program.dimensions().1.is_multiple_of(val)
                 {
                     match env::consts::OS {
                         "linux" => {
                             eprintln!(
-                                "\x1B[1;37mpietcc: \x1B[0m\x1B[1;31mfatal error: \x1B[0m{}: supplied codel width {} does not divide program dimensions: {:?}", 
+                                "\x1B[1;37mpietcc: \x1B[0m\x1B[1;31mfatal error: \x1B[0m{}: supplied codel width {} does not divide program dimensions: {:?}",
                                 filename,
                                 val,
                                 program.dimensions()
@@ -223,9 +221,7 @@ fn main() -> Result<(), Error> {
             }
         }
 
-        let mut cfg_builder = CFGBuilder::new(&program, codel_settings, false);
-        cfg_builder.build();
-        let mut cfg = cfg_builder.get_cfg();
+        let mut cfg = run_frontend_pipeline(program, codel_settings);
 
         if matches.is_present("interpret") {
             interp_settings.codel_settings = codel_settings;
@@ -272,9 +268,7 @@ fn main() -> Result<(), Error> {
                 verbosity,
             };
 
-            // Use the already-built CFG instead of creating a new one
-            let mut piet_ctx =
-                LoweringCtx::new(&context, module, builder, cfg_builder, compile_options);
+            let mut piet_ctx = LoweringCtx::new(&context, module, builder, compile_options);
             if let Err(e) =
                 pipeline::run_piet_optimization_pipeline(&mut piet_ctx, &mut cfg, compile_options)
             {
@@ -284,7 +278,10 @@ fn main() -> Result<(), Error> {
     } else {
         match env::consts::OS {
             "linux" => {
-                eprintln!("\x1B[1;37mpietcc: \x1B[0m\x1B[1;31mfatal error: \x1B[0m{}: No such file or directory.", filename);
+                eprintln!(
+                    "\x1B[1;37mpietcc: \x1B[0m\x1B[1;31mfatal error: \x1B[0m{}: No such file or directory.",
+                    filename
+                );
                 eprintln!("pietcc terminated.");
             }
             _ => {

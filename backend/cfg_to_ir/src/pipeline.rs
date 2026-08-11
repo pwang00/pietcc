@@ -3,6 +3,7 @@ use crate::llvm_pipeline::run_llvm_optimizations;
 use crate::lowering_ctx::LoweringCtx;
 use crate::utils::vprint;
 use crate::writer;
+use frontend::heuristics::check_nontermination;
 use inkwell::OptimizationLevel;
 use piet_core::cfg::CFG;
 use piet_core::settings::{CompilerSettings, SaveOptions};
@@ -10,6 +11,7 @@ use piet_core::state::ExecutionState;
 use piet_optimizer::manager::OptimizationPassManager;
 use piet_optimizer::result::ExecutionResult;
 use piet_optimizer::static_eval::StaticEvaluatorPass;
+use std::env;
 use std::error::Error;
 
 pub fn run_piet_optimization_pipeline(
@@ -18,6 +20,22 @@ pub fn run_piet_optimization_pipeline(
     settings: CompilerSettings,
 ) -> Result<(), Box<dyn Error>> {
     // Build globals: declares all functions (minus LLVM intrinsics) and global variables
+
+    if settings.warn_nt && check_nontermination(cfg) {
+        match env::consts::OS {
+            "linux" => {
+                eprintln!(
+                    "\x1B[1;37mpietcc:\x1B[0m \x1B[1;93mwarning:\x1B[0m every node in program CFG has nonzero outdegree.  This implies nontermination!"
+                )
+            }
+            _ => {
+                eprintln!(
+                    "pietcc: warning: every node in program CFG has nonzero outdegree.  This implies nontermination!"
+                )
+            }
+        }
+    }
+
     builder::build_globals(ctx);
 
     match settings.opt_level {
@@ -31,15 +49,22 @@ pub fn run_piet_optimization_pipeline(
             {
                 match execution_result {
                     ExecutionResult::Complete(execution_state) => {
-                        vprint(ctx.settings.verbosity, 
-                            &format!("Static evaluation succeeded (program is constant).  Compiling with final execution state:\n\n{}", 
-                            execution_state)
+                        vprint(
+                            ctx.settings.verbosity,
+                            &format!(
+                                "Static evaluation succeeded (program is constant).  Compiling with final execution state:\n\n{}",
+                                execution_state
+                            ),
                         );
                         builder::build_complete(ctx, execution_state)
                     }
                     ExecutionResult::Partial(execution_state) => {
-                        vprint(ctx.settings.verbosity, 
-                            &format!("Compiling with partial execution state:\n\n{}", execution_state)
+                        vprint(
+                            ctx.settings.verbosity,
+                            &format!(
+                                "Compiling with partial execution state:\n\n{}",
+                                execution_state
+                            ),
                         );
                         builder::build_partial(ctx, cfg, execution_state)
                     }

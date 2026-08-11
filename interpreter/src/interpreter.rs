@@ -1,4 +1,4 @@
-use piet_core::cfg::{Node, CFG};
+use piet_core::cfg::{BlockId, CFG};
 use piet_core::error::ExecutionError;
 use piet_core::flow::find_offset;
 use piet_core::instruction::*;
@@ -25,29 +25,24 @@ impl<'a> Interpreter<'a> {
         }
     }
 
-    pub fn next_block(&mut self, block: Node) -> (Option<Node>, Option<Instruction>) {
-        let bordering = &mut self.cfg.get(&block).unwrap();
-        let mut directions = vec![];
-
-        for adj in bordering.keys() {
-            directions.extend(bordering.get(&*adj).unwrap().iter().map(|transition| {
-                return (
-                    transition.entry_state,
-                    transition.exit_state,
-                    adj,
-                    transition.instruction,
-                );
-            }));
-        }
-
+    /// Picks the exit the IP takes out of `block`: the one reachable with the fewest retries
+    /// from the current DP / CC.  Exits blocked by black or by the edge of the canvas are absent
+    /// from the graph, so an offset greater than zero is exactly the retry the IP would perform.
+    /// A block with no exits at all ends the program.
+    pub fn next_block(&mut self, block: BlockId) -> (Option<BlockId>, Option<Instruction>) {
         let curr = self.state.pointers;
-        match directions
-            .into_iter()
-            .min_by_key(|&(entry, _, _, _)| find_offset(curr, entry))
-        {
-            Some((_, exit, adj, instr)) => {
-                self.state.pointers = exit;
-                (Some(adj.clone()), instr)
+
+        let next = self
+            .cfg
+            .adjacencies(block)
+            .iter()
+            .flat_map(|(adj, transitions)| transitions.iter().map(move |t| (*adj, t)))
+            .min_by_key(|(_, t)| find_offset(curr, t.entry_state));
+
+        match next {
+            Some((adj, transition)) => {
+                self.state.pointers = transition.exit_state;
+                (Some(adj), transition.instruction)
             }
             None => (None, None),
         }
@@ -372,12 +367,10 @@ impl<'a> Interpreter<'a> {
         }
     }
 
-    pub fn get_entry(&self) -> Node {
-        self.cfg
-            .keys()
-            .find(|node| *node.get_label() == "Entry")
-            .unwrap()
-            .clone()
+    /// The block the IP starts in.  Ids are assigned in discovery order and the entry block is
+    /// discovered first, so this needs no search.
+    pub fn get_entry(&self) -> BlockId {
+        CFG::ENTRY
     }
 
     pub fn run(&mut self) -> ExecutionState {
@@ -399,12 +392,18 @@ impl<'a> Interpreter<'a> {
             _ => (),
         }
 
+        // An empty graph has no block to start from, which only happens on an empty source
+        if self.cfg.is_empty() {
+            self.state.status = ExecutionStatus::Completed;
+            return self.state.clone();
+        }
+
         let mut block = self.get_entry();
 
         loop {
             io::stdout().flush().unwrap();
-            self.state.cb_count = block.get_region().len() as u64;
-            self.state.cb_label = block.get_label().clone();
+            self.state.cb_count = self.cfg.block(block).count as u64;
+            self.state.cb_id = block;
 
             if let Some(max_steps) = self.settings.max_steps {
                 if self.state.steps == max_steps {
@@ -419,7 +418,7 @@ impl<'a> Interpreter<'a> {
                 break;
             }
 
-            let (next, maybe_instr) = self.next_block(block.clone());
+            let (next, maybe_instr) = self.next_block(block);
 
             if next.is_none() {
                 self.state.status = ExecutionStatus::Completed;
@@ -443,48 +442,54 @@ impl<'a> Interpreter<'a> {
     }
 }
 
-#[allow(unused)]
+#[cfg(test)]
 mod test {
     use super::*;
-    use piet_core::color::Lightness;
+
+    /// Roll operates purely on the stack, so an empty graph is enough to drive it.
+    fn evaluator(stack: [i64; 5]) -> Interpreter<'static> {
+        static EMPTY: std::sync::LazyLock<CFG> = std::sync::LazyLock::new(CFG::new);
+        let mut interpreter = Interpreter::new(&EMPTY, InterpreterSettings::default());
+        interpreter.state.stack = VecDeque::from(stack);
+        interpreter
+    }
 
     #[test]
     fn test_roll() {
-        // Setup
-        let vec = Vec::<Lightness>::new();
-        let program = PietSource::new(&vec, 0, 0);
-        let mut interpreter = Interpreter::new(&program, InterpreterSettings::default());
-
         // Positive roll to depth 2
-        interpreter.stack = VecDeque::from([1, 2, 6, 5]);
-        interpreter.roll();
-        assert_eq!(interpreter.stack.pop_front(), Some(5));
-        assert_eq!(interpreter.stack.pop_front(), Some(6));
+        let mut interpreter = evaluator([1, 2, 6, 5, 0]);
+        interpreter.roll().unwrap();
+        assert_eq!(interpreter.state.stack.pop_front(), Some(5));
+        assert_eq!(interpreter.state.stack.pop_front(), Some(6));
 
         // Negative roll to depth 3
-        interpreter.stack = VecDeque::from([-1, 3, 6, 5, 4]);
-        interpreter.roll();
-        assert_eq!(interpreter.stack.pop_front(), Some(4));
-        assert_eq!(interpreter.stack.pop_front(), Some(6));
-        assert_eq!(interpreter.stack.pop_front(), Some(5));
+        let mut interpreter = evaluator([-1, 3, 6, 5, 4]);
+        interpreter.roll().unwrap();
+        assert_eq!(interpreter.state.stack.pop_front(), Some(4));
+        assert_eq!(interpreter.state.stack.pop_front(), Some(6));
+        assert_eq!(interpreter.state.stack.pop_front(), Some(5));
 
         // Negative roll to depth 2
-        interpreter.stack = VecDeque::from([-1, 2, 6, 5, 4]);
-        interpreter.roll();
-        assert_eq!(interpreter.stack.pop_front(), Some(5));
-        assert_eq!(interpreter.stack.pop_front(), Some(6));
-        assert_eq!(interpreter.stack.pop_front(), Some(4));
+        let mut interpreter = evaluator([-1, 2, 6, 5, 4]);
+        interpreter.roll().unwrap();
+        assert_eq!(interpreter.state.stack.pop_front(), Some(5));
+        assert_eq!(interpreter.state.stack.pop_front(), Some(6));
+        assert_eq!(interpreter.state.stack.pop_front(), Some(4));
 
-        interpreter.stack = VecDeque::from([1, 3, 6, 5, 4]);
-        interpreter.roll();
-        assert_eq!(interpreter.stack.pop_front(), Some(5));
-        assert_eq!(interpreter.stack.pop_front(), Some(4));
-        assert_eq!(interpreter.stack.pop_front(), Some(6));
+        let mut interpreter = evaluator([1, 3, 6, 5, 4]);
+        interpreter.roll().unwrap();
+        assert_eq!(interpreter.state.stack.pop_front(), Some(5));
+        assert_eq!(interpreter.state.stack.pop_front(), Some(4));
+        assert_eq!(interpreter.state.stack.pop_front(), Some(6));
+    }
 
-        interpreter.stack = VecDeque::from([-1, 2, 6, 5, 4]);
-        interpreter.roll();
-        assert_eq!(interpreter.stack.pop_front(), Some(5));
-        assert_eq!(interpreter.stack.pop_front(), Some(6));
-        assert_eq!(interpreter.stack.pop_front(), Some(4));
+    #[test]
+    fn test_empty_graph_completes_without_executing() {
+        let cfg = CFG::new();
+        let mut interpreter = Interpreter::new(&cfg, InterpreterSettings::default());
+        let state = interpreter.run();
+
+        assert_eq!(state.status, ExecutionStatus::Completed);
+        assert_eq!(state.steps, 0);
     }
 }
