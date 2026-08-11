@@ -127,6 +127,15 @@ impl CFG {
     }
 }
 
+// We can't determine whether an arbitrary Piet program halts since Piet is Turing-complete,
+// which makes this equivalent to solving the halting problem.  However, one condition in which a
+// Piet program is guaranteed to run forever is if there are no blocks with outdegree zero, since
+// our compilation procedure inserts a return for any such block, which is the only way for
+// termination to occur.
+pub fn check_nontermination(cfg: &CFG) -> bool {
+    cfg.ids().all(|id| !cfg.adjacencies(id).is_empty())
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
