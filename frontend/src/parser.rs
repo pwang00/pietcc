@@ -207,23 +207,15 @@ pub(crate) fn parse(mut uf: DisjointSet) -> CFG {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::conversions::UnknownPixelSettings;
-    use crate::load::to_lightness_raster;
+    use crate::conversions::{UnknownPixelSettings, rgb_to_lightness};
+    use crate::lexer::lex;
+    use crate::pipeline::run_frontend_pipeline;
     use piet_core::color::Hue::*;
     use piet_core::color::Lightness::{self, *};
     use piet_core::flow::{CodelChooser, DirPointer};
     use piet_core::instruction::Instruction;
+    use piet_core::settings::CodelSettings;
     use std::collections::HashMap;
-    use std::hash::{Hash, Hasher};
-
-    const SETTINGS: UnknownPixelSettings = UnknownPixelSettings::TreatAsError;
-
-    fn get_hash<T: Hash>(val: &T) -> u64 {
-        let mut hasher = std::collections::hash_map::DefaultHasher::new();
-        val.hash(&mut hasher);
-        hasher.finish()
-    }
-
     /// Lexes and parses a raster given a codel per row entry.
     fn cfg_from(rows: &[&[Lightness]]) -> CFG {
         let (h, w) = (rows.len(), rows[0].len());
@@ -231,33 +223,33 @@ mod test {
         parse(lex(PietSource::new(grid, h, w)))
     }
 
-    fn node_by_label<'a>(cfg: &'a CFG, label: &str) -> &'a ColorBlock {
-        cfg.keys()
-            .find(|node| node.label == label)
-            .unwrap_or_else(|| panic!("no node labeled {label} in {:?}", cfg.keys()))
+    fn node_by_label(cfg: &CFG, label: &str) -> BlockId {
+        cfg.ids()
+            .find(|&id| cfg.block(id).label == label)
+            .unwrap_or_else(|| panic!("no node labeled {label}"))
     }
 
-    /// The transitions out of `label`, keyed by the DP / CC state that takes them.
+    /// The transitions out of `id`, keyed by the DP / CC state that takes them.
     fn transitions_by_entry(
         cfg: &CFG,
-        label: &str,
+        id: BlockId,
     ) -> HashMap<(DirPointer, CodelChooser), (String, Option<Instruction>, PointerState)> {
         let mut by_entry = HashMap::new();
 
-        for (adj, transitions) in cfg.get(node_by_label(cfg, label)).unwrap() {
+        for &(adj, ref transitions) in cfg.adjacencies(id) {
             for transition in transitions {
                 let entry = transition.entry_state;
                 let prev = by_entry.insert(
                     (entry.dp, entry.cc),
                     (
-                        adj.label.clone(),
+                        cfg.block(adj).label.clone(),
                         transition.instruction,
                         transition.exit_state,
                     ),
                 );
                 assert!(
                     prev.is_none(),
-                    "{label} has two transitions for dp {:?} / cc {:?}",
+                    "{id} has two transitions for dp {:?} / cc {:?}",
                     entry.dp,
                     entry.cc
                 );
@@ -268,12 +260,18 @@ mod test {
     }
 
     #[test]
-    fn test_colorblock_eq_hash() {
-        let cb1 = ColorBlock::new(String::from("LightRed_1_2"), Light(Red), 8);
-        let cb2 = ColorBlock::new(String::from("LightRed_1_2"), Light(Red), 8);
+    fn test_disconnected_same_color_blocks_have_distinct_ids() {
+        let cfg = cfg_from(&[&[Reg(Red), Reg(Yellow), Reg(Red)]]);
+        let right = node_by_label(&cfg, "RegRed_0_2");
 
-        assert_eq!(cb1, cb2);
-        assert_eq!(get_hash(&cb1), get_hash(&cb2));
+        assert_eq!(cfg.len(), 3);
+        assert_ne!(CFG::ENTRY, right);
+        assert_eq!(cfg.block(CFG::ENTRY).lightness, cfg.block(right).lightness);
+        let middle = node_by_label(&cfg, "RegYellow_0_1");
+        let neighbors: Vec<_> = cfg.adjacencies(middle).iter().map(|(id, _)| *id).collect();
+        assert_eq!(neighbors.len(), 2);
+        assert!(neighbors.contains(&CFG::ENTRY));
+        assert!(neighbors.contains(&right));
     }
 
     #[test]
@@ -281,10 +279,10 @@ mod test {
         let cfg = cfg_from(&[&[Reg(Red)]]);
 
         assert_eq!(cfg.len(), 1);
-        let entry = node_by_label(&cfg, "Entry");
-        assert_eq!(entry.count, 1);
+        let entry = CFG::ENTRY;
+        assert_eq!(cfg.block(entry).count, 1);
         // Every exit runs off the canvas, so the block has no adjacencies and the program ends
-        assert!(cfg.get(entry).unwrap().is_empty());
+        assert!(cfg.adjacencies(entry).is_empty());
     }
 
     #[test]
@@ -294,7 +292,7 @@ mod test {
         assert_eq!(cfg.len(), 2);
 
         // One hue step right and no lightness change is Add, and the reverse is CharIn
-        let entry = transitions_by_entry(&cfg, "Entry");
+        let entry = transitions_by_entry(&cfg, CFG::ENTRY);
         assert_eq!(entry.len(), 2);
         for cc in [CodelChooser::Left, CodelChooser::Right] {
             let (label, instruction, _) = &entry[&(DirPointer::Right, cc)];
@@ -302,11 +300,11 @@ mod test {
             assert_eq!(*instruction, Some(Instruction::Add));
         }
 
-        let yellow = transitions_by_entry(&cfg, "RegYellow_0_1");
+        let yellow = transitions_by_entry(&cfg, node_by_label(&cfg, "RegYellow_0_1"));
         assert_eq!(yellow.len(), 2);
         for cc in [CodelChooser::Left, CodelChooser::Right] {
             let (label, instruction, _) = &yellow[&(DirPointer::Left, cc)];
-            assert_eq!(label, "Entry");
+            assert_eq!(label, &cfg.block(CFG::ENTRY).label);
             assert_eq!(*instruction, Some(Instruction::CharIn));
         }
     }
@@ -321,9 +319,9 @@ mod test {
         ]);
 
         assert_eq!(cfg.len(), 3);
-        assert_eq!(node_by_label(&cfg, "Entry").count, 4);
+        assert_eq!(cfg.block(CFG::ENTRY).count, 4);
 
-        let entry = transitions_by_entry(&cfg, "Entry");
+        let entry = transitions_by_entry(&cfg, CFG::ENTRY);
         // Only the two right facing exits clear the block; the rest run off the canvas
         assert_eq!(entry.len(), 2);
 
@@ -342,9 +340,9 @@ mod test {
 
         // White is passed through rather than becoming a node of its own
         assert_eq!(cfg.len(), 2);
-        assert!(cfg.keys().all(|node| node.lightness != White));
+        assert!(cfg.ids().all(|id| cfg.block(id).lightness != White));
 
-        let entry = transitions_by_entry(&cfg, "Entry");
+        let entry = transitions_by_entry(&cfg, CFG::ENTRY);
         let (label, instruction, exit_state) = &entry[&(DirPointer::Right, CodelChooser::Left)];
         assert_eq!(label, "RegGreen_0_3");
         // Sliding through white executes no instruction and leaves the pointers untouched
@@ -361,7 +359,7 @@ mod test {
         // clockwise to dp = down (toggling cc) and leaves the white region into green.
         let cfg = cfg_from(&[&[Reg(Red), White, Black], &[Black, Reg(Green), Black]]);
 
-        let entry = transitions_by_entry(&cfg, "Entry");
+        let entry = transitions_by_entry(&cfg, CFG::ENTRY);
         let (label, instruction, exit_state) = &entry[&(DirPointer::Right, CodelChooser::Left)];
         assert_eq!(label, "RegGreen_1_1");
         assert_eq!(*instruction, None);
@@ -377,7 +375,7 @@ mod test {
 
         // Black is never an adjacency, so green is unreachable and never discovered
         assert_eq!(cfg.len(), 1);
-        assert!(cfg.get(node_by_label(&cfg, "Entry")).unwrap().is_empty());
+        assert!(cfg.adjacencies(CFG::ENTRY).is_empty());
     }
 
     #[test]
@@ -390,32 +388,41 @@ mod test {
         ]);
 
         assert_eq!(cfg.len(), 1);
-        assert_eq!(node_by_label(&cfg, "Entry").count, 5);
+        assert_eq!(cfg.block(CFG::ENTRY).count, 5);
     }
 
     #[test]
     fn test_program_graph_is_well_formed() {
-        let source = to_lightness_raster("../images/hw1-1.png", SETTINGS).unwrap();
-        let cfg = CFGBuilder::build(source, CodelSettings::Width(1), false);
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../images/hw1-1.png");
+        let img = image::open(path).unwrap().into_rgb8();
+        let (w, h) = img.dimensions();
+        let source = PietSource::new(
+            img.pixels()
+                .map(|pix| rgb_to_lightness(pix, UnknownPixelSettings::TreatAsError))
+                .collect(),
+            h as usize,
+            w as usize,
+        );
+        let entry_color = source.get(ENTRY).unwrap();
+        let cfg = run_frontend_pipeline(source, CodelSettings::Width(1));
 
         assert!(!cfg.is_empty());
-        node_by_label(&cfg, "Entry");
+        assert_eq!(cfg.block(CFG::ENTRY).lightness, entry_color);
 
-        for node in cfg.keys() {
-            // The IR builder resolves every adjacency to a basic block, so each one has to be
-            // a node of the graph in its own right, and no node may be white.
+        for id in cfg.ids() {
+            let node = cfg.block(id);
+            // Every adjacency must refer to a node in the graph, and white regions
+            // are traced through rather than retained as nodes in this program.
             assert!(node.lightness != White, "{} is a white node", node.label);
             assert!(node.count > 0);
 
-            // Also asserts that no DP / CC state has two transitions out of a node
-            transitions_by_entry(&cfg, &node.label);
+            // No DP / CC state may select two outgoing transitions.
+            transitions_by_entry(&cfg, id);
 
-            for adj in cfg.get(node).unwrap().keys() {
+            for (adj, _) in cfg.adjacencies(id) {
                 assert!(
-                    cfg.contains_key(adj),
-                    "{} is an adjacency of {} but not a node",
-                    adj.label,
-                    node.label
+                    adj.index() < cfg.len(),
+                    "{adj} is an adjacency of {id} but not a node",
                 );
             }
         }
