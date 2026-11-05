@@ -1,6 +1,5 @@
 use gcd::Gcd;
 use piet_core::cfg::{BlockId, CFG};
-use std::usize;
 
 // The idea of this heuristic is that since the codel size is constant across the program,
 // each block must have width and height as a multiple of the codel size.  A somewhat reasonable metric

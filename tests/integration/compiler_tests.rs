@@ -27,12 +27,12 @@ fn run_npiet(image_path: &str, input: &str) -> Result<String, String> {
         .map_err(|e| format!("Failed to execute npiet: {}", e))?;
 
     // Write input to stdin if provided
-    if !input.is_empty() {
-        if let Some(mut stdin) = child.stdin.take() {
-            stdin
-                .write_all(input.as_bytes())
-                .map_err(|e| format!("Failed to write to stdin: {}", e))?;
-        }
+    if !input.is_empty()
+        && let Some(mut stdin) = child.stdin.take()
+    {
+        stdin
+            .write_all(input.as_bytes())
+            .map_err(|e| format!("Failed to write to stdin: {}", e))?;
     }
 
     let output = child
@@ -83,12 +83,12 @@ fn run_compiled_program(binary_path: &str, input: &str) -> Result<String, String
         .map_err(|e| format!("Failed to execute compiled program: {}", e))?;
 
     // Write input to stdin if provided
-    if !input.is_empty() {
-        if let Some(mut stdin) = child.stdin.take() {
-            stdin
-                .write_all(input.as_bytes())
-                .map_err(|e| format!("Failed to write to stdin: {}", e))?;
-        }
+    if !input.is_empty()
+        && let Some(mut stdin) = child.stdin.take()
+    {
+        stdin
+            .write_all(input.as_bytes())
+            .map_err(|e| format!("Failed to write to stdin: {}", e))?;
     }
 
     let output = child

@@ -155,36 +155,36 @@ fn main() -> Result<(), Error> {
         let mut verbosity = Verbosity::Normal;
         let mut interp_settings = InterpreterSettings::default();
 
-        if let Some(val) = matches.value_of("codel_size") {
-            if let Ok(val) = val.parse::<usize>() {
-                if !program.dimensions().0.is_multiple_of(val)
-                    || !program.dimensions().1.is_multiple_of(val)
-                {
-                    match env::consts::OS {
-                        "linux" => {
-                            eprintln!(
-                                "\x1B[1;37mpietcc: \x1B[0m\x1B[1;31mfatal error: \x1B[0m{}: supplied codel width {} does not divide program dimensions: {:?}",
-                                filename,
-                                val,
-                                program.dimensions()
-                            );
-                            eprintln!("pietcc terminated.");
-                        }
-                        _ => {
-                            eprintln!(
-                                "pietcc: fatal error: {}: supplied codel width {} does not divide program dimensions: {:?}",
-                                filename,
-                                val,
-                                program.dimensions()
-                            );
-                            eprintln!("pietcc terminated.");
-                        }
+        if let Some(val) = matches.value_of("codel_size")
+            && let Ok(val) = val.parse::<usize>()
+        {
+            if !program.dimensions().0.is_multiple_of(val)
+                || !program.dimensions().1.is_multiple_of(val)
+            {
+                match env::consts::OS {
+                    "linux" => {
+                        eprintln!(
+                            "\x1B[1;37mpietcc: \x1B[0m\x1B[1;31mfatal error: \x1B[0m{}: supplied codel width {} does not divide program dimensions: {:?}",
+                            filename,
+                            val,
+                            program.dimensions()
+                        );
+                        eprintln!("pietcc terminated.");
                     }
-                    exit(1);
+                    _ => {
+                        eprintln!(
+                            "pietcc: fatal error: {}: supplied codel width {} does not divide program dimensions: {:?}",
+                            filename,
+                            val,
+                            program.dimensions()
+                        );
+                        eprintln!("pietcc terminated.");
+                    }
                 }
-
-                codel_settings = CodelSettings::Width(val);
+                exit(1);
             }
+
+            codel_settings = CodelSettings::Width(val);
         }
 
         if matches.value_of("use_default").is_some() {
