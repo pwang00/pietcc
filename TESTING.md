@@ -166,14 +166,17 @@ cat test_output.ll
 ## Common Issues
 
 ### LLVM Not Found
-Make sure LLVM 18 is installed:
+Make sure LLVM 23 is installed:
 ```bash
 # Ubuntu
-sudo apt-get install llvm-18-dev libpolly-18-dev
+sudo apt-get install clang-23 llvm-23-dev libpolly-23-dev
+export LLVM_SYS_231_PREFIX=/usr/lib/llvm-23
+export PATH="$LLVM_SYS_231_PREFIX/bin:$PATH"
 
 # macOS
-brew install llvm@18
-export LLVM_SYS_180_PREFIX=$(brew --prefix llvm@18)
+brew install llvm@23
+export LLVM_SYS_231_PREFIX=$(brew --prefix llvm@23)
+export PATH="$LLVM_SYS_231_PREFIX/bin:$PATH"
 ```
 
 ### Test Timeouts

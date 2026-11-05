@@ -50,33 +50,37 @@ cd pietcc
 
 ## Building PietCC
 
-To build PietCC, first make sure you have supported versions of rustc and LLVM on your system.  You may need to modify inkwell's cargo feature flags in the Cargo.tomls of the [project root](https://github.com/pwang00/pietcc/blob/main/Cargo.toml) and [backend crates](backend/).  This project sets them at LLVM 18.1:
+To build PietCC, first make sure you have supported versions of rustc and LLVM on your system. This project uses inkwell 0.11.0 with LLVM 23.1. If selecting another LLVM version, update the feature in all three manifests: [Cargo.toml](Cargo.toml), [piet_core/Cargo.toml](piet_core/Cargo.toml), and [backend/cfg_to_ir/Cargo.toml](backend/cfg_to_ir/Cargo.toml).
 
 ```
-inkwell = { version = "0.7.0", features = ["llvm18-1"] }
+inkwell = { version = "0.11.0", features = ["llvm23-1"] }
 ```
 
 However, other versions are supported as well per the inkwell docs:
 
 | LLVM Version | Cargo Feature Flag |
 | :----------: | :-----------: |
-| 4.0.x        | llvm4-0       |
-| 5.0.x        | llvm5-0       |
-| 6.0.x        | llvm6-0       |
-| 7.0.x        | llvm7-0       |
-| 8.0.x        | llvm8-0       |
-| 9.0.x        | llvm9-0       |
-| 10.0.x       | llvm10-0      |
-| 11.0.x       | llvm11-0      |
-| 12.0.x       | llvm12-0      |
-| 13.0.x       | llvm13-0      |
-| 14.0.x       | llvm14-0      |
-| 15.0.x       | llvm15-0      |
-| 16.0.x       | llvm16-0      |
-| 17.0.x       | llvm17-0      |
-| 18.1.x       | llvm18-1      |
+| 12.0.x | llvm12-0 |
+| 13.0.x | llvm13-0 |
+| 14.0.x | llvm14-0 |
+| 15.0.x | llvm15-0 |
+| 16.0.x | llvm16-0 |
+| 17.0.x | llvm17-0 |
+| 18.1.x | llvm18-1 |
+| 19.1.x | llvm19-1 |
+| 20.1.x | llvm20-1 |
+| 21.1.x | llvm21-1 |
+| 22.1.x | llvm22-1 |
+| 23.1.x | llvm23-1 |
 
-so replace `features = ["llvm18-1"]` with the desired cargo feature flag.
+Use exactly one LLVM feature consistently across all manifests. For LLVM 23 on Linux, configure both library discovery and the tools used to generate executables:
+
+```bash
+export LLVM_SYS_231_PREFIX=/usr/lib/llvm-23
+export PATH="$LLVM_SYS_231_PREFIX/bin:$PATH"
+```
+
+On macOS, install `llvm@23` with Homebrew and set `LLVM_SYS_231_PREFIX` to `$(brew --prefix llvm@23)`, then prepend its `bin` directory to `PATH`. The libraries, `llc`, and `clang` should come from the same LLVM installation.
 
 Once you have verified that the LLVM version is correct, run
 
