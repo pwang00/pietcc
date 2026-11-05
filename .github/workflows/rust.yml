@@ -60,23 +60,20 @@ jobs:
           echo "LLVM_SYS_231_PREFIX=$(brew --prefix llvm@23)" >> $GITHUB_ENV
           echo "$(brew --prefix llvm@23)/bin" >> $GITHUB_PATH
 
-      - name: Install npiet (Ubuntu)
-        if: matrix.os == 'ubuntu-latest'
+      - name: Install npiet build dependencies (Ubuntu)
+        if: runner.os == 'Linux'
+        run: sudo apt-get install -y build-essential git libgd-dev libpng-dev libgif-dev
+
+      - name: Install npiet build dependencies (macOS)
+        if: runner.os == 'macOS'
         run: |
-          sudo apt install libgd-dev groff
-          git clone https://github.com/gleitz/npiet.git && cd npiet
-          ./configure
-          make
-          sudo make install
+          brew install gd libpng giflib pkg-config
+          echo "CPPFLAGS=-I$(brew --prefix)/include" >> $GITHUB_ENV
+          echo "LDFLAGS=-L$(brew --prefix)/lib" >> $GITHUB_ENV
+          echo "LIBRARY_PATH=$(brew --prefix)/lib" >> $GITHUB_ENV
 
-      # npiet installation skipped on macOS due to giflib 5.x API incompatibility
-      # npiet was written for giflib 4.x and requires patching for giflib 5.x
-          
-      - name: Build release binary
-        run: cargo build --release
-
-      - name: Run integration tests (Ubuntu)
-        run: cargo test --test '*'
+      - name: Run unit and integration tests
+        run: ./scripts/run_tests.sh
 
   lint:
     name: Linting (rustfmt + clippy)
@@ -101,14 +98,6 @@ jobs:
       - name: Run rustfmt
         run: cargo fmt -- --check
 
-      - name: Install npiet
-        run: |
-          sudo apt install libgd-dev groff
-          git clone https://github.com/gleitz/npiet.git && cd npiet
-          ./configure
-          make
-          sudo make install
-          
       - name: Run clippy
         run: cargo clippy --all-targets --all-features -- -D warnings
 
@@ -130,14 +119,6 @@ jobs:
           echo "/usr/lib/llvm-23/bin" >> $GITHUB_PATH
           echo "LLVM_SYS_231_PREFIX=/usr/lib/llvm-23" >> $GITHUB_ENV
 
-      - name: Install npiet
-        run: |
-          sudo apt install libgd-dev groff
-          git clone https://github.com/gleitz/npiet.git && cd npiet
-          ./configure
-          make
-          sudo make install
-
       - name: Check compilation
         run: cargo check --all-targets
 
@@ -153,13 +134,11 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Install npiet
+      - name: Build patched npiet
         run: |
-          sudo apt install libgd-dev groff
-          git clone https://github.com/gleitz/npiet.git && cd npiet
-          ./configure
-          make
-          sudo make install
+          sudo apt-get install -y build-essential git libgd-dev libpng-dev libgif-dev
+          ./scripts/build_npiet.sh
+          echo "$GITHUB_WORKSPACE/target/npiet/bin" >> $GITHUB_PATH
 
       - name: Install LLVM
         run: |

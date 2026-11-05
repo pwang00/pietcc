@@ -99,19 +99,21 @@ PietCC includes comprehensive unit and integration tests.
 
 ### Prerequisites
 
-Integration tests require [npiet](https://github.com/gleitz/npiet) to be installed:
+The test runner builds a pinned [npiet](https://github.com/gleitz/npiet) revision with the compatibility patch in `scripts/patches/npiet-modern-c.patch`. The patched executable lives in `target/npiet/bin`; no system installation is needed. Install its build dependencies first:
 
 **Ubuntu/Debian:**
 ```bash
-sudo apt install libgd-dev groff
-git clone https://github.com/gleitz/npiet.git && cd npiet
-./configure
-make
-sudo make install
+sudo apt-get install build-essential git libgd-dev libpng-dev libgif-dev
 ```
 
 **macOS:**
-npiet is not currently supported on macOS due to giflib API incompatibilities. Unit tests will still work.
+```bash
+brew install gd libpng giflib
+export CPPFLAGS="-I$(brew --prefix)/include"
+export LDFLAGS="-L$(brew --prefix)/lib"
+```
+
+The patch fixes the signal handler signature and supports current giflib APIs. The first integration run requires network access to fetch the pinned source; subsequent runs reuse the build until the script, patch, or build settings change.
 
 ### Running Tests
 
@@ -119,7 +121,9 @@ npiet is not currently supported on macOS due to giflib API incompatibilities. U
 # Run all tests
 ./scripts/run_tests.sh
 
-# Or use cargo directly
+# Or prepare the reference interpreter for direct Cargo runs
+./scripts/build_npiet.sh
+export PATH="$PWD/target/npiet/bin:$PATH"
 cargo test
 ```
 
