@@ -143,10 +143,12 @@ The `images/` directory contains a variety of test programs:
 
 ## Test Coverage
 
+Use `--no-dead-code` to avoid Tarpaulin's `-Clink-dead-code` flag, which triggers compile-time size assertions in otherwise-unused SIMD code in `pulp` (via `image` / `exr`). `--engine llvm` uses instrumentation-based coverage, including the instrumented PietCC subprocesses launched by integration tests. Tests and compile-time assertions remain enabled; coverage totals may exclude code eliminated by the compiler. Prepare the patched npiet and its `PATH` as described above before running coverage.
+
 To generate coverage report:
 ```bash
 cargo install cargo-tarpaulin
-cargo tarpaulin --all-features --workspace --timeout 300
+cargo tarpaulin --engine llvm --no-dead-code --all-features --workspace --timeout 300
 ```
 
 ## Debugging Failed Tests

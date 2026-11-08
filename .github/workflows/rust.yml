@@ -153,7 +153,9 @@ jobs:
         run: cargo install cargo-tarpaulin
 
       - name: Generate coverage
-        run: cargo tarpaulin --verbose --all-features --workspace --timeout 300 --out xml
+        # LLVM instrumentation covers CLI subprocesses without ptrace.
+        # Disable -Clink-dead-code, which breaks unused SIMD casts in pulp.
+        run: cargo tarpaulin --engine llvm --no-dead-code --verbose --all-features --workspace --timeout 300 --out xml
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
