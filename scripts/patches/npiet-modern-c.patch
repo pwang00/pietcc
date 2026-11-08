@@ -1,0 +1,38 @@
+diff --git a/npiet.c b/npiet.c
+index 6d33622..7554542 100644
+--- a/npiet.c
++++ b/npiet.c
+@@ -1205,0 +1206,14 @@ read_png (char *fname)
++#if GIFLIB_MAJOR >= 5
++#define NPIET_GIF_OPEN(fname) DGifOpenFileName (fname, NULL)
++#define NPIET_GIF_ERROR(gif) fprintf (stderr, "GIF decoding error: %d\n", (gif)->Error)
++#else
++#define NPIET_GIF_OPEN(fname) DGifOpenFileName (fname)
++#define NPIET_GIF_ERROR(gif) PrintGifError ()
++#endif
++
++#if GIFLIB_MAJOR > 5 || (GIFLIB_MAJOR == 5 && GIFLIB_MINOR >= 1)
++#define NPIET_GIF_CLOSE(gif) DGifCloseFile (gif, NULL)
++#else
++#define NPIET_GIF_CLOSE(gif) DGifCloseFile (gif)
++#endif
++
+@@ -1220 +1234 @@ read_gif (char *fname)
+-  if (! (gif = DGifOpenFileName (fname))) {
++  if (! (gif = NPIET_GIF_OPEN (fname))) {
+@@ -1226,2 +1240,2 @@ read_gif (char *fname)
+-    PrintGifError ();
+-    DGifCloseFile (gif);
++    NPIET_GIF_ERROR (gif);
++    NPIET_GIF_CLOSE (gif);
+@@ -1234 +1248 @@ read_gif (char *fname)
+-    DGifCloseFile (gif);
++    NPIET_GIF_CLOSE (gif);
+@@ -1300 +1314 @@ read_gif (char *fname)
+-  DGifCloseFile (gif);
++  NPIET_GIF_CLOSE (gif);
+@@ -2698 +2712 @@ void
+-do_signal ()
++do_signal (int signo)
+@@ -2699,0 +2714 @@ do_signal ()
++  (void) signo;

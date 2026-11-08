@@ -42,12 +42,12 @@ fn run_interpreter_with_args(
         .map_err(|e| format!("Failed to execute: {}", e))?;
 
     // Write input to stdin if provided
-    if !input.is_empty() {
-        if let Some(mut stdin) = child.stdin.take() {
-            stdin
-                .write_all(input.as_bytes())
-                .map_err(|e| format!("Failed to write to stdin: {}", e))?;
-        }
+    if !input.is_empty()
+        && let Some(mut stdin) = child.stdin.take()
+    {
+        stdin
+            .write_all(input.as_bytes())
+            .map_err(|e| format!("Failed to write to stdin: {}", e))?;
     }
 
     let output = child

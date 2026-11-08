@@ -1,16 +1,19 @@
 use crate::lowering_ctx::LoweringCtx;
-use inkwell::{basic_block::BasicBlock, values::AnyValue};
-use piet_core::cfg::CFG;
+use inkwell::values::AnyValue;
+use piet_core::cfg::{BlockId, CFG};
 use piet_core::instruction::Instruction;
-use std::collections::HashMap;
 
-pub(crate) fn build_transitions<'a, 'b>(ctx: &LoweringCtx<'a, 'b>, cfg: &CFG, entry_label: &str) {
+/// Lowers the graph into the `start` function: one basic block per color block, each dispatching
+/// on the global DP / CC to find the exit it should take and falling through to `retry` when no
+/// exit matches.
+///
+/// `entry` is the block execution resumes from, which is `CFG::ENTRY` for a full compile but the
+/// block static evaluation stopped at when compiling a partial result.
+pub(crate) fn build_transitions<'a, 'b>(ctx: &LoweringCtx<'a, 'b>, cfg: &CFG, entry: BlockId) {
     let i8_type = ctx.llvm_context.i8_type();
     let i64_type = ctx.llvm_context.i64_type();
     let start_fn = ctx.module.get_function("start").unwrap();
     let start_adj_basic_block = ctx.llvm_context.append_basic_block(start_fn, "");
-
-    let mut block_lookup_table = HashMap::<&str, BasicBlock>::new();
 
     ctx.builder.position_at_end(start_adj_basic_block);
     // Globals
@@ -33,35 +36,36 @@ pub(crate) fn build_transitions<'a, 'b>(ctx: &LoweringCtx<'a, 'b>, cfg: &CFG, en
     let const_0 = i64_type.const_zero();
     // Functions
     let retry_fn = ctx.module.get_function("retry").unwrap();
-    // Generate all basic blocks
-    for node in cfg.keys() {
-        let block = ctx
-            .llvm_context
-            .append_basic_block(start_fn, &node.get_label());
-        block_lookup_table.insert(node.get_label(), block);
-    }
-    let entry = block_lookup_table.get(entry_label).unwrap().to_owned();
+    // Generate all basic blocks.  Ids are dense and walked in order, so the layout of the
+    // emitted module is reproducible rather than dependent on hash iteration order.
+    let basic_blocks = cfg
+        .ids()
+        .map(|id| {
+            ctx.llvm_context
+                .append_basic_block(start_fn, &cfg.block(id).label)
+        })
+        .collect::<Vec<_>>();
+
     let ret_block = ctx.llvm_context.append_basic_block(start_fn, "ret");
 
     // Init (jumps to entry block)
     ctx.builder.position_at_end(start_adj_basic_block);
-    ctx.builder.build_unconditional_branch(entry).unwrap();
+    ctx.builder
+        .build_unconditional_branch(basic_blocks[entry.index()])
+        .unwrap();
 
     // For every node, we want to get its adjacencies and generate the correct instructions depending on DP / CC
     // We essentially want an if / elif chain of different dp / cc cases.  If the dp or cc fall through then we
     // increment the retries counter until we find one that matches.
-    for node in cfg.keys() {
-        let adjs = cfg.get(node).unwrap();
-        let block_size = i64_type.const_int(node.get_region_size(), false);
+    for node in cfg.ids() {
+        let adjs = cfg.adjacencies(node);
+        let label = &cfg.block(node).label;
+        let block_size = i64_type.const_int(cfg.block(node).count as u64, false);
 
-        let color_block_start = block_lookup_table
-            .get(&node.get_label() as &str)
-            .unwrap()
-            .to_owned();
-        let rotate_pointers = ctx.llvm_context.insert_basic_block_after(
-            color_block_start,
-            &("rotate_pointers_".to_owned() + &node.get_label()),
-        );
+        let color_block_start = basic_blocks[node.index()];
+        let rotate_pointers = ctx
+            .llvm_context
+            .insert_basic_block_after(color_block_start, &("rotate_pointers_".to_owned() + label));
 
         ctx.builder.position_at_end(color_block_start);
 
@@ -77,7 +81,7 @@ pub(crate) fn build_transitions<'a, 'b>(ctx: &LoweringCtx<'a, 'b>, cfg: &CFG, en
             .into_int_value();
 
         let adj_blocks = adjs
-            .keys()
+            .iter()
             .enumerate()
             .map(|(i, _)| {
                 ctx.llvm_context.insert_basic_block_after(
@@ -96,8 +100,7 @@ pub(crate) fn build_transitions<'a, 'b>(ctx: &LoweringCtx<'a, 'b>, cfg: &CFG, en
                 .unwrap();
         }
 
-        for (i, adj) in adjs.keys().enumerate() {
-            let dirvec = adjs.get(adj).unwrap();
+        for (i, (adj, dirvec)) in adjs.iter().enumerate() {
             let dirvec_blocks = (0..dirvec.len())
                 .map(|_| {
                     ctx.llvm_context
@@ -114,7 +117,7 @@ pub(crate) fn build_transitions<'a, 'b>(ctx: &LoweringCtx<'a, 'b>, cfg: &CFG, en
             for (j, transition) in dirvec.iter().enumerate() {
                 let call_instr = ctx.llvm_context.insert_basic_block_after(
                     dirvec_blocks[j],
-                    &("call_instr_".to_owned() + node.get_label().as_str()),
+                    &("call_instr_".to_owned() + label.as_str()),
                 );
 
                 ctx.builder.position_at_end(dirvec_blocks[j]);
@@ -190,11 +193,9 @@ pub(crate) fn build_transitions<'a, 'b>(ctx: &LoweringCtx<'a, 'b>, cfg: &CFG, en
                     .build_int_truncate(const_0, i8_type, "")
                     .unwrap();
                 ctx.builder.build_store(rctr_addr, const_0_i8).unwrap();
-                let next_block = block_lookup_table
-                    .get(adj.get_label() as &str)
-                    .unwrap()
-                    .to_owned();
-                let _jmp_to_next = ctx.builder.build_unconditional_branch(next_block);
+                let _jmp_to_next = ctx
+                    .builder
+                    .build_unconditional_branch(basic_blocks[adj.index()]);
             }
         }
         // Rotates dp / cc and jumps to the beginning
@@ -213,9 +214,9 @@ pub(crate) fn build_transitions<'a, 'b>(ctx: &LoweringCtx<'a, 'b>, cfg: &CFG, en
         }
     }
     // Ret
-    ret_block
-        .move_after(*block_lookup_table.values().last().unwrap())
-        .ok();
+    if let Some(last) = basic_blocks.last() {
+        ret_block.move_after(*last).ok();
+    }
     ctx.builder.position_at_end(ret_block);
     ctx.builder.build_return(None).unwrap();
 }

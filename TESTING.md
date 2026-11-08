@@ -8,15 +8,15 @@ The project uses a multi-layered testing approach:
 
 ### 1. Unit Tests
 Unit tests are located alongside the code they test in each crate:
-- `parser/src/` - Parser unit tests
+- `frontend/src/` - Parser unit tests
 - `interpreter/src/` - Interpreter unit tests
-- `compiler/cfg_to_ir/src/` - Compiler unit tests
-- `compiler/optimizer/src/` - Optimizer unit tests
+- `backend/cfg_to_ir/src/` - Compiler unit tests
+- `backend/optimizer/src/` - Optimizer unit tests
 - `piet_core/src/` - Core library unit tests
 
 Run unit tests:
 ```bash
-cargo test --lib --bins
+./scripts/run_tests.sh --unit-only
 ```
 
 ### 2. Integration Tests
@@ -28,7 +28,7 @@ These tests compile/interpret actual Piet programs from the `images/` directory 
 
 Run integration tests:
 ```bash
-cargo test --test '*'
+./scripts/run_tests.sh --integration-only
 ```
 
 ### 3. Test Fixtures
@@ -59,8 +59,18 @@ Run all tests:
 ./scripts/run_tests.sh --no-release
 ```
 
+### Reference Interpreter
+
+`./scripts/run_tests.sh` builds npiet from the pinned revision in `scripts/build_npiet.sh`, applies `scripts/patches/npiet-modern-c.patch`, and puts `target/npiet/bin` first on `PATH` for integration tests. This avoids relying on a system npiet with missing PNG support. The patch fixes the signal callback signature and giflib 5 compatibility. Only the interpreter is built; neither groff nor a system-wide install is needed.
+
+Install build prerequisites using the [README instructions](README.md#prerequisites). Source downloads and generated binaries stay under `target/npiet/`. Builds are reused when the script, patch, and build settings match. Unit-only runs do not build npiet.
+
 ### Manual Testing
 ```bash
+# Prepare the patched reference interpreter for direct Cargo commands
+./scripts/build_npiet.sh
+export PATH="$PWD/target/npiet/bin:$PATH"
+
 # All tests
 cargo test
 
@@ -87,7 +97,7 @@ The CI pipeline includes:
 - Build verification
 - Code coverage
 
-See `.github/workflows/ci.yml` for details.
+See `.github/workflows/rust.yml` for details.
 
 ## Adding New Tests
 
@@ -133,10 +143,12 @@ The `images/` directory contains a variety of test programs:
 
 ## Test Coverage
 
+Use `--no-dead-code` to avoid Tarpaulin's `-Clink-dead-code` flag, which triggers compile-time size assertions in otherwise-unused SIMD code in `pulp` (via `image` / `exr`). `--engine llvm` uses instrumentation-based coverage, including the instrumented PietCC subprocesses launched by integration tests. Tests and compile-time assertions remain enabled; coverage totals may exclude code eliminated by the compiler. Prepare the patched npiet and its `PATH` as described above before running coverage.
+
 To generate coverage report:
 ```bash
 cargo install cargo-tarpaulin
-cargo tarpaulin --all-features --workspace --timeout 300
+cargo tarpaulin --engine llvm --no-dead-code --all-features --workspace --timeout 300
 ```
 
 ## Debugging Failed Tests
@@ -166,14 +178,17 @@ cat test_output.ll
 ## Common Issues
 
 ### LLVM Not Found
-Make sure LLVM 18 is installed:
+Make sure LLVM 23 is installed:
 ```bash
 # Ubuntu
-sudo apt-get install llvm-18-dev libpolly-18-dev
+sudo apt-get install clang-23 llvm-23-dev libpolly-23-dev
+export LLVM_SYS_231_PREFIX=/usr/lib/llvm-23
+export PATH="$LLVM_SYS_231_PREFIX/bin:$PATH"
 
 # macOS
-brew install llvm@18
-export LLVM_SYS_180_PREFIX=$(brew --prefix llvm@18)
+brew install llvm@23
+export LLVM_SYS_231_PREFIX=$(brew --prefix llvm@23)
+export PATH="$LLVM_SYS_231_PREFIX/bin:$PATH"
 ```
 
 ### Test Timeouts

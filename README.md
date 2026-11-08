@@ -8,12 +8,16 @@ PietCC is a Rust interpreter and compiler for the [Piet](https://www.dangermouse
 
 ## Organization
 
-1. [piet_core](https://github.com/pwang00/pietcc/tree/main/piet_core): core language types
-2. [interpreter](https://github.com/pwang00/pietcc/tree/main/interpreter): core interpreter logic
-3. [compiler](https://github.com/pwang00/pietcc/tree/main/compiler): core compiler logic, handles CFG generation and subsequent optimizations
-4. [parser](https://github.com/pwang00/pietcc/tree/main/parser): core image parsing logic, handles image loading and pixel/codel operations
-5. [src](https://github.com/pwang00/pietcc/tree/main/src): main CLI, allows users to run either the interpreter or compiler with a variety of flags
-6. [tests](https://github.com/pwang00/pietcc/tree/main/tests): integration tests for compiler and interpreter
+1. [piet_core](piet_core/): shared language types, control flow graph (CFG), execution state, and settings.
+2. [frontend](frontend/): converts Piet source rasters into CFGs through connected-component labeling and parsing, and infers codel size.
+3. [interpreter](interpreter/): executes the CFG, with support for runtime interpretation and compile-time static evaluation.
+4. [backend](backend/): workspace containing the compiler backend:
+   - [cfg_to_ir](backend/cfg_to_ir/): lowers CFGs and static evaluation results to LLVM IR, runs LLVM optimization passes, and emits executables, LLVM IR, or bitcode.
+   - [optimizer](backend/optimizer/): Piet optimization pass manager, analysis cache, and static evaluation pass.
+5. [src](src/): main CLI, image loading, and orchestration of the frontend, interpreter, and compiler pipelines.
+6. [tests](tests/): shared test helpers and integration tests for the compiler and interpreter.
+7. [images](images/): sample Piet programs and test inputs.
+8. [scripts](scripts/): test runners and development utilities.
 
 ## Dependencies
 
@@ -46,33 +50,37 @@ cd pietcc
 
 ## Building PietCC
 
-To build PietCC, first make sure you have supported versions of rustc and LLVM on your system.  You may need to modify inkwell's cargo feature flags in the Cargo.tomls of the [project root](https://github.com/pwang00/pietcc/blob/main/Cargo.toml) and [compiler](https://github.com/pwang00/pietcc/blob/main/compiler/Cargo.toml).  This project sets them at LLVM 18.1:
+To build PietCC, first make sure you have supported versions of rustc and LLVM on your system. This project uses inkwell 0.11.0 with LLVM 23.1. If selecting another LLVM version, update the feature in all three manifests: [Cargo.toml](Cargo.toml), [piet_core/Cargo.toml](piet_core/Cargo.toml), and [backend/cfg_to_ir/Cargo.toml](backend/cfg_to_ir/Cargo.toml).
 
 ```
-inkwell = { version = "0.7.0", features = ["llvm18-1"] }
+inkwell = { version = "0.11.0", features = ["llvm23-1"] }
 ```
 
 However, other versions are supported as well per the inkwell docs:
 
 | LLVM Version | Cargo Feature Flag |
 | :----------: | :-----------: |
-| 4.0.x        | llvm4-0       |
-| 5.0.x        | llvm5-0       |
-| 6.0.x        | llvm6-0       |
-| 7.0.x        | llvm7-0       |
-| 8.0.x        | llvm8-0       |
-| 9.0.x        | llvm9-0       |
-| 10.0.x       | llvm10-0      |
-| 11.0.x       | llvm11-0      |
-| 12.0.x       | llvm12-0      |
-| 13.0.x       | llvm13-0      |
-| 14.0.x       | llvm14-0      |
-| 15.0.x       | llvm15-0      |
-| 16.0.x       | llvm16-0      |
-| 17.0.x       | llvm17-0      |
-| 18.1.x       | llvm18-1      |
+| 12.0.x | llvm12-0 |
+| 13.0.x | llvm13-0 |
+| 14.0.x | llvm14-0 |
+| 15.0.x | llvm15-0 |
+| 16.0.x | llvm16-0 |
+| 17.0.x | llvm17-0 |
+| 18.1.x | llvm18-1 |
+| 19.1.x | llvm19-1 |
+| 20.1.x | llvm20-1 |
+| 21.1.x | llvm21-1 |
+| 22.1.x | llvm22-1 |
+| 23.1.x | llvm23-1 |
 
-so replace `features = ["llvm18-1"]` with the desired cargo feature flag.
+Use exactly one LLVM feature consistently across all manifests. For LLVM 23 on Linux, configure both library discovery and the tools used to generate executables:
+
+```bash
+export LLVM_SYS_231_PREFIX=/usr/lib/llvm-23
+export PATH="$LLVM_SYS_231_PREFIX/bin:$PATH"
+```
+
+On macOS, install `llvm@23` with Homebrew and set `LLVM_SYS_231_PREFIX` to `$(brew --prefix llvm@23)`, then prepend its `bin` directory to `PATH`. The libraries, `llc`, and `clang` should come from the same LLVM installation.
 
 Once you have verified that the LLVM version is correct, run
 
@@ -91,19 +99,21 @@ PietCC includes comprehensive unit and integration tests.
 
 ### Prerequisites
 
-Integration tests require [npiet](https://github.com/gleitz/npiet) to be installed:
+The test runner builds a pinned [npiet](https://github.com/gleitz/npiet) revision with the compatibility patch in `scripts/patches/npiet-modern-c.patch`. The patched executable lives in `target/npiet/bin`; no system installation is needed. Install its build dependencies first:
 
 **Ubuntu/Debian:**
 ```bash
-sudo apt install libgd-dev groff
-git clone https://github.com/gleitz/npiet.git && cd npiet
-./configure
-make
-sudo make install
+sudo apt-get install build-essential git libgd-dev libpng-dev libgif-dev
 ```
 
 **macOS:**
-npiet is not currently supported on macOS due to giflib API incompatibilities. Unit tests will still work.
+```bash
+brew install gd libpng giflib
+export CPPFLAGS="-I$(brew --prefix)/include"
+export LDFLAGS="-L$(brew --prefix)/lib"
+```
+
+The patch fixes the signal handler signature and supports current giflib APIs. The first integration run requires network access to fetch the pinned source; subsequent runs reuse the build until the script, patch, or build settings change.
 
 ### Running Tests
 
@@ -111,7 +121,9 @@ npiet is not currently supported on macOS due to giflib API incompatibilities. U
 # Run all tests
 ./scripts/run_tests.sh
 
-# Or use cargo directly
+# Or prepare the reference interpreter for direct Cargo runs
+./scripts/build_npiet.sh
+export PATH="$PWD/target/npiet/bin:$PATH"
 cargo test
 ```
 
@@ -174,7 +186,7 @@ Doing `cargo run --release images/fizzbuzz.png -i -v 2` will also work.
 
 ## Compiling Piet programs
 
-PietCC supports emitting executables, LLVM IR, and LLVM bitcode.  The latter two options can be useful for targeting other architectures other than x86_64. The relevant flags are shown below.
+PietCC supports emitting executables, LLVM IR, and LLVM bitcode.  The latter two options can be useful for targeting architectures other than x86_64. The relevant flags are shown below.
 
 ```
 Piet compiler and interpreter
@@ -217,11 +229,21 @@ To specify an optimization level while compiling, do
 
 `./pietcc <image> --o[1|2|3] -o <output>`
 
+Without an optimization flag, PietCC skips Piet static evaluation and LLVM module optimization passes. Choose one of the following levels:
+
+| Flag | LLVM pipeline | Effect |
+| :--- | :--- | :--- |
+| `--o1` | `default<O1>` | Basic LLVM optimizations with a lower optimization cost. |
+| `--o2` | `default<O2>` | More extensive LLVM optimizations for runtime performance. |
+| `--o3` | `default<O3>` | More aggressive LLVM optimizations, potentially increasing compile time and code size. |
+
+All three levels first attempt the same Piet compile-time evaluation, limited to 200,000 steps. If evaluation completes, the compiler emits the precomputed result; if it stops for input or reaches the step limit, compilation continues from the partially evaluated state. The levels differ in their LLVM pipeline, not in the Piet evaluation budget.
+
 To specify behavior when encountering unknown pixels, do
 
 `./pietcc <image> --[ub|uw] -o <output>`
 
-and to specify warning about nontermination, do
+and to enable warnings about nontermination, do
 
 `./pietcc <image> -w -o <output>`
 
@@ -273,7 +295,7 @@ Stack (size 29): 18 0 7 18 80 0 105 0 101 0 116 44 43 62 44 43 62 44 43 62 44 43
 
 <img src="https://github.com/pwang00/pietcc/blob/main/images/pietquest.png" alt="Piet text-based quest"/>
 
-(This one takes a really long time to compile--upon profiling, I think it's because llc takes a long time to verify the input LLVM IR module.)
+(This one takes a really long time to compile—upon profiling, I think it's because llc takes a long time to verify the input LLVM IR module.)
 
 ```
 $ ./pietcc images/pietquest.png -o pietquest
@@ -313,9 +335,9 @@ She gives you a look.
 
 Note that in all compilation examples, codel size inference is being done implicitly.
 
-### Nonterminating Piet programs.
+### Nonterminating Piet programs
 
-I believe that some programs on the [piet samples](https://www.dangermouse.net/esoteric/piet/samples.html) page are a bit buggy, and a common mistake between these programs is nontermination.  Since Piet is Turing-complete, reasoning about arbitrary Piet program termination is equivalent to solving the halting problem; however, it is possible to enumerate a class of Piet programs that never terminate--the programs whose CFG nodes all have outdegree greater than 0.  This is explained [here](https://github.com/pwang00/pietcc/blob/main/Compiler.md#Termination).
+I believe that some programs on the [piet samples](https://www.dangermouse.net/esoteric/piet/samples.html) page are a bit buggy, and a common mistake between these programs is nontermination.  Since Piet is Turing-complete, reasoning about arbitrary Piet program termination is equivalent to solving the halting problem; however, it is possible to enumerate a class of Piet programs that never terminate—the programs whose CFG nodes all have outdegree greater than 0.  This is explained [here](https://github.com/pwang00/pietcc/blob/main/Compiler.md#Termination).
 
 Here are a few examples of this class of nonterminating Piet programs; running PietCC with the `-w` or `--warn-nt` flag warns users accordingly.
 
@@ -337,9 +359,9 @@ $ ./pietcc images/hw5.png --warn-nt -o hw5
 pietcc: warning: every node in program CFG has nonzero outdegree.  This implies nontermination!
 ```
 
-## Generating control flow graph from Piet LLVM IR
+## Generating a control flow graph from Piet LLVM IR
 
-Visualizing a CFG from LLVM IR can be helpful.  As an example, here's a program that simply push, pops, and dups.
+Visualizing a CFG from LLVM IR can be helpful.  As an example, here's a program that simply pushes, pops, and duplicates stack values.
 
 [test2_upscaled.png](https://github.com/pwang00/pietcc/blob/main/images/test2_upscaled.png)
 

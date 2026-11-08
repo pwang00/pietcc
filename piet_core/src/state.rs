@@ -1,8 +1,11 @@
+use crate::{
+    cfg::{BlockId, CFG},
+    flow::*,
+    instruction::*,
+};
 use std::collections::VecDeque;
 
-use crate::{flow::*, instruction::*};
-pub type Position = (u32, u32);
-
+pub type Position = (usize, usize);
 pub const ENTRY: Position = (0, 0);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -19,7 +22,7 @@ pub enum ExecutionStatus {
 pub struct ExecutionState {
     pub pointers: PointerState,
     pub cb_count: u64,
-    pub cb_label: String,
+    pub cb_id: BlockId,
     pub stdin: String,
     pub stdout: Vec<StdOutWrapper>,
     pub steps: u64,
@@ -32,7 +35,7 @@ impl Default for ExecutionState {
         Self {
             pointers: Default::default(),
             cb_count: Default::default(),
-            cb_label: "Entry".into(),
+            cb_id: CFG::ENTRY,
             stdin: Default::default(),
             stdout: Default::default(),
             steps: Default::default(),
@@ -47,7 +50,7 @@ impl std::fmt::Display for ExecutionState {
         writeln!(f, "ExecutionState {{");
         writeln!(f, "    dp: {:?}", self.pointers.dp);
         writeln!(f, "    cc: {:?}", self.pointers.cc);
-        writeln!(f, "    cb: {:?}", self.cb_count);
+        writeln!(f, "    cb: {} (size {})", self.cb_id, self.cb_count);
         writeln!(f, "    steps: {:?}", self.steps);
         writeln!(f, "    status: {:?}", self.status);
         writeln!(f, "    stack: {:?}", self.stack);

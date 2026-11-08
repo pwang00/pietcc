@@ -2,12 +2,30 @@
 
 ## Control flow graph types
 
-We can model Piet control flow as a directed graph: each vertex represents a color block and each edge represents a transition between color blocks, which encodes the command to be executed.  We can consider the following types to represent our control flow graph (CFG): 
+Piet control flow is modeled as a directed graph: each vertex represents a color block, and each edge groups the possible pointer states that transition to a neighboring block. The shared types live in [piet_core/src/cfg.rs](piet_core/src/cfg.rs) and [piet_core/src/flow.rs](piet_core/src/flow.rs). The main data layout is:
 
-```Rust
-pub type Node = Rc<ColorBlock>;
-pub type NodeAdj = HashMap<Node, Vec<PietTransition>>;
-pub type CFG = HashMap<Node, NodeAdj>;
+```rust
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct BlockId(pub usize);
+
+pub type Transitions = Vec<PietTransition>;
+pub type NodeAdj = Vec<(BlockId, Transitions)>;
+
+#[derive(Debug, Clone)]
+pub struct BlockData {
+    pub lightness: Lightness,
+    pub count: usize,
+    pub width: usize,
+    pub height: usize,
+    pub label: String,
+}
+
+#[derive(Debug)]
+pub struct CFG {
+    blocks: Vec<BlockData>,
+    adjacencies: Vec<NodeAdj>,
+    codel_size: usize,
+}
 
 #[derive(Copy, Clone, Debug, Default)]
 pub struct PointerState {
@@ -21,66 +39,92 @@ pub struct PietTransition {
     pub exit_state: PointerState,
     pub instruction: Option<Instruction>,
 }
-
-#[allow(unused)]
-#[derive(Eq)]
-pub struct ColorBlock {
-    label: String,
-    lightness: Lightness,
-    region: HashSet<Position>,
-}
 ```
 
-In a `Node`:
-* `label` is a string consisting of `{current color}_{minimum block row}_{minimum block col}`.  This is done because our adjacencies are stored in a hashset using the label as a hash for efficiency, so we don't want to double-store blocks that have identical regions but different labels.
-* `lightness` stores the current color
-* `region` is a set of all coordinates in the color block
+`BlockId` is a dense index into the CFG's parallel block and adjacency vectors. IDs are assigned in discovery order, with `CFG::ENTRY = BlockId(0)` identifying the initial block. Consumers use `cfg.ids()`, `cfg.block(id)`, and `cfg.adjacencies(id)` to traverse the graph. Indexed lookup avoids string hashing, and ordered traversal makes the emitted IR reproducible.
 
-`Vec<PietTransition>` represents the adjacency data for each node. Each `PietTransition` contains the entry state (direction pointer, codel chooser), exit state (direction pointer, codel chooser) after a potential transition, and command encoded by the color difference between the current node and adjacency. Transitions between even two non-white adjacencies in the final CFG will not necessarily encode an instruction, which will be explained in the white block elimination section.
+Each `BlockData` contains:
 
-The rest is pretty straightforward: `NodeAdj = HashMap<Node, Vec<PietTransition>>` is a map of every node with its adjacency data, and `CFG = HashMap<Node, NodeAdj>` is the adjacency list representation for our entire program's CFG.
+* `lightness`: the block's Piet color.
+* `count`: its size in codels, used as the value for `Push`.
+* `width` and `height`: its bounding box dimensions in codels.
+* `label`: a presentation name for diagnostics and LLVM basic blocks, formed from the color and the topmost, then leftmost source coordinate. Labels do not determine identity.
+
+The CFG no longer retains a set of every coordinate in each block. Pixel membership belongs to the frontend's label raster; the graph keeps only the payload needed by interpretation, optimization, and lowering.
+
+`NodeAdj` groups transitions by destination `BlockId`, preserving neighbor discovery order. Within each neighbor, transitions follow DP / CC order. Each `PietTransition` records the pointer state required to take the edge, the state on arrival, and an optional instruction. Direct colored-block transitions keep the same entry and exit state and decode the instruction from the color difference. Transitions traced through white execute no instruction and may change the pointer state.
 
 ## CFG generation
 
-Piet CFGs are generated via the following process:
+The [frontend pipeline](frontend/src/pipeline.rs) converts a `PietSource` raster into a CFG shared by the interpreter and compiler:
 
-1. Discover all pixels in the current color block via BFS.  
-2. Determine all possible exits from the current color block, and enqueue the unvisited ones.  Note that we filter out all exits that are either black or out of bounds.
-3. Iterate through the remaining coordinates in the boundaries and filter out the visited ones.  This is important since otherwise we might be doing repeated work trying to discover the same color block.
-4. For non-white blocks, discover each adjacent color block corresponding the block's exits, determine the bordering direction, corresponding instruction to be executed, and add the node and its adjacencies to the CFG.  Note that in the context of 
-
-```Rust
-struct PietTransition {
-    entry_state: PointerState,
-    exit_state: PointerState,
-    instruction: Option<Instruction>,
-}
+```text
+Image file
+    |
+    v
+CLI loader: decode pixels into a PietSource color raster
+    |
+    v
+Lexer: two-pass connected-component labeling
+    |  Scan equal-colored neighbors above and to the left;
+    |  merge equivalent labels with union-find, then resolve roots.
+    v
+Parser: sweep the labeled raster
+    |  Collect each component's color, pixel count, and eight exits
+    |  (one per DP / CC state); derive bounding boxes from the exits.
+    v
+Resolve the top-left entry (trace first if white)
+    |  Intern it as CFG::ENTRY; black or trapped white returns
+    |  a single node with no outgoing transitions.
+    v
+Walk reachable components with a queue <---------------------+
+    |                                                      |
+    v                                                      |
+Inspect all eight exits                                    |
+    |                                                      |
+    +-- Black / off canvas ----------> Skip                 |
+    |                                                      |
+    +-- Colored neighbor ------------> Decode instruction   |
+    |                                      |               |
+    +-- White --> Trace slide              |               |
+                     |                     |               |
+                     +-- No exit --> Skip  |               |
+                     |                     |               |
+                     +-- Colored exit -----+               |
+                         (no instruction)  |               |
+                                           v               |
+                           Intern destination; group       |
+                           transitions by BlockId;         |
+                           queue newly discovered blocks --+
+    |
+    | Queue exhausted
+    v
+Choose codel size: explicit width, default 1, or inferred GCD
+    |
+    v
+CFG::reinterpret: rescale counts and bounding boxes
+    |
+    v
+CFG -> interpreter or compiler backend
 ```
 
-We set the `entry_state` and `exit_state` to be the same, since from a control-flow perspective, only hitting restrictions or tracing white blocks can change the dp / cc, and we don't explicitly represent restrictions in our CFG (if a block's exit is out of bounds or black, we simply don't add it).  We set the `instruction` to be the corresponding one based on the lightness / hue differences between the current and adjacent block colors.  During compilation, we generate LLVM basic blocks for each node and its adjacencies using this Transitionsrmation.
+The lexer's `DisjointSet` holds the source raster, a `Raster<usize>` of component labels, and union-find nodes. During parsing, each component has temporary `ComponentMetadata` with `lightness: Option<Lightness>`, `count: usize`, and `exits: [Position; 8]`. The exits are updated as pixels are scanned; their extreme coordinates also supply the bounding box and label anchor.
 
+Labeling covers the entire image, while the queue walk only interns components reachable from the entry through valid exits. Block sizes initially use one source pixel per codel. Once the graph exists, the inference heuristic takes the GCD of its block widths and heights, or the pipeline uses the requested size. `CFG::reinterpret` rescales counts by codel area and dimensions by codel width without changing graph connectivity.
+
+Black and off-canvas exits are omitted from the graph. Runtime retry logic handles those restrictions by changing DP / CC until an available transition matches. During lowering, [cfg_to_ir](backend/cfg_to_ir/) generates LLVM basic blocks from the resulting graph.
 
 ## White block tracing and elimination
 
-White blocks follow a different exit convention than blocks of other color.  Namely, instead of selecting an exit codel based on the furthest direction in dp / cc, white blocks require moving in the direction of dp until a non-white or non-black block is hit and rotating the dp / cc upon collision with a restriction.  However, the exits can be determined statically by simply tracing from all possible entry points into the white block with the correct dp / cc, which are fixed by the adjacent block.  Furthermore, it's easy to see that an exit from a white block from a given entry and direction is unique, since if one exists, then it is necessarily the first non-white codel reached while traveling in the direction of dp.  
+White regions are traced during adjacency construction rather than added as ordinary graph nodes and removed in a separate pass. From an entry coordinate and pointer state, `trace_white` slides in the DP direction until it reaches a colored codel or a restriction. At a restriction, it rotates DP clockwise, toggles CC, and retries from the current coordinate, stopping after eight blocked attempts if no exit is found.
 
-Once the exits have been traced, we can eliminate white blocks entirely from our CFG and join the blocks corresponding to the entry point and exit point with an edge.  As an example, let A, C be non-white blocks and let B be a white block.  Then after elimination, A -> B -> C becomes A -> C if it's determined that B can be exited from A into C with the given adjacency state.  Otherwise, if there is no way out from B, we would just have A -> B becomes A.
+For a fixed entry coordinate and pointer state, tracing determines a single destination and arrival state, or reports no exit. If colored blocks A and C are connected through white region B, the parser emits A -> C directly. If tracing finds no exit, that candidate transition is omitted. A trapped white region at the program entry is retained as a terminal entry node.
 
-By eliminating white blocks, we can simplify our CFG and eliminate the need to generate a label, list of branches containing all possible dp / cc states for entrance, and a jump for every white block.  In the context of
-
-```rust
-struct PietTransition {
-    entry_state: PointerState,
-    exit_state: PointerState, 
-    instruction: Option<Instruction>,
-}
-```
-
-We set the `entry_state` to be the entry direction state, and `exit_state` to be exit direction state, and `instruction` to be `None` since no command is executed between white block transitions.
+Each successful white trace produces a `PietTransition` whose `entry_state` is the state used to leave A, whose `exit_state` is the state on reaching C, and whose `instruction` is `None`. No command is executed for the color difference across white. This avoids generating dispatch blocks for intermediate white regions.
 
 ## Code generation
 
-PietCC targets LLVM IR for sake of portability.  All LLVM IR code generation is done via [inkwell](https://github.com/TheDan64/inkwell); `llc` and `clang` are then used to convert the resulting IR into native assembly, and handle linking to libc to produce a final executable.  The following subsections go into more detail about the relevant functions.
+PietCC targets LLVM IR for portability.  All LLVM IR code generation is done via [inkwell](https://github.com/TheDan64/inkwell); `llc` and `clang` are then used to convert the resulting IR into native assembly, and handle linking to libc to produce a final executable.  Lowering and output generation live in [backend/cfg_to_ir](backend/cfg_to_ir/). The following subsections describe the relevant functions; the IR listings are illustrative excerpts.
 
 ### Libc functions
 
@@ -109,7 +153,7 @@ define void @set_stdout_unbuffered() {
 ### Globals
 
 * `@piet_stack = internal global i64* null`
-    * Piet stack of 64 bit integers.  This gets malloc'd at runtime
+    * Piet stack of 64-bit integers.  This gets malloc'd at runtime
 * `@dp = internal global i8 0`
     * Direction pointer
 * `@cc = internal global i8 0`
@@ -264,7 +308,7 @@ Every `dirvec` label represents the node bordering direction with its adjacency,
 
 ### Restrictions
 
-We know control flow has hit a restriction if the current value of the dp / cc doesn't satisfy any of the dp / cc checks for the current adjacency.  In this case, the retries counter `rctr` is incremented, the dp / cc are rotated depending on the parity of `rctr`, and control flow jumps back to the start of the current node's labels.  It follows that control flow will be able to exit the current node, since the runtime dp / cc will be eventually be rotated to a state that satisfies one of the dp / cc comparisons. 
+We know control flow has hit a restriction if the current value of the dp / cc doesn't satisfy any of the dp / cc checks for the current adjacency.  In this case, the retries counter `rctr` is incremented, the dp / cc are rotated depending on the parity of `rctr`, and control flow jumps back to the start of the current node's labels.  It follows that control flow will be able to exit the current node, since the runtime dp / cc will eventually be rotated to a state that satisfies one of the dp / cc comparisons.
 
 This dp / cc rotation behavior is implemented in `retry`, shown below:
 
@@ -299,11 +343,13 @@ ret:                                              ; preds = %zero_mod_two, %one_
 
 ### Termination
 
-A compiled Piet program terminates once a jump is taken to a color block that has no adjacencies.  In this case, `start` returns immediately and the stack state is printed.  It follows that every Piet program CFG that contains no nodes of outdegree 0 will never terminate, since only nodes of oudegree zero are compiled with `ret` instructions.  Therefore, we can detect a certain class of nonterminating programs at compile-time and warn the user accordingly.
+A compiled Piet program terminates once a jump is taken to a color block that has no adjacencies.  In this case, `start` returns immediately and the stack state is printed.  It follows that every Piet program CFG that contains no nodes of outdegree 0 will never terminate, since only nodes of outdegree zero are compiled with `ret` instructions.  Therefore, we can detect a certain class of nonterminating programs at compile-time and warn the user accordingly.
 
-### Optimizations (WIP)
+### Optimizations
 
-PietCC implements an optimizer that runs on the pre-lowered CFG and LLVM IR.  The architecture is very loosely inspired by LLVM's own optimizer, but greatly simplified.  PietCC provides abstractions for custom optimization passes.
+PietCC runs Piet-level passes from [backend/optimizer](backend/optimizer/) before lowering, then LLVM module passes through [cfg_to_ir's LLVM pipeline](backend/cfg_to_ir/src/llvm_pipeline.rs). The Piet pass manager provides abstractions for custom passes and cached analysis results.
+
+Without an optimization flag, both stages are skipped. `--o1`, `--o2`, and `--o3` all attempt the same Piet static evaluation with a 200,000-step budget, then run LLVM's `default<O1>`, `default<O2>`, or `default<O3>` pipeline respectively. Higher levels apply more extensive LLVM optimizations and may cost more compilation time; they do not increase the Piet evaluation budget.
 
 ```rust
 pub trait Pass: Debug {
@@ -423,7 +469,7 @@ impl Pass for StaticEvaluatorPass {
 
 #### Constant programs
 
-The compile-time evaluator can completely fold constant programs, which we define as programs that run until completion after a finite number of steps, and do not depend on input instructions.  Let's consider the example of [Hello World 1:](https://github.com/pwang00/pietcc/blob/main/images/hw1-11.gif)
+The compile-time evaluator can completely fold constant programs that finish within its step budget without requiring input.  Let's consider the example of [Hello World 1:](https://github.com/pwang00/pietcc/blob/main/images/hw1-11.gif)
 
 <img src="https://github.com/pwang00/pietcc/blob/main/images/hw1-11.gif" alt="Hello World with Codel Size 11"/>
 
@@ -469,7 +515,7 @@ dirvec_adj8:                                      ; preds = %dirvec_adj7
 }
 ```
 
-whereas the optimized version simply contains both the stack and stdout states as string literals, which are printed at runtime.
+whereas a fully folded version simply contains both the stack and stdout states as string literals, which are printed at runtime.
 
 ```
 ; ModuleID = 'piet'
@@ -504,7 +550,7 @@ attributes #1 = { mustprogress nofree norecurse nosync nounwind willreturn memor
 
 #### Non-Terminating or Input-Dependent Programs
 
-The compile-time evaluator cannot fold input-dependent or otherwise non-terminating programs, but can still generate programs that can "resume" from a given state, which may reduce the number of instructions needed to be executed at runtime. To be precise, the evaluator runs until either `MAX_STEPS` is reached, or a `CharIn` or `IntIn` instruction is encountered.  The stack, stdout, dp, cc states until this point are compiled into the program, and the last visited color block is the first adjacency that the `start` function jumps to.  Using the above Hello World program as an example, a completely unoptimized variant might produce
+The compile-time evaluator cannot fold input-dependent or otherwise non-terminating programs, but can still generate programs that can "resume" from a given state, which may reduce the number of instructions executed at runtime. To be precise, the evaluator runs until either `MAX_STEPS` is reached, or a `CharIn` or `IntIn` instruction is encountered.  The stack, stdout, dp, cc states until this point are compiled into the program, and the saved block ID determines where the `start` function resumes.  Using the above Hello World program as an example, a completely unoptimized variant might produce
 
 ```
 define i64 @main() {

@@ -2,7 +2,10 @@
 # Test runner script for pietcc
 # This script runs all tests (unit + integration) with proper configuration
 
-set -e
+set -euo pipefail
+
+repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+cd "$repo_root"
 
 echo "======================================"
 echo "Running pietcc Test Suite"
@@ -57,6 +60,19 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+# Select the tools matching the LLVM bindings when a prefix is configured.
+if [[ -z "${LLVM_SYS_231_PREFIX:-}" && -d /usr/lib/llvm-23 ]]; then
+  export LLVM_SYS_231_PREFIX=/usr/lib/llvm-23
+fi
+if [[ -n "${LLVM_SYS_231_PREFIX:-}" ]]; then
+  export PATH="$LLVM_SYS_231_PREFIX/bin:$PATH"
+fi
+
+if [ "$RUN_INTEGRATION" = true ]; then
+  "$repo_root/scripts/build_npiet.sh"
+  export PATH="$repo_root/target/npiet/bin:$PATH"
+fi
+
 # Build the project
 if [ "$BUILD_RELEASE" = true ]; then
   echo -e "${YELLOW}Building release binary...${NC}"
@@ -73,11 +89,15 @@ fi
 if [ "$RUN_UNIT" = true ]; then
   echo ""
   echo -e "${YELLOW}Running unit tests...${NC}"
+  test_args=(--)
   if [ "$VERBOSE" = true ]; then
-    cargo test --lib --bins -- --nocapture
-  else
-    cargo test --lib --bins
+    test_args=(-- --nocapture)
   fi
+  # The root is a binary crate; library tests belong to the separate crates.
+  cargo test --bins "${test_args[@]}"
+  for manifest in frontend/Cargo.toml interpreter/Cargo.toml piet_core/Cargo.toml backend/Cargo.toml; do
+    cargo test --manifest-path "$manifest" --workspace "${test_args[@]}"
+  done
 
   if [ $? -eq 0 ]; then
     echo -e "${GREEN}✓ Unit tests passed${NC}"

@@ -7,12 +7,12 @@ build = "build.rs"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-piet-parser = { version = "0.1", path = "parser" }
-cfg_to_ir = { version = "0.1", path = "compiler/cfg_to_ir" }
-piet-optimizer = { version = "0.1", path = "compiler/optimizer" }
+piet-frontend = { version = "0.1", path = "frontend" }
+cfg_to_ir = { version = "0.1", path = "backend/cfg_to_ir" }
+piet-optimizer = { version = "0.1", path = "backend/optimizer" }
 piet-interpreter = { version = "0.1", path = "interpreter" }
 piet-core = { version = "0.1", path = "piet_core" }
-inkwell = { version = "0.7.0", features = ["llvm18-1"] }
+inkwell = { version = "0.11.0", features = ["llvm23-1"] }
 image = "0.24.5"
 clap = "3.0.0-beta.5"
 

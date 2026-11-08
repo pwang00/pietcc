@@ -31,7 +31,7 @@ pub(crate) fn build_partial<'a, 'b>(
     builder::build_switch(ctx);
     builder::build_rotate(ctx);
     builder::build_retry(ctx);
-    builder::build_transitions(ctx, &cfg, &execution_state.cb_label);
+    builder::build_transitions(ctx, &cfg, execution_state.cb_id);
     builder::build_stack_io(ctx, execution_state);
     builder::build_main(ctx, execution_state);
 }

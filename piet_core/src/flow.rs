@@ -1,19 +1,17 @@
-use std::collections::HashSet;
+use crate::{instruction::Instruction, state::Position};
 
-use crate::{instruction::Instruction, program::PietSource, state::Position};
-
-type C1 = fn(&&(u32, u32)) -> (i64, i64);
-type C2 = fn((u32, u32, u32)) -> (u32, u32);
+type C1 = fn(&(usize, usize)) -> (i64, i64);
+type C2 = fn((usize, usize, usize)) -> Position;
 
 pub const FURTHEST: [C1; 8] = [
-    |&&(x, y)| (y as i64, -(x as i64)),    // dp = right, cc = left
-    |&&(x, y)| (y as i64, x as i64),       // dp = right, cc = right
-    |&&(x, y)| (x as i64, y as i64),       // dp = down, cc = left
-    |&&(x, y)| (x as i64, -(y as i64)),    // dp = down, cc = right
-    |&&(x, y)| (-(y as i64), x as i64),    // dp = left, cc = left
-    |&&(x, y)| (-(y as i64), -(x as i64)), // dp = left, cc = right
-    |&&(x, y)| (-(x as i64), -(y as i64)), // dp = up, cc = left
-    |&&(x, y)| (-(x as i64), y as i64),    // dp = up, cc = right
+    |&(x, y)| (y as i64, -(x as i64)),    // dp = right, cc = left
+    |&(x, y)| (y as i64, x as i64),       // dp = right, cc = right
+    |&(x, y)| (x as i64, y as i64),       // dp = down, cc = left
+    |&(x, y)| (x as i64, -(y as i64)),    // dp = down, cc = right
+    |&(x, y)| (-(y as i64), x as i64),    // dp = left, cc = left
+    |&(x, y)| (-(y as i64), -(x as i64)), // dp = left, cc = right
+    |&(x, y)| (-(x as i64), -(y as i64)), // dp = up, cc = left
+    |&(x, y)| (-(x as i64), y as i64),    // dp = up, cc = right
 ];
 
 pub const MOVE_IN: [C2; 4] = [
@@ -130,19 +128,6 @@ impl DirectionOps for CodelChooser {
     }
 }
 
-pub trait FindAdj {
-    fn adjacencies((r, c): Position, program: &PietSource, cs: u32) -> HashSet<Position> {
-        vec![
-            (r.wrapping_add(cs), c),
-            (r.wrapping_sub(cs), c),
-            (r, c.wrapping_add(cs)),
-            (r, c.wrapping_sub(cs)),
-        ]
-        .iter()
-        .filter_map(|&pos| program.get(pos).map(|_| pos))
-        .collect()
-    }
-}
 #[derive(Debug, Copy, Clone)]
 pub struct PietTransition {
     pub entry_state: PointerState,
